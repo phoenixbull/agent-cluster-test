@@ -1,0 +1,23 @@
+{
+  "cluster": {
+    "name": "ai-product-dev-agents",
+    "version": "2.2",
+    "mode": "orchestrator",
+    "max_parallel_agents": 3
+  },
+  "dingtalk": {
+    "enabled": false,
+    "webhook": "",
+    "secret": ""
+  },
+  "quality_gate": {
+    "enabled": true,
+    "phase_4": {"min_coverage": 80, "max_critical_bugs": 0},
+    "phase_5": {"min_review_score": 80, "required_approvals": 3}
+  },
+  "github": {
+    "user": "phoenixbull",
+    "repo": "ai-product-dev-agents",
+    "auto_create_pr": true
+  }
+}

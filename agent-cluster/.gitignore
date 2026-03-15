@@ -1,0 +1,30 @@
+# 敏感信息
+*.pem
+*.key
+*.secret
+.env
+credentials.json
+
+# 日志文件
+logs/*.log
+*.log
+
+# 会话文件
+agents/*/sessions/*.json
+memory/sessions.json
+
+# 包含 Token 的文件
+memory/2026-03-05.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Node
+node_modules/
+
+# 系统文件
+.DS_Store
+Thumbs.db
