@@ -1,6 +1,6 @@
 """
 生成的 API 模块
-任务：实现以下功能：测试部署确认功能 - 第二次测试
+任务：实现以下功能：测试部署确认功能 - 验证 Phase 6 和钉钉通知
 """
 
 from flask import Flask, request, jsonify
