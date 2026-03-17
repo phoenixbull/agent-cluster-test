@@ -23,6 +23,7 @@ from utils.backup_manager import get_backup_manager
 from utils.checkpoint import get_checkpoint_manager, get_workflow_resumer
 from utils.deploy_executor import get_deploy_executor
 from utils.k8s_deploy import get_k8s_deploy_executor
+from utils.metrics import get_prometheus_metrics
 
 # 初始化数据库
 init_database()
@@ -160,6 +161,13 @@ class WebUIHandler(SimpleHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps(health_checker.full_check()).encode())
+            return
+        elif path == '/metrics':
+            # Prometheus 指标端点
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/plain; version=0.0.4')
+            self.end_headers()
+            self.wfile.write(get_prometheus_metrics().encode())
             return
         elif path == '/api/status': self.send_json(self.get_status())
         elif path == '/api/agents': self.send_json(self.get_agents())
