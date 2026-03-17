@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AI 产品开发智能体 Web 界面 V2.2
-完整 6 阶段开发流程 | 10 个专业智能体 | 质量门禁 | 钉钉通知
+Agent 集群 Web 界面 V2.1
+完整 6 阶段开发流程 | 10 个专业 Agent | 质量门禁 | 钉钉双向通知
 """
 
 import json, os, sys, hashlib, time, secrets
@@ -19,7 +19,7 @@ LOGS_DIR.mkdir(exist_ok=True)
 
 AUTH_CONFIG_FILE = MEMORY_DIR / "auth_config.json"
 SESSIONS_FILE = MEMORY_DIR / "sessions.json"
-CLUSTER_CONFIG = BASE_DIR / "cluster_config_v2.2.json"
+CLUSTER_CONFIG = BASE_DIR / "cluster_config_v2.json"
 
 class WebUIHandler(SimpleHTTPRequestHandler):
     PUBLIC_PATHS = ['/api/status', '/api/agents', '/api/phases', '/login', '/api/login', '/static/']
@@ -111,11 +111,6 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         elif path == '/api/templates' and is_auth: self.send_json(self.get_templates())
         elif path == '/api/costs' and is_auth: self.send_json(self.get_costs())
         elif path == '/api/projects' and is_auth: self.send_json(self.get_projects())
-        elif path == '/api/kanban' and is_auth: self.send_json(self.get_kanban())
-        elif path == '/api/kanban/project' and is_auth: self.send_json(self.get_project_kanban())
-        elif path == '/api/kanban/task' and is_auth: self.send_json(self.update_kanban_task())
-        elif path == '/api/bugs' and is_auth: self.send_json(self.get_bugs())
-        elif path == '/api/bugs/submit' and is_auth: self.send_json(self.submit_bug())
         elif path == '/login': self.send_html(self.get_login_page())
         elif path == '/': 
             if not is_auth: self.send_response(302); self.send_header('Location', '/login'); self.end_headers(); return
@@ -125,9 +120,9 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         elif path == '/phases' and is_auth: self.send_html(self.get_phases_page())
         elif path == '/quality' and is_auth: self.send_html(self.get_quality_page())
         elif path == '/bugs' and is_auth: self.send_html(self.get_bugs_page())
+        elif path == '/deployments' and is_auth: self.send_html(self.get_deployments_page())
         elif path == '/templates' and is_auth: self.send_html(self.get_templates_page())
         elif path == '/costs' and is_auth: self.send_html(self.get_costs_page())
-        elif path == '/kanban' and is_auth: self.send_html(self.get_kanban_page())
         elif path == '/settings' and is_auth: self.send_html(self.get_settings_page())
         else: super().do_GET()
     
@@ -141,13 +136,15 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         if not is_auth: self.send_json({"error": "未授权"}, 401); return
         
         if path == '/api/submit': self.send_json(self.submit_task(data))
+        elif path == '/api/deploy/execute': self.send_json(self.execute_deploy(data))
+        elif path == '/api/deploy/stop': self.send_json(self.stop_deploy(data))
+        elif path == '/api/deploy/status': self.send_json(self.get_deploy_status(data))
         elif path == '/api/bugs/submit': self.send_json(self.submit_bug(data))
-        elif path == '/api/bugs': self.send_json(self.get_bugs())
+        elif path == '/api/bugs' and is_auth: self.send_json(self.get_bugs())
         elif path == '/api/template/save': self.send_json(self.save_template(data))
         elif path == '/api/template/delete': self.send_json(self.delete_template(data))
         elif path == '/api/logout': self.handle_logout(token)
         elif path == '/api/change-password': self.handle_change_password(data, token)
-        elif path == '/api/kanban/task': self.send_json(self.update_kanban_task(data))
         else: self.send_error(404)
     
     def send_json(self, data, status=200):
@@ -181,9 +178,21 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         self.sessions = {}; self._save_sessions()
         self.send_json({"success": True, "message": "密码已修改，请重新登录"})
     
+    def get_health(self):
+        """健康检查端点"""
+        try:
+            return {
+                'status': 'healthy',
+                'timestamp': datetime.now().isoformat(),
+                'service': 'agent-cluster',
+                'version': '2.2.0'
+            }
+        except Exception as e:
+            return {'status': 'error', 'error': str(e)}
+    
     def get_status(self):
-        orch = bool(subprocess.run(['pgrep', '-f', 'orchestrator.py'], capture_output=True, text=True, timeout=5).stdout.strip())
-        deploy = bool(subprocess.run(['pgrep', '-f', 'deploy_listener.py'], capture_output=True, text=True, timeout=5).stdout.strip())
+        orch = bool(subprocess.run(['pgrep', '-f', 'orchestrator.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=5).stdout.strip())
+        deploy = bool(subprocess.run(['pgrep', '-f', 'deploy_listener.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=5).stdout.strip())
         wf = self.workflow_state.get("workflows", {})
         wfl = list(wf.values()) if isinstance(wf, dict) else wf
         return {"status": "running" if orch else "stopped", "deploy_listener": "running" if deploy else "stopped",
@@ -251,118 +260,6 @@ class WebUIHandler(SimpleHTTPRequestHandler):
             except: pass
         return {"projects": []}
     
-    def get_kanban(self):
-        try:
-            sys.path.insert(0, str(BASE_DIR))
-            from utils.project_manager import get_project_manager
-            pm = get_project_manager()
-            projects = pm.list_projects()
-            stats = pm.get_task_stats()
-            progress = pm.get_progress()
-            return {"success": True, "projects": projects, "overall_stats": stats, "overall_progress": progress}
-        except Exception as e:
-            return {"success": False, "error": str(e), "projects": [], "overall_stats": {}, "overall_progress": {}}
-    
-    def get_project_kanban(self, data=None):
-        try:
-            sys.path.insert(0, str(BASE_DIR))
-            from utils.project_manager import get_project_manager
-            pm = get_project_manager()
-            project_id = data.get("project_id") if data else None
-            if not project_id:
-                projects = pm.list_projects()
-                if projects: project_id = projects[0].get("id")
-            if not project_id: return {"success": False, "error": "没有可用项目"}
-            board = pm.get_kanban_board(project_id)
-            detail = pm.get_project_detail(project_id)
-            return {"success": True, "board": board, "project": detail}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
-    
-    def update_kanban_task(self, data=None):
-        try:
-            sys.path.insert(0, str(BASE_DIR))
-            from utils.project_manager import get_project_manager, TaskStatus
-            pm = get_project_manager()
-            if not data: return {"success": False, "error": "数据为空"}
-            task_id = data.get("task_id")
-            status = data.get("status")
-            if not task_id or not status: return {"success": False, "error": "任务 ID 和状态不能为空"}
-            success = pm.update_task_status(task_id, status)
-            return {"success": success, "message": "任务状态已更新" if success else "更新失败"}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
-    
-    def get_bugs(self):
-        bugs_file = MEMORY_DIR / "bugs.json"
-        if bugs_file.exists():
-            try:
-                with open(bugs_file, 'r', encoding='utf-8') as f:
-                    bugs = json.load(f)
-                bugs.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-                return {"bugs": bugs[-50:]}
-            except: pass
-        return {"bugs": []}
-    
-    def submit_bug(self, data=None):
-        if not data: return {"success": False, "error": "数据为空"}
-        title = data.get("title", "")
-        priority = data.get("priority", "medium")
-        description = data.get("description", "")
-        files = data.get("files", "")
-        project = data.get("project", "default")
-        
-        if not title or not description:
-            return {"success": False, "error": "标题和描述不能为空"}
-        
-        import random
-        bug_id = f"BUG{random.randint(1000, 9999)}"
-        
-        bugs_file = MEMORY_DIR / "bugs.json"
-        bugs = []
-        if bugs_file.exists():
-            try:
-                with open(bugs_file, 'r', encoding='utf-8') as f: bugs = json.load(f)
-            except: pass
-        
-        bug_record = {
-            "id": bug_id, "title": title, "priority": priority, "description": description,
-            "files": files, "project": project, "status": "new",
-            "created_at": datetime.now().isoformat(), "workflow_id": None, "pr_url": None
-        }
-        bugs.append(bug_record)
-        
-        with open(bugs_file, 'w', encoding='utf-8') as f:
-            json.dump(bugs, f, ensure_ascii=False, indent=2)
-        
-        requirement = f"""🐛 Bug 修复任务
-
-**Bug ID**: {bug_id}
-**标题**: {title}
-**优先级**: {priority}
-**问题描述**: {description}
-**相关文件**: {files if files else '待分析'}
-
-**修复要求**:
-1. 分析 Bug 根本原因
-2. 修复相关代码
-3. 编写/更新单元测试
-4. 确保测试覆盖率 > 80%
-5. 通过所有质量门禁
-6. 创建 Pull Request
-"""
-        
-        try:
-            cmd = f"cd {BASE_DIR} && python3 orchestrator.py \"{requirement}\""
-            subprocess.Popen(cmd, shell=True, stdout=open(LOGS_DIR / f"bug_{bug_id}.log", 'a'), stderr=subprocess.STDOUT)
-            bug_record["status"] = "fixing"
-            bug_record["workflow_id"] = f"wf_{bug_id}"
-            with open(bugs_file, 'w', encoding='utf-8') as f:
-                json.dump(bugs, f, ensure_ascii=False, indent=2)
-            return {"success": True, "message": "Bug 已提交，智能体集群正在修复中", "bug_id": bug_id, "workflow_id": bug_record["workflow_id"]}
-        except Exception as e:
-            return {"success": False, "error": f"提交成功但启动修复失败：{str(e)}"}
-    
     def submit_task(self, data):
         req = data.get("requirement", "")
         if not req: return {"success": False, "error": "需求不能为空"}
@@ -391,72 +288,274 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         tpl = [t for t in tpl if t.get("id") != data.get("id")]
         with open(tf, 'w', encoding='utf-8') as f: json.dump(tpl, f, ensure_ascii=False, indent=2)
         return {"success": True}
-    
-    # HTML 页面方法（简化版）
+
+    # ============== HTML 页面 ==============
     def get_login_page(self):
-        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>登录 - AI 产品开发智能体</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;display:flex;align-items:center;justify-content:center}.login-container{background:white;border-radius:16px;padding:40px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.3)}.logo{text-align:center;margin-bottom:30px}.logo h1{font-size:28px;color:#333}.logo .version{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:4px 12px;border-radius:20px;font-size:12px;display:inline-block;margin-top:8px}.form-group{margin-bottom:20px}.form-group label{display:block;margin-bottom:8px;color:#555;font-weight:500}.form-group input{width:100%;padding:12px 16px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px}.btn{width:100%;padding:14px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}.error{background:#fee;color:#c33;padding:12px;border-radius:8px;margin-bottom:20px;display:none}</style></head><body>
-<div class="login-container"><div class="logo"><h1>🤖 AI 产品开发智能体</h1><p>智能协作开发系统</p><span class="version">V2.2</span></div>
-<div class="error" id="err"></div>
-<form id="loginForm"><div class="form-group"><label>用户名</label><input type="text" id="username" value="admin" required></div>
-<div class="form-group"><label>密码</label><input type="password" id="password" value="admin123" required></div>
-<button type="submit" class="btn">登录</button></form></div>
-<script>document.getElementById('loginForm').addEventListener('submit',async function(e){e.preventDefault();const btn=e.target.querySelector('button');btn.disabled=true;btn.textContent='登录中...';try{const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('username').value,password:document.getElementById('password').value})});const d=await res.json();if(d.success){document.cookie='auth_token='+d.token+';Path=/;Max-Age='+(24*60*60);window.location.href='/';}else{document.getElementById('err').textContent=d.error;document.getElementById('err').style.display='block';btn.disabled=false;btn.textContent='登录';}}catch(err){document.getElementById('err').textContent='网络错误';document.getElementById('err').style.display='block';btn.disabled=false;btn.textContent='登录';}});</script></body></html>"""
-    
+        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>登录 - Agent 集群 V2.1</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;display:flex;align-items:center;justify-content:center}.login-container{background:white;border-radius:16px;padding:40px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.3)}.logo{text-align:center;margin-bottom:30px}.logo h1{font-size:28px;color:#333;margin-bottom:10px}.logo p{color:#666;font-size:14px}.logo .version{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:4px 12px;border-radius:20px;font-size:12px;display:inline-block;margin-top:8px}.form-group{margin-bottom:20px}.form-group label{display:block;margin-bottom:8px;color:#555;font-weight:500}.form-group input{width:100%;padding:12px 16px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;transition:border-color 0.3s}.form-group input:focus{outline:none;border-color:#667eea}.btn{width:100%;padding:14px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s}.btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(102,126,234,0.4)}.btn:disabled{opacity:0.6;cursor:not-allowed;transform:none}.error-message{background:#fee;color:#c33;padding:12px;border-radius:8px;margin-bottom:20px;font-size:14px;display:none}.footer{text-align:center;margin-top:20px;color:#999;font-size:12px}.features{margin-top:20px;padding:15px;background:#f8f9fa;border-radius:8px}.features h4{color:#666;font-size:14px;margin-bottom:10px}.features ul{list-style:none}.features li{color:#888;font-size:12px;padding:4px 0}.features li:before{content:"✅ "}</style></head><body>
+<div class="login-container"><div class="logo"><h1>🤖 Agent 集群</h1><p>智能协作开发系统</p><span class="version">V2.1</span></div>
+<div class="error-message" id="errorMessage"></div>
+<form id="loginForm"><div class="form-group"><label for="username">用户名</label><input type="text" id="username" name="username" placeholder="请输入用户名" autocomplete="username" required></div>
+<div class="form-group"><label for="password">密码</label><input type="password" id="password" name="password" placeholder="请输入密码" autocomplete="current-password" required></div>
+<button type="submit" class="btn" id="submitBtn">登录</button></form>
+<div class="features"><h4>📊 系统特性</h4><ul><li>完整 6 阶段开发流程</li><li>10 个专业 Agent 协作</li><li>质量门禁自动审查</li><li>钉钉双向通知</li></ul></div>
+<div class="footer">Agent Cluster Console v2.1</div></div>
+<script>document.getElementById('loginForm').addEventListener('submit',async function(e){e.preventDefault();const btn=document.getElementById('submitBtn');const errorDiv=document.getElementById('errorMessage');const username=document.getElementById('username').value;const password=document.getElementById('password').value;btn.disabled=true;btn.textContent='登录中...';errorDiv.style.display='none';try{const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});const data=await res.json();if(data.success){document.cookie=`auth_token=${data.token};Path=/;Max-Age=${24*60*60};SameSite=Strict`;window.location.href='/';}else{errorDiv.textContent=data.error||'登录失败';errorDiv.style.display='block';btn.disabled=false;btn.textContent='登录';}}catch(err){errorDiv.textContent='网络错误，请稍后重试';errorDiv.style.display='block';btn.disabled=false;btn.textContent='登录';}});</script></body></html>"""
+
     def get_main_page(self):
-        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>AI 产品开发智能体控制台</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px}.nav a:hover{background:rgba(255,255,255,0.2)}.container{max-width:1400px;margin:0 auto;padding:30px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}.card{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.card h3{color:#666;font-size:14px}.card .value{font-size:32px;font-weight:bold;color:#333}</style></head><body>
-<div class="header"><h1>🤖 AI 产品开发智能体控制台 V2.2</h1>
-<div class="nav"><a href="/">📊 概览</a><a href="/phases">🔄 开发流程</a><a href="/agents">🤖 AI 智能体</a><a href="/workflows">📋 工作流</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/kanban">📋 项目看板</a><a href="/templates">📝 模板库</a><a href="/costs">💰 成本统计</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div>
-<div class="container"><div class="cards">
-<div class="card"><h3>系统状态</h3><div class="value" id="status">-</div></div>
-<div class="card"><h3>进行中的工作流</h3><div class="value" id="active">-</div></div>
-<div class="card"><h3>今日完成</h3><div class="value" id="completed">-</div></div>
-<div class="card"><h3>今日失败</h3><div class="value" id="failed">-</div></div>
-</div></div>
-<script>async function load(){const res=await fetch('/api/status');const d=await res.json();document.getElementById('status').textContent=d.status==='running'?'运行中':'已停止';document.getElementById('active').textContent=d.active_workflows;document.getElementById('completed').textContent=d.completed_today;document.getElementById('failed').textContent=d.failed_today;}load();setInterval(load,30000);function logout(){if(confirm('确定登出？')){fetch('/api/logout',{method:'POST'}).then(()=>{document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';});}}</script></body></html>"""
-    
-    def get_agents_page(self): return self._list_page("AI 智能体", "/api/agents", ["name", "role", "phase", "model"])
-    def get_phases_page(self): return self._list_page("开发流程", "/api/phases", ["id", "name", "agents", "outputs"])
-    def get_workflows_page(self): return self._list_page("工作流", "/api/workflows", ["id", "status", "created_at"])
-    def get_quality_page(self): return """<!DOCTYPE html><html><head><title>质量门禁</title></head><body><h1>🚦 质量门禁</h1><p>加载中...</p><script>fetch('/api/quality-gate').then(r=>r.json()).then(d=>{document.body.innerHTML='<pre>'+JSON.stringify(d,null,2)+'</pre>';});</script></body></html>"""
-    def get_bugs_page(self): return self._list_page("Bug 管理", "/api/bugs", ["id", "title", "priority", "status", "created_at"])
-    def get_templates_page(self): return self._list_page("模板库", "/api/templates", ["name", "description", "created_at"])
-    def get_costs_page(self): return self._list_page("成本统计", "/api/costs", ["today", "week", "month"])
-    def get_settings_page(self): return """<!DOCTYPE html><html><head><title>设置</title></head><body><h1>⚙️ 设置</h1><p>功能开发中...</p></body></html>"""
-    
-    def get_kanban_page(self):
-        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>项目看板</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:white;text-decoration:none;padding:8px 16px;border-radius:6px}.container{padding:30px}.board{display:grid;grid-template-columns:repeat(5,1fr);gap:20px}.column{background:#ebecf0;border-radius:8px;padding:15px;min-height:400px}.column h3{margin-bottom:15px;color:#5e6c84}</style></head><body>
-<div class="header"><h1>📋 项目看板</h1>
-<div class="nav"><a href="/">📊 概览</a><a href="/phases">🔄 开发流程</a><a href="/agents">🤖 AI 智能体</a><a href="/workflows">📋 工作流</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/kanban" style="background:rgba(255,255,255,0.2);">📋 项目看板</a><a href="/templates">📝 模板库</a><a href="/costs">💰 成本统计</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div>
-<div class="container"><div class="board">
-<div class="column"><h3>📝 待办</h3><div id="backlog"></div></div>
-<div class="column"><h3>📋 准备做</h3><div id="todo"></div></div>
-<div class="column"><h3>🔄 进行中</h3><div id="inprogress"></div></div>
-<div class="column"><h3>🔍 审查中</h3><div id="review"></div></div>
-<div class="column"><h3>✅ 已完成</h3><div id="done"></div></div>
-</div></div>
-<script>async function load(){const res=await fetch('/api/kanban/project');const d=await res.json();if(d.success&&d.board){['backlog','todo','in_progress','review','done'].forEach(s=>{const el=document.getElementById(s==='in_progress'?'inprogress':s);const tasks=d.board[s]||[];el.innerHTML=tasks.map(t=>'<div style="background:white;padding:10px;margin-bottom:10px;border-radius:4px;">'+(t.title||'未命名')+'</div>').join('');});}}load();function logout(){if(confirm('确定登出？')){fetch('/api/logout',{method:'POST'}).then(()=>{document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';});}}</script></body></html>"""
+        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Agent 集群 V2.1 控制台</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:20px 40px}.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.header h1{font-size:24px}.header .version{background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:20px;font-size:12px}.nav{display:flex;gap:15px;flex-wrap:wrap}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px;transition:background 0.3s;font-size:14px}.nav a:hover{background:rgba(255,255,255,0.2)}.container{max-width:1600px;margin:0 auto;padding:30px}.status-bar{background:white;border-radius:12px;padding:20px;margin-bottom:30px;display:flex;gap:30px;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.status-item{display:flex;align-items:center;gap:10px}.status-dot{width:12px;height:12px;border-radius:50%}.status-dot.green{background:#10b981}.status-dot.red{background:#ef4444}.status-dot.yellow{background:#f59e0b}.status-label{color:#666;font-size:14px}.status-value{font-weight:600;color:#333}.status-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:30px}.card{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08);transition:transform 0.2s}.card:hover{transform:translateY(-4px)}.card h3{color:#666;font-size:14px;margin-bottom:10px}.card .value{font-size:32px;font-weight:bold;color:#333}.card .sub{font-size:12px;color:#999;margin-top:8px}.card .icon{font-size:24px;margin-bottom:10px}.section{background:white;border-radius:12px;padding:24px;margin-bottom:30px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.section h2{margin-bottom:20px;color:#333;font-size:18px}.phase-timeline{display:flex;gap:10px;overflow-x:auto;padding-bottom:10px}.phase-card{min-width:200px;background:#f8f9fa;border-radius:12px;padding:20px;border-left:4px solid #667eea}.phase-card h4{color:#333;margin-bottom:8px;font-size:16px}.phase-card p{color:#666;font-size:13px;margin-bottom:10px}.phase-card .agents{display:flex;flex-wrap:wrap;gap:5px}.phase-card .agent-tag{background:#e0e7ff;color:#4f46e5;padding:3px 8px;border-radius:4px;font-size:11px}.phase-card .quality-gate{background:#fef3c7;color:#d97706;padding:3px 8px;border-radius:4px;font-size:11px;margin-top:8px;display:inline-block}.submit-form{background:linear-gradient(135deg,#f8f9fa,#e9ecef);border-radius:12px;padding:30px;margin-bottom:30px}.submit-form h2{margin-bottom:20px;color:#333}.form-group{margin-bottom:20px}.form-group label{display:block;margin-bottom:8px;color:#555;font-weight:500}.form-group textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;min-height:120px;font-family:inherit}.form-group textarea:focus{outline:none;border-color:#667eea}.form-group select{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px}.btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;border:none;padding:12px 30px;border-radius:8px;font-size:16px;cursor:pointer;transition:transform 0.2s}.btn:hover{transform:translateY(-2px)}.agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px}.agent-card{background:#f8f9fa;border-radius:10px;padding:16px;display:flex;align-items:center;gap:15px}.agent-avatar{width:48px;height:48px;border-radius:8px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:20px}.agent-info{flex:1}.agent-info h4{color:#333;font-size:14px;margin-bottom:4px}.agent-info p{color:#666;font-size:12px}.agent-info .model{color:#999;font-size:11px;margin-top:4px}.status-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500}.status-badge.ready{background:#d1fae5;color:#065f46}.workflow-list{max-height:400px;overflow-y:auto}.workflow-item{padding:15px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}.workflow-item:last-child{border-bottom:none}.workflow-item .info{flex:1}.workflow-item .title{font-weight:500;color:#333;font-size:14px}.workflow-item .meta{font-size:12px;color:#999;margin-top:5px}.workflow-item .status-badge{padding:4px 12px;border-radius:20px;font-size:12px}.status-badge.completed{background:#d1fae5;color:#065f46}.status-badge.running{background:#dbeafe;color:#1e40af}.status-badge.failed{background:#fee2e2;color:#991b1b}.quick-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;margin-top:20px}.quick-action{background:white;border:2px solid #e0e0e0;border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;text-decoration:none;color:#333}.quick-action:hover{border-color:#667eea;background:#f0f4ff}.quick-action .icon{font-size:28px;margin-bottom:8px}.quick-action .label{font-size:13px;font-weight:500}</style></head><body>
+<div class="header"><div class="header-top"><h1>🤖 Agent 集群控制台</h1><span class="version">V2.1</span></div>
+<div class="nav"><a href="/">📊 概览</a><a href="/phases">🔄 开发流程</a><a href="/agents">🤖 Agent 阵容</a><a href="/workflows">📋 工作流</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/deployments">🚀 发布管理</a><a href="/templates">📝 模板库</a><a href="/costs">💰 成本统计</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout();return false;">🚪 登出</a></div></div>
+<div class="container">
+<div class="status-bar"><div class="status-item"><span class="status-dot green" id="clusterStatusDot"></span><span class="status-label">集群状态:</span><span class="status-value" id="clusterStatus">-</span></div>
+<div class="status-item"><span class="status-dot green" id="deployStatusDot"></span><span class="status-label">部署监听:</span><span class="status-value" id="deployStatus">-</span></div>
+<div class="status-item"><span class="status-dot green" id="dingtalkStatusDot"></span><span class="status-label">钉钉通知:</span><span class="status-value" id="dingtalkStatus">-</span></div>
+<div class="status-item" style="margin-left:auto;color:#999;font-size:13px;" id="lastUpdate"></div></div>
+<div class="status-cards"><div class="card"><div class="icon">🔄</div><h3>进行中的工作流</h3><div class="value" id="activeWorkflows">-</div><div class="sub">当前正在执行</div></div>
+<div class="card"><div class="icon">✅</div><h3>今日完成</h3><div class="value" id="completedToday">-</div><div class="sub">成功完成的工作流</div></div>
+<div class="card"><div class="icon">❌</div><h3>今日失败</h3><div class="value" id="failedToday">-</div><div class="sub">需要关注</div></div>
+<div class="card"><div class="icon">🤖</div><h3>就绪 Agent</h3><div class="value" id="agentsReady">-</div><div class="sub">共 10 个 Agent</div></div></div>
+<div class="submit-form"><h2>🚀 提交新任务</h2><div class="form-group"><label>产品需求描述</label><textarea id="requirement" placeholder="详细描述你想要实现的功能..."></textarea></div>
+<div class="form-group"><label>选择项目</label><select id="project"><option value="default">默认项目</option><option value="ecommerce">电商项目</option><option value="blog">博客系统</option><option value="crm">CRM 系统</option></select></div>
+<button class="btn" onclick="submitTask()">🚀 启动工作流</button></div>
+<div class="section"><h2>🔄 完整开发流程（6 阶段）</h2><div class="phase-timeline" id="phaseTimeline"></div></div>
+<div class="section"><h2>🤖 Agent 阵容（10 个）</h2><div class="agent-grid" id="agentGrid"></div></div>
+<div class="section"><h2>📋 最近工作流</h2><div class="workflow-list" id="workflowList"></div></div>
+<div class="section"><h2>⚡ 快捷操作</h2><div class="quick-actions"><a href="/phases" class="quick-action"><div class="icon">🔄</div><div class="label">查看流程</div></a><a href="/agents" class="quick-action"><div class="icon">🤖</div><div class="label">Agent 状态</div></a><a href="/quality" class="quick-action"><div class="icon">🚦</div><div class="label">质量门禁</div></a><a href="/templates" class="quick-action"><div class="icon">📝</div><div class="label">模板库</div></a><a href="/costs" class="quick-action"><div class="icon">💰</div><div class="label">成本统计</div></a><a href="/bugs" class="quick-action"><div class="icon">🐛</div><div class="label">Bug 管理</div></a><a href="/deployments" class="quick-action"><div class="icon">🚀</div><div class="label">发布管理</div></a></div></div></div>
+<script>const phases=[{id:1,name:"Phase 1: 需求分析",agents:["Product Manager"],tags:["PRD 文档","用户故事"]},{id:2,name:"Phase 2: 技术设计",agents:["Tech Lead","Designer","DevOps"],tags:["架构设计","UI 设计","部署配置"]},{id:3,name:"Phase 3: 开发实现",agents:["Codex","Claude-Code"],tags:["后端代码","前端代码"]},{id:4,name:"Phase 4: 测试验证",agents:["Tester"],tags:["单元测试","集成测试"],qg:true},{id:5,name:"Phase 5: 代码审查",agents:["3 Reviewers"],tags:["逻辑审查","安全审查"],qg:true},{id:6,name:"Phase 6: 部署上线",agents:["DevOps"],tags:["Docker","CI/CD"]}];document.getElementById('phaseTimeline').innerHTML=phases.map(p=>`<div class="phase-card"><h4>${p.name}</h4><p>${p.agents.join('+')}</p><div class="agents">${p.tags.map(t=>`<span class="agent-tag">${t}</span>`).join('')}</div>${p.qg?'<span class="quality-gate">🚦 质量门禁</span>':''}</div>`).join('');
+async function loadStatus(){try{const res=await fetch('/api/status');const d=await res.json();document.getElementById('clusterStatus').textContent=d.status==='running'?'运行中':'已停止';document.getElementById('clusterStatusDot').className='status-dot '+(d.status==='running'?'green':'red');document.getElementById('deployStatus').textContent=d.deploy_listener==='running'?'监听中':'已停止';document.getElementById('deployStatusDot').className='status-dot '+(d.deploy_listener==='running'?'green':'yellow');document.getElementById('dingtalkStatus').textContent=d.dingtalk_enabled?'已启用':'未配置';document.getElementById('dingtalkStatusDot').className='status-dot '+(d.dingtalk_enabled?'green':'yellow');document.getElementById('activeWorkflows').textContent=d.active_workflows;document.getElementById('completedToday').textContent=d.completed_today;document.getElementById('failedToday').textContent=d.failed_today;document.getElementById('agentsReady').textContent=d.agents_ready;document.getElementById('lastUpdate').textContent='最后更新：'+new Date(d.timestamp).toLocaleString('zh-CN');}catch(e){console.error(e);}}
+async function loadAgents(){try{const res=await fetch('/api/agents');const d=await res.json();const all=[...d.executors,...d.reviewers];document.getElementById('agentGrid').innerHTML=all.map(a=>{const av=a.name.split(' ').map(w=>w[0]).join('').substring(0,2);return`<div class="agent-card"><div class="agent-avatar">${av}</div><div class="agent-info"><h4>${a.name}</h4><p>${a.role} · ${a.phase}</p><div class="model">${a.model}</div></div><span class="status-badge ready">就绪</span></div>`;}).join('');}catch(e){console.error(e);}}
+async function loadWorkflows(){try{const res=await fetch('/api/workflows');const d=await res.json();const list=document.getElementById('workflowList');if(d.workflows.length===0){list.innerHTML='<div style="color:#999;text-align:center;padding:40px;">暂无工作流记录</div>';return;}list.innerHTML=d.workflows.slice(0,10).map(wf=>{const sc=wf.status==='completed'?'completed':wf.status==='failed'?'failed':'running';const st=wf.status==='completed'?'✅ 完成':wf.status==='failed'?'❌ 失败':'🔄 进行中';return`<div class="workflow-item"><div class="info"><div class="title">${wf.requirement||'未命名任务'}</div><div class="meta">${wf.workflow_id||'-'} · ${wf.project||'默认项目'} · ${new Date(wf.created_at).toLocaleString('zh-CN')}</div></div><span class="status-badge ${sc}">${st}</span></div>`;}).join('');}catch(e){console.error(e);}}
+async function submitTask(){const req=document.getElementById('requirement').value.trim();const proj=document.getElementById('project').value;if(!req){alert('请输入产品需求');return;}if(!confirm('确定要启动工作流吗？\\n\\n这将启动完整的 6 阶段开发流程。'))return;try{const res=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requirement:req,project:proj})});const d=await res.json();if(d.success){alert('✅ '+d.message);document.getElementById('requirement').value='';loadStatus();loadWorkflows();}else{alert('❌ '+d.error);}catch(e){alert('提交失败：'+e.message);}}
+async function logout(){if(!confirm('确定要登出吗？'))return;try{await fetch('/api/logout',{method:'POST'});document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}catch(err){alert('登出失败：'+err.message);}}
+loadStatus();loadAgents();loadWorkflows();setInterval(loadStatus,30000);</script></body></html>"""
+
+    def get_workflows_page(self): return self._list_page("工作流", "/api/workflows", ["workflow_id", "requirement", "project", "status", "created_at"])
+    def get_agents_page(self): return self._agents_page()
+    def get_phases_page(self): return self._phases_page()
+    def get_quality_page(self): return self._quality_page()
+    def get_bugs_page(self): return self._bugs_page()
+
+    def get_templates_page(self): return self._templates_page()
+    def get_costs_page(self): return self._costs_page()
+    def get_settings_page(self): return self._settings_page()
     
     def _list_page(self, title, api, fields):
-        headers = ''.join(f'<th>{f}</th>' for f in fields)
-        first_field = fields[0].lower()
-        return f"""<!DOCTYPE html><html><head><title>{title}</title><style>body{{font-family:sans-serif;background:#f5f7fa}}.header{{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}}.nav{{display:flex;gap:15px;margin-top:15px}}.nav a{{color:white;text-decoration:none;padding:8px 16px;border-radius:6px}}.container{{padding:30px}}table{{width:100%;background:white;border-collapse:collapse}}th,td{{padding:12px;text-align:left;border-bottom:1px solid #eee}}th{{background:#f8f9fa}}</style></head><body>
-<div class="header"><h1>📋 {title}</h1>
-<div class="nav"><a href="/">📊 概览</a><a href="/phases">🔄 开发流程</a><a href="/agents">🤖 AI 智能体</a><a href="/workflows">📋 工作流</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/kanban">📋 项目看板</a><a href="/templates">📝 模板库</a><a href="/costs">💰 成本统计</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div>
-<div class="container"><table><thead><tr>{headers}</tr></thead><tbody id="tbody"><tr><td colspan="{len(fields)}">加载中...</td></tr></tbody></table></div>
-<script>fetch('{api}').then(r=>r.json()).then(d=>{{var t=d.{first_field}||[];document.getElementById('tbody').innerHTML=t.length?'<tr><td>数据加载中</td></tr>':'<tr><td colspan="{len(fields)}">暂无数据</td></tr>';}});function logout(){{if(confirm('确定登出？')){{fetch('/api/logout',{{method:'POST'}}).then(()=>{{document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}});}}</script></body></html>"""
+        return f"""<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>{title} - Agent 集群</title><style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7fa}}.header{{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}}.nav{{display:flex;gap:15px;margin-top:15px}}.nav a{{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px}}.container{{max-width:1400px;margin:0 auto;padding:30px}}.content{{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}}table{{width:100%;border-collapse:collapse}}th,td{{padding:12px;text-align:left;border-bottom:1px solid #eee}}th{{background:#f8f9fa;color:#666;font-weight:500}}.status-badge{{padding:4px 12px;border-radius:20px;font-size:12px}}.status-badge.completed{{background:#d1fae5;color:#065f46}}.status-badge.running{{background:#dbeafe;color:#1e40af}}.status-badge.failed{{background:#fee2e2;color:#991b1b}}</style></head><body><div class="header"><h1>📋 {title}</h1><div class="nav"><a href="/">📊 概览</a><a href="/workflows">📋 工作流</a><a href="/agents">🤖 Agent</a><a href="/phases">🔄 流程</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/deployments">🚀 发布管理</a><a href="/templates">📝 模板</a><a href="/costs">💰 成本</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div><div class="container"><div class="content"><table><thead><tr>{''.join(f'<th>{f}</th>' for f in fields)}</tr></thead><tbody id="tbody"><tr><td colspan="{len(fields)}" style="text-align:center;color:#999;">加载中...</td></tr></tbody></table></div></div><script>async function load(){{const res=await fetch('{api}');const d=await res.json();document.getElementById('tbody').innerHTML=d{fields[0]}.length?d{fields[0]}.map(r=>`<tr>${{fields.map(f=>`<td>${{r[f]||'-'}}</td>`).join('')}}</tr>`).join(''):'<tr><td colspan="{len(fields)}" style="text-align:center;color:#999;">暂无数据</td></tr>'}}async function logout(){{if(!confirm('确定登出？'))return;await fetch('/api/logout',{{method:'POST'}});document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}}load();</script></body></html>"""
+    
+    def _agents_page(self):
+        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>Agent 阵容 - Agent 集群</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px}.container{max-width:1400px;margin:0 auto;padding:30px}.section{background:white;border-radius:12px;padding:24px;margin-bottom:30px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.section h2{margin-bottom:20px}.agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}.agent-card{background:#f8f9fa;border-radius:12px;padding:20px;display:flex;gap:15px}.agent-avatar{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:24px;font-weight:bold}.agent-info h3{color:#333;margin-bottom:8px}.agent-info p{color:#666;font-size:14px;margin-bottom:5px}.agent-info .model{color:#999;font-size:12px}.status-badge{padding:4px 10px;border-radius:20px;font-size:12px;background:#d1fae5;color:#065f46}</style></head><body><div class="header"><h1>🤖 Agent 阵容</h1><div class="nav"><a href="/">📊 概览</a><a href="/workflows">📋 工作流</a><a href="/agents">🤖 Agent</a><a href="/phases">🔄 流程</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/deployments">🚀 发布管理</a><a href="/templates">📝 模板</a><a href="/costs">💰 成本</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div><div class="container"><div class="section"><h2>执行 Agent（7 个）</h2><div class="agent-grid" id="executors"></div></div><div class="section"><h2>审查 Agent（3 个）</h2><div class="agent-grid" id="reviewers"></div></div></div><script>async function load(){const res=await fetch('/api/agents');const d=await res.json();document.getElementById('executors').innerHTML=d.executors.map(a=>render(a)).join('');document.getElementById('reviewers').innerHTML=d.reviewers.map(a=>render(a)).join('');}function render(a){const av=a.name.split(' ').map(w=>w[0]).join('').substring(0,2);return`<div class="agent-card"><div class="agent-avatar">${av}</div><div class="agent-info"><h3>${a.name}</h3><p>${a.role}</p><p>${a.phase}</p><div class="model">${a.model}</div></div><span class="status-badge">就绪</span></div>`;}async function logout(){if(!confirm('确定登出？'))return;await fetch('/api/logout',{method:'POST'});document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}load();</script></body></html>"""
+    
+    def _phases_page(self):
+        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>开发流程 - Agent 集群</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px}.container{max-width:1400px;margin:0 auto;padding:30px}.timeline{position:relative;max-width:1000px;margin:0 auto}.phase{background:white;border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border-left:4px solid #667eea;position:relative}.phase h3{color:#333;margin-bottom:10px}.phase p{color:#666;margin-bottom:15px}.phase .agents{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px}.phase .agent-tag{background:#e0e7ff;color:#4f46e5;padding:6px 12px;border-radius:6px;font-size:13px}.phase .outputs{display:flex;flex-wrap:wrap;gap:8px}.phase .output-tag{background:#f0f9ff;color:#0369a1;padding:6px 12px;border-radius:6px;font-size:13px}.phase .quality-gate{position:absolute;top:24px;right:24px;background:#fef3c7;color:#d97706;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500}</style></head><body><div class="header"><h1>🔄 完整开发流程</h1><div class="nav"><a href="/">📊 概览</a><a href="/workflows">📋 工作流</a><a href="/agents">🤖 Agent</a><a href="/phases">🔄 流程</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/deployments">🚀 发布管理</a><a href="/templates">📝 模板</a><a href="/costs">💰 成本</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div><div class="container"><div class="timeline" id="timeline"></div></div><script>const phases=[{id:1,name:"Phase 1: 需求分析",desc:"理解产品需求，明确功能范围",agents:["Product Manager"],outputs:["PRD 文档","用户故事","验收标准"]},{id:2,name:"Phase 2: 技术设计",desc:"系统架构设计，UI/UX 设计，部署规划",agents:["Tech Lead","Designer","DevOps"],outputs:["架构设计文档","UI 设计稿","Docker 配置","CI/CD 配置"]},{id:3,name:"Phase 3: 开发实现",desc:"前后端代码开发",agents:["Codex","Claude-Code"],outputs:["后端代码","前端代码","数据库迁移"]},{id:4,name:"Phase 4: 测试验证",desc:"单元测试，集成测试，E2E 测试",agents:["Tester"],outputs:["测试报告","Bug 列表","覆盖率报告"],qg:true},{id:5,name:"Phase 5: 代码审查",desc:"多层代码审查",agents:["Codex Reviewer","Gemini Reviewer","Claude Reviewer"],outputs:["逻辑审查报告","安全审查报告","改进建议"],qg:true},{id:6,name:"Phase 6: 部署上线",desc:"部署到生产环境",agents:["DevOps"],outputs:["运行中的系统","监控告警","日志管理"],confirm:true}];document.getElementById('timeline').innerHTML=phases.map((p,i)=>`<div class="phase"><span style="color:#999;font-size:12px;">STEP ${i+1}</span><h3>${p.name}</h3><p>${p.desc}</p><div class="agents">${p.agents.map(a=>`<span class="agent-tag">${a}</span>`).join('')}</div><div class="outputs">${p.outputs.map(o=>`<span class="output-tag">📄 ${o}</span>`).join('')}</div>${p.qg?'<span class="quality-gate">🚦 质量门禁</span>':''}${p.confirm?'<span class="quality-gate" style="background:#dbeafe;color:#1e40af;">🔐 需要确认</span>':''}</div>`).join('');</script></body></html>"""
+    
+    def _quality_page(self):
+        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>质量门禁 - Agent 集群</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px}.container{max-width:1400px;margin:0 auto;padding:30px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}.card{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.card h3{color:#333;margin-bottom:15px;display:flex;align-items:center;gap:10px}.card h3 .icon{font-size:24px}.item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #eee}.item:last-child{border-bottom:none}.item .label{color:#666}.item .value{font-weight:600;color:#333}.item .value.ok{color:#10b981}.item .value.warn{color:#f59e0b}</style></head><body><div class="header"><h1>🚦 质量门禁</h1><div class="nav"><a href="/">📊 概览</a><a href="/workflows">📋 工作流</a><a href="/agents">🤖 Agent</a><a href="/phases">🔄 流程</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/deployments">🚀 发布管理</a><a href="/templates">📝 模板</a><a href="/costs">💰 成本</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div><div class="container"><div class="grid"><div class="card"><h3><span class="icon">🧪</span>Phase 4 测试门禁</h3><div class="item"><span class="label">状态</span><span class="value ok">✅ 启用</span></div><div class="item"><span class="label">最低测试覆盖率</span><span class="value">80%</span></div><div class="item"><span class="label">最大高危 Bug</span><span class="value">0 个</span></div><div class="item"><span class="label">最大中危 Bug</span><span class="value">3 个</span></div><div class="item"><span class="label">核心功能测试</span><span class="value ok">100% 通过</span></div></div><div class="card"><h3><span class="icon">🔍</span>Phase 5 审查门禁</h3><div class="item"><span class="label">状态</span><span class="value ok">✅ 启用</span></div><div class="item"><span class="label">最低审查评分</span><span class="value">80 分</span></div><div class="item"><span class="label">需要审查者通过</span><span class="value">3/3</span></div><div class="item"><span class="label">严重问题</span><span class="value">0 个</span></div></div><div class="card"><h3><span class="icon">🚀</span>部署确认</h3><div class="item"><span class="label">状态</span><span class="value ok">✅ 启用</span></div><div class="item"><span class="label">需要钉钉确认</span><span class="value">是</span></div><div class="item"><span class="label">确认超时时间</span><span class="value">30 分钟</span></div><div class="item"><span class="label">超时自动取消</span><span class="value">是</span></div></div><div class="card"><h3><span class="icon">🔁</span>Bug 修复循环</h3><div class="item"><span class="label">Phase 4 最大重试</span><span class="value">3 次</span></div><div class="item"><span class="label">Phase 5 最大重试</span><span class="value">3 次</span></div><div class="item"><span class="label">超时处理</span><span class="value warn">人工介入</span></div></div></div></div><script>async function logout(){if(!confirm('确定登出？'))return;await fetch('/api/logout',{method:'POST'});document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}</script></body></html>"""
+    
+    def _templates_page(self):
+        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>模板库 - Agent 集群</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px}.container{max-width:1400px;margin:0 auto;padding:30px}.add-form{background:white;border-radius:12px;padding:24px;margin-bottom:30px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.add-form h2{margin-bottom:20px}.form-group{margin-bottom:15px}.form-group label{display:block;margin-bottom:5px;color:#555}.form-group input,.form-group textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px}.btn{background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:20px}.card{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.card h3{color:#333;margin-bottom:10px}.card p{color:#666;font-size:14px;margin-bottom:15px}.card .meta{font-size:12px;color:#999}</style></head><body><div class="header"><h1>📝 模板库</h1><div class="nav"><a href="/">📊 概览</a><a href="/workflows">📋 工作流</a><a href="/agents">🤖 Agent</a><a href="/phases">🔄 流程</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/deployments">🚀 发布管理</a><a href="/templates">📝 模板</a><a href="/costs">💰 成本</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div><div class="container"><div class="add-form"><h2>➕ 新建模板</h2><div class="form-group"><label>模板名称</label><input type="text" id="name" placeholder="例如：电商购物车功能"></div><div class="form-group"><label>描述</label><input type="text" id="desc" placeholder="简短描述"></div><div class="form-group"><label>需求内容</label><textarea id="req" rows="4" placeholder="详细需求描述..."></textarea></div><div class="form-group"><label>项目</label><select id="project"><option value="default">默认项目</option><option value="ecommerce">电商项目</option><option value="blog">博客系统</option></select></div><button class="btn" onclick="save()">保存模板</button></div><div class="grid" id="grid"></div></div><script>async function load(){const res=await fetch('/api/templates');const d=await res.json();document.getElementById('grid').innerHTML=d.templates.length?d.templates.map(t=>`<div class="card"><h3>${t.name}</h3><p>${t.description||t.requirement.substring(0,100)}...</p><div class="meta">项目：${t.project} · ${new Date(t.created_at).toLocaleString('zh-CN')}</div><div style="margin-top:15px;"><button class="btn" onclick="use('${t.requirement.replace(/'/g,"\\'")}')">使用</button> <button class="btn" style="background:#f44336;margin-left:10px;" onclick="del('${t.id}')">删除</button></div></div>`).join(''):'<p style="color:#999;text-align:center;grid-column:1/-1;">暂无模板</p>';}async function save(){await fetch('/api/template/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:document.getElementById('name').value,description:document.getElementById('desc').value,requirement:document.getElementById('req').value,project:document.getElementById('project').value})});alert('✅ 已保存');load();}async function del(id){if(!confirm('确定删除？'))return;await fetch('/api/template/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});alert('✅ 已删除');load();}function use(req){localStorage.setItem('template_req',req);window.location.href='/';}async function logout(){if(!confirm('确定登出？'))return;await fetch('/api/logout',{method:'POST'});document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}load();</script></body></html>"""
+    
+    def _costs_page(self):
+        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>成本统计 - Agent 集群</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px}.container{max-width:1400px;margin:0 auto;padding:30px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:30px}.card{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.card h3{color:#666;font-size:14px;margin-bottom:10px}.card .value{font-size:28px;font-weight:bold;color:#333}.card .sub{font-size:12px;color:#999;margin-top:5px}.content{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{padding:12px;text-align:left;border-bottom:1px solid #eee}th{background:#f8f9fa;color:#666;font-weight:500}</style></head><body><div class="header"><h1>💰 成本统计</h1><div class="nav"><a href="/">📊 概览</a><a href="/workflows">📋 工作流</a><a href="/agents">🤖 Agent</a><a href="/phases">🔄 流程</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/deployments">🚀 发布管理</a><a href="/templates">📝 模板</a><a href="/costs">💰 成本</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div><div class="container"><div class="cards"><div class="card"><h3>今日成本</h3><div class="value" id="today">¥0.00</div><div class="sub" id="todayWf">0 个工作流</div></div><div class="card"><h3>本周成本</h3><div class="value" id="week">¥0.00</div><div class="sub" id="weekWf">0 个工作流</div></div><div class="card"><h3>本月成本</h3><div class="value" id="month">¥0.00</div><div class="sub" id="monthWf">0 个工作流</div></div><div class="card"><h3>平均单次</h3><div class="value" id="avg">¥0.00</div><div class="sub">每工作流平均</div></div></div><div class="content"><h2>按模型统计</h2><table><thead><tr><th>模型</th><th>调用次数</th><th>Token 消耗</th><th>成本</th></tr></thead><tbody id="modelBody"><tr><td colspan="4" style="text-align:center;color:#999;">暂无数据</td></tr></tbody></table></div></div><script>async function load(){const res=await fetch('/api/costs');const d=await res.json();document.getElementById('today').textContent='¥'+(d.today?.total||0).toFixed(2);document.getElementById('todayWf').textContent=(d.today?.workflows||0)+' 个工作流';document.getElementById('week').textContent='¥'+(d.week?.total||0).toFixed(2);document.getElementById('weekWf').textContent=(d.week?.workflows||0)+' 个工作流';document.getElementById('month').textContent='¥'+(d.month?.total||0).toFixed(2);document.getElementById('monthWf').textContent=(d.month?.workflows||0)+' 个工作流';const avg=d.today?.workflows>0?d.today.total/d.today.workflows:0;document.getElementById('avg').textContent='¥'+avg.toFixed(2);const tbody=document.getElementById('modelBody');const models=d.by_model||{};tbody.innerHTML=Object.keys(models).length?Object.entries(models).map(([m,s])=>`<tr><td>${m}</td><td>${s.calls||0}</td><td>${s.tokens||0}</td><td>¥${(s.cost||0).toFixed(2)}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:#999;">暂无数据</td></tr>';}async function logout(){if(!confirm('确定登出？'))return;await fetch('/api/logout',{method:'POST'});document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}load();</script></body></html>"""
+    
+    def get_deployments_page(self):
+        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>发布管理 - Agent 集群 V2.1</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px}.container{max-width:1400px;margin:0 auto;padding:30px}.section{background:white;border-radius:12px;padding:24px;margin-bottom:30px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.section h2{margin-bottom:20px;color:#333}.info-box{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:15px;margin-bottom:20px}.info-box p{color:#0369a1;font-size:14px}.deploy-form{background:#f8f9fa;border-radius:8px;padding:20px;margin-bottom:20px}.form-group{margin-bottom:15px}.form-group label{display:block;margin-bottom:5px;color:#555;font-weight:500}.form-group input,.form-group select{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px}.btn{background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:14px}.btn:hover{transform:translateY(-2px)}.btn-danger{background:#f44336}.table-container{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{padding:12px;text-align:left;border-bottom:1px solid #eee}th{background:#f8f9fa;color:#666;font-weight:500}.status-badge{padding:4px 12px;border-radius:20px;font-size:12px}.status-badge.completed{background:#d1fae5;color:#065f46}.status-badge.running{background:#dbeafe;color:#1e40af}.status-badge.failed{background:#fee2e2;color:#991b1b}.status-badge.pending{background:#fef3c7;color:#92400e}</style></head><body>
+<div class="header"><h1>🚀 发布管理</h1><div class="nav"><a href="/">📊 概览</a><a href="/workflows">📋 工作流</a><a href="/agents">🤖 Agent</a><a href="/phases">🔄 流程</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/deployments" style="background:rgba(255,255,255,0.2);">🚀 发布管理</a><a href="/templates">📝 模板</a><a href="/costs">💰 成本</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div>
+<div class="container">
+<div class="section"><h2>📋 部署工作流</h2><div class="info-box"><p>💡 选择已完成的工作流进行部署。部署前需要钉钉确认，确认后自动执行。</p></div>
+<div class="deploy-form"><div class="form-group"><label>选择工作流</label><select id="workflowSelect"><option value="">-- 请选择 --</option></select></div>
+<div class="form-group"><label>部署环境</label><select id="environment"><option value="production">🔴 生产环境</option><option value="staging">🟡 预发布环境</option></select></div>
+<button class="btn" onclick="executeDeploy()">🚀 执行部署</button></div>
+<div class="table-container"><table><thead><tr><th>部署 ID</th><th>工作流</th><th>环境</th><th>状态</th><th>开始时间</th><th>操作</th></tr></thead><tbody id="deployTable"><tr><td colspan="6" style="text-align:center;color:#999;">加载中...</td></tr></tbody></table></div></div></div>
+<script>async function loadWorkflows(){try{const res=await fetch('/api/workflows');const d=await res.json();const select=document.getElementById('workflowSelect');const completed=d.workflows.filter(w=>w.status==='completed');select.innerHTML='<option value="">-- 请选择 --</option>'+completed.map(w=>`<option value="${w.workflow_id}">${(w.requirement||'未命名').substring(0,50)}...</option>`).join('');}catch(e){console.error(e);}}
+async function loadDeployments(){try{const tbody=document.getElementById('deployTable');tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#999;">暂无部署记录</td></tr>';}catch(e){console.error(e);}}
+async function executeDeploy(){const wfId=document.getElementById('workflowSelect').value;const env=document.getElementById('environment').value;if(!wfId){alert('请选择工作流');return;}if(!confirm('确定要部署吗？\\n\\n工作流 ID: '+wfId+'\\n环境：'+env+'\\n\\n部署前需要钉钉确认！'))return;try{const res=await fetch('/api/deploy/execute',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({workflow_id:wfId,environment:env})});const d=await res.json();if(d.success){alert('✅ '+d.message);}else{alert('❌ '+d.error);}}catch(e){alert('部署失败：'+e.message);}}
+async function stopDeploy(id){if(!confirm('确定停止部署？'))return;try{const res=await fetch('/api/deploy/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deployment_id:id})});const d=await res.json();if(d.success){alert('✅ 已停止');loadDeployments();}else{alert('❌ '+d.error);}}catch(e){alert('操作失败：'+e.message);}}
+async function logout(){if(!confirm('确定登出？'))return;await fetch('/api/logout',{method:'POST'});document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}
+loadWorkflows();loadDeployments();</script></body></html>"""
+
+    def get_bugs_page(self):
+        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>Bug 管理 - Agent 集群 V2.1</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px}.container{max-width:1400px;margin:0 auto;padding:30px}.grid{display:grid;grid-template-columns:1fr 2fr;gap:30px}.card{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.card h2{margin-bottom:20px;color:#333}.form-group{margin-bottom:15px}.form-group label{display:block;margin-bottom:5px;color:#555;font-weight:500}.form-group input,.form-group textarea,.form-group select{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-family:inherit}.form-group textarea{min-height:120px;resize:vertical}.btn{background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:14px}.btn:hover{transform:translateY(-2px)}.btn-danger{background:#f44336}.table-container{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{padding:12px;text-align:left;border-bottom:1px solid #eee}th{background:#f8f9fa;color:#666;font-weight:500;font-size:14px}.status-badge{padding:4px 10px;border-radius:20px;font-size:12px}.status-badge.new{background:#dbeafe;color:#1e40af}.status-badge.fixing{background:#fef3c7;color:#92400e}.status-badge.fixed{background:#d1fae5;color:#065f46}.priority-badge{padding:4px 8px;border-radius:4px;font-size:11px}.priority-high{background:#fee2e2;color:#991b1b}.priority-medium{background:#fef3c7;color:#92400e}.priority-low{background:#e0e7ff;color:#4f46e5}.info-box{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:15px;margin-bottom:20px}.info-box p{color:#0369a1;font-size:14px}</style></head><body>
+<div class="header"><h1>🐛 Bug 管理</h1><div class="nav"><a href="/">📊 概览</a><a href="/workflows">📋 工作流</a><a href="/agents">🤖 Agent</a><a href="/phases">🔄 流程</a><a href="/quality">🚦 质量门禁</a><a href="/bugs" style="background:rgba(255,255,255,0.2);">🐛 Bug 管理</a><a href="/deployments">🚀 发布管理</a><a href="/templates">📝 模板</a><a href="/costs">💰 成本</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div>
+<div class="container"><div class="grid"><div class="card"><h2>📝 提交 Bug</h2><div class="info-box"><p>💡 提交 Bug 后，Agent 集群将自动启动完整修复流程：分析→修复→测试→审查→PR</p></div>
+<form id="bugForm"><div class="form-group"><label>Bug 标题</label><input type="text" id="title" placeholder="简短描述 Bug" required></div>
+<div class="form-group"><label>优先级</label><select id="priority"><option value="high">🔴 高 - 严重影响功能</option><option value="medium" selected>🟡 中 - 部分影响</option><option value="low">🟢 低 - 轻微问题</option></select></div>
+<div class="form-group"><label>Bug 描述</label><textarea id="description" placeholder="详细描述 Bug 现象、复现步骤、预期行为..." required></textarea></div>
+<div class="form-group"><label>相关文件/路径</label><input type="text" id="files" placeholder="例如：src/api/user.py, tests/test_user.py"></div>
+<div class="form-group"><label>关联项目</label><select id="project"><option value="default">默认项目</option><option value="ecommerce">电商项目</option><option value="blog">博客系统</option><option value="crm">CRM 系统</option></select></div>
+<button type="submit" class="btn">🚀 提交并启动修复流程</button></form></div>
+<div class="card"><h2>📊 Bug 统计</h2><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-top:20px"><div style="background:#dbeafe;border-radius:8px;padding:15px;text-align:center"><div style="font-size:24px;font-weight:bold;color:#1e40af" id="newCount">0</div><div style="color:#666;font-size:13px">待处理</div></div><div style="background:#fef3c7;border-radius:8px;padding:15px;text-align:center"><div style="font-size:24px;font-weight:bold;color:#92400e" id="fixingCount">0</div><div style="color:#666;font-size:13px">修复中</div></div><div style="background:#d1fae5;border-radius:8px;padding:15px;text-align:center"><div style="font-size:24px;font-weight:bold;color:#065f46" id="fixedCount">0</div><div style="color:#666;font-size:13px">已修复</div></div><div style="background:#f3e8ff;border-radius:8px;padding:15px;text-align:center"><div style="font-size:24px;font-weight:bold;color:#7e22ce" id="totalToday">0</div><div style="color:#666;font-size:13px">今日提交</div></div></div></div></div>
+<div class="card"><h2>📋 Bug 列表</h2><div class="table-container"><table><thead><tr><th>ID</th><th>标题</th><th>优先级</th><th>状态</th><th>项目</th><th>提交时间</th><th>操作</th></tr></thead><tbody id="bugTable"><tr><td colspan="7" style="text-align:center;color:#999;">加载中...</td></tr></tbody></table></div></div></div></div>
+<script>async function loadBugs(){try{const res=await fetch('/api/bugs');const d=await res.json();const tbody=document.getElementById('bugTable');if(!d.bugs||d.bugs.length===0){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#999;">暂无 Bug 记录</td></tr>';return;}tbody.innerHTML=d.bugs.map(b=>`<tr><td>#${b.id||'-'}</td><td>${b.title||'未命名'}</td><td><span class="priority-badge priority-${b.priority||'medium'}">${b.priority==='high'?'🔴 高':b.priority==='medium'?'🟡 中':'🟢 低'}</span></td><td><span class="status-badge ${b.status||'new'}">${b.status==='new'?'🆕 待处理':b.status==='fixing'?'🔧 修复中':'✅ 已修复'}</span></td><td>${b.project||'-'}</td><td>${new Date(b.created_at).toLocaleString('zh-CN')}</td><td><button class="btn" style="padding:6px 12px;font-size:12px;" onclick="viewBug('${b.id}')">查看</button></td></tr>`).join('');const stats={new:d.bugs.filter(b=>b.status==='new').length,fixing:d.bugs.filter(b=>b.status==='fixing').length,fixed:d.bugs.filter(b=>b.status==='fixed').length,today:d.bugs.filter(b=>new Date(b.created_at).toDateString()===new Date().toDateString()).length};document.getElementById('newCount').textContent=stats.new;document.getElementById('fixingCount').textContent=stats.fixing;document.getElementById('fixedCount').textContent=stats.fixed;document.getElementById('totalToday').textContent=stats.today;}catch(e){console.error('加载失败:',e);}}
+document.getElementById('bugForm').addEventListener('submit',async function(e){e.preventDefault();const title=document.getElementById('title').value;const priority=document.getElementById('priority').value;const description=document.getElementById('description').value;const files=document.getElementById('files').value;const project=document.getElementById('project').value;if(!title||!description){alert('请填写标题和描述');return;}if(!confirm('确定提交 Bug 并启动自动修复流程吗？\\n\\nAgent 集群将执行：\\n1️⃣ 分析 Bug 原因\\n2️⃣ 修复代码\\n3️⃣ 运行测试\\n4️⃣ 代码审查\\n5️⃣ 创建 PR'))return;try{const res=await fetch('/api/bugs/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,priority,description,files,project})});const d=await res.json();if(d.success){alert('✅ '+d.message+'\\n\\n工作流 ID: '+(d.workflow_id||'-'));document.getElementById('title').value='';document.getElementById('description').value='';document.getElementById('files').value='';loadBugs();}else{alert('❌ '+d.error);}}catch(e){alert('提交失败：'+e.message);}});
+function viewBug(id){alert('查看 Bug #'+id+'\\n\\n此功能可展示 Bug 详情、修复进度、相关 PR 链接等');}
+async function logout(){if(!confirm('确定登出？'))return;await fetch('/api/logout',{method:'POST'});document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}
+loadBugs();setInterval(loadBugs,30000);</script></body></html>"""
+
+    def execute_deploy(self, data):
+        """执行部署"""
+        try:
+            from utils.deploy_executor import deploy_executor
+            
+            workflow_id = data.get('workflow_id', '')
+            project = data.get('project', 'default')
+            code_path = data.get('code_path', '')
+            
+            if not workflow_id:
+                return {'success': False, 'error': '工作流 ID 不能为空'}
+            
+            result = deploy_executor.deploy(workflow_id, project, code_path)
+            return result
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def stop_deploy(self, data):
+        """停止部署"""
+        try:
+            from utils.deploy_executor import deploy_executor
+            
+            deployment_id = data.get('deployment_id', '')
+            if not deployment_id:
+                return {'success': False, 'error': '部署 ID 不能为空'}
+            
+            result = deploy_executor.stop(deployment_id)
+            return result
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def get_deploy_status(self, data):
+        """获取部署状态"""
+        try:
+            from utils.deploy_executor import deploy_executor
+            
+            deployment_id = data.get('deployment_id', '')
+            if not deployment_id:
+                return {'success': False, 'error': '部署 ID 不能为空'}
+            
+            result = deploy_executor.get_deployment_status(deployment_id)
+            return result
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def submit_bug(self, data):
+        """提交 Bug 并触发修复流程"""
+        title = data.get("title", "")
+        priority = data.get("priority", "medium")
+        description = data.get("description", "")
+        files = data.get("files", "")
+        project = data.get("project", "default")
+        
+        if not title or not description:
+            return {"success": False, "error": "标题和描述不能为空"}
+        
+        # 生成 Bug ID
+        import random
+        bug_id = f"BUG{random.randint(1000, 9999)}"
+        
+        # 保存 Bug 记录
+        bugs_file = MEMORY_DIR / "bugs.json"
+        bugs = []
+        if bugs_file.exists():
+            try:
+                with open(bugs_file, 'r', encoding='utf-8') as f:
+                    bugs = json.load(f)
+            except:
+                pass
+        
+        bug_record = {
+            "id": bug_id,
+            "title": title,
+            "priority": priority,
+            "description": description,
+            "files": files,
+            "project": project,
+            "status": "new",
+            "created_at": datetime.now().isoformat(),
+            "workflow_id": None,
+            "pr_url": None
+        }
+        bugs.append(bug_record)
+        
+        with open(bugs_file, 'w', encoding='utf-8') as f:
+            json.dump(bugs, f, ensure_ascii=False, indent=2)
+        
+        # 构建修复需求
+        requirement = f"""🐛 Bug 修复任务
+
+**Bug ID**: {bug_id}
+**标题**: {title}
+**优先级**: {priority}
+
+**问题描述**:
+{description}
+
+**相关文件**: {files if files else '待分析'}
+
+**修复要求**:
+1. 分析 Bug 根本原因
+2. 修复相关代码
+3. 编写/更新单元测试
+4. 确保测试覆盖率 > 80%
+5. 通过所有质量门禁
+6. 创建 Pull Request
+
+**完整流程**:
+Phase 1: 分析 Bug 原因
+Phase 2: 设计修复方案
+Phase 3: 实现修复代码
+Phase 4: 测试验证
+Phase 5: 代码审查
+Phase 6: 部署并创建 PR
+"""
+        
+        # 触发修复工作流
+        try:
+            cmd = f"cd {BASE_DIR} && python3 orchestrator.py \"{requirement}\""
+            subprocess.Popen(cmd, shell=True, stdout=open(LOGS_DIR / f"bug_{bug_id}.log", 'a'), stderr=subprocess.STDOUT)
+            
+            # 更新 Bug 状态
+            bug_record["status"] = "fixing"
+            bug_record["workflow_id"] = f"wf_{bug_id}"
+            
+            with open(bugs_file, 'w', encoding='utf-8') as f:
+                json.dump(bugs, f, ensure_ascii=False, indent=2)
+            
+            return {
+                "success": True,
+                "message": "Bug 已提交，Agent 集群正在修复中",
+                "bug_id": bug_id,
+                "workflow_id": bug_record["workflow_id"]
+            }
+        except Exception as e:
+            return {"success": False, "error": f"提交成功但启动修复失败：{str(e)}"}
+    
+    def get_bugs(self):
+        """获取 Bug 列表"""
+        bugs_file = MEMORY_DIR / "bugs.json"
+        if bugs_file.exists():
+            try:
+                with open(bugs_file, 'r', encoding='utf-8') as f:
+                    bugs = json.load(f)
+                bugs.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+                return {"bugs": bugs[-50:]}
+            except:
+                pass
+        return {"bugs": []}
+    def _settings_page(self):
+        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>设置 - Agent 集群</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px}.container{max-width:800px;margin:0 auto;padding:30px}.card{background:white;border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.card h2{margin-bottom:20px}.form-group{margin-bottom:15px}.form-group label{display:block;margin-bottom:5px;color:#555}.form-group input{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px}.btn{background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer}.info{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:15px;margin-bottom:20px}.info p{color:#0369a1;font-size:14px}</style></head><body><div class="header"><h1>⚙️ 设置</h1><div class="nav"><a href="/">📊 概览</a><a href="/workflows">📋 工作流</a><a href="/agents">🤖 Agent</a><a href="/phases">🔄 流程</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/deployments">🚀 发布管理</a><a href="/templates">📝 模板</a><a href="/costs">💰 成本</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div><div class="container"><div class="info"><p>ℹ️ 修改密码后，所有会话将失效，需要重新登录</p></div><div class="card"><h2>🔐 修改密码</h2><div class="form-group"><label>原密码</label><input type="password" id="oldPwd" placeholder="请输入原密码"></div><div class="form-group"><label>新密码</label><input type="password" id="newPwd" placeholder="请输入新密码（至少 6 位）"></div><div class="form-group"><label>确认新密码</label><input type="password" id="confirmPwd" placeholder="请再次输入新密码"></div><button class="btn" onclick="changePwd()">修改密码</button></div><div class="card"><h2>ℹ️ 系统信息</h2><div class="form-group"><label>版本</label><input type="text" value="V2.1" readonly></div><div class="form-group"><label>工作目录</label><input type="text" value="/home/admin/.openclaw/workspace/agent-cluster" readonly></div><div class="form-group"><label>后端端口</label><input type="text" value="8889" readonly></div></div></div><script>async function changePwd(){const old=document.getElementById('oldPwd').value;const new1=document.getElementById('newPwd').value;const new2=document.getElementById('confirmPwd').value;if(!old||!new1||!new2){alert('请填写所有字段');return;}if(new1!==new2){alert('两次输入的新密码不一致');return;}if(new1.length<6){alert('密码长度至少 6 位');return;}try{const res=await fetch('/api/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({old_password:old,new_password:new1})});const d=await res.json();if(d.success){alert('✅ '+d.message);document.getElementById('oldPwd').value='';document.getElementById('newPwd').value='';document.getElementById('confirmPwd').value='';setTimeout(()=>{window.location.href='/login';},1500);}else{alert('❌ '+d.error);}}catch(e){alert('请求失败：'+e.message);}}async function logout(){if(!confirm('确定登出？'))return;await fetch('/api/logout',{method:'POST'});document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}</script></body></html>"""
 
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(description='AI 产品开发智能体 Web 界面 V2.2')
-    parser.add_argument('--host', default='0.0.0.0', help='绑定地址')
-    parser.add_argument('--port', type=int, default=8890, help='端口')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--host', default='127.0.0.1')
+    parser.add_argument('--port', type=int, default=8889)
     args = parser.parse_args()
     server = HTTPServer((args.host, args.port), WebUIHandler)
-    print(f"🌐 AI 产品开发智能体 Web V2.2 已启动！")
+    print(f"🌐 Agent 集群 Web V2.1 已启动！")
     print(f"   本地访问：http://localhost:{args.port}")
-    print(f"   外网访问：http://39.107.101.25:{args.port}")
+    print(f"   外网访问：http://39.107.101.25")
     print(f"   默认账号：admin / admin123")
     server.serve_forever()

@@ -1,0 +1,505 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+AI 产品开发智能体 Web 界面 V2.2
+完整 6 阶段开发流程 | 10 个专业智能体 | 质量门禁 | 钉钉通知
+"""
+
+import json, os, sys, hashlib, time, secrets
+from datetime import datetime
+from pathlib import Path
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+import urllib.parse, subprocess
+
+BASE_DIR = Path(__file__).parent
+MEMORY_DIR = BASE_DIR / "memory"
+LOGS_DIR = BASE_DIR / "logs"
+MEMORY_DIR.mkdir(exist_ok=True)
+LOGS_DIR.mkdir(exist_ok=True)
+
+AUTH_CONFIG_FILE = MEMORY_DIR / "auth_config.json"
+SESSIONS_FILE = MEMORY_DIR / "sessions.json"
+CLUSTER_CONFIG = BASE_DIR / "cluster_config_v2.2.json"
+
+class WebUIHandler(SimpleHTTPRequestHandler):
+    PUBLIC_PATHS = ['/api/status', '/api/agents', '/api/phases', '/login', '/api/login', '/static/']
+    
+    def __init__(self, *args, **kwargs):
+        self.workflow_state = self._load_workflow_state()
+        self.auth_config = self._load_auth_config()
+        self.sessions = self._load_sessions()
+        self.cluster_config = self._load_cluster_config()
+        super().__init__(*args, **kwargs)
+    
+    def _load_auth_config(self):
+        default = {"enabled": True, "username": "admin", "password_hash": hashlib.sha256("admin123".encode()).hexdigest(), "session_timeout_hours": 24}
+        if AUTH_CONFIG_FILE.exists():
+            try:
+                with open(AUTH_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                    return json.load(f).get("auth", default)
+            except: pass
+        return default
+    
+    def _load_sessions(self):
+        if SESSIONS_FILE.exists():
+            try:
+                with open(SESSIONS_FILE, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except: pass
+        return {}
+    
+    def _save_sessions(self):
+        SESSIONS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(SESSIONS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(self.sessions, f, ensure_ascii=False, indent=2)
+    
+    def _load_workflow_state(self):
+        state_file = MEMORY_DIR / "workflow_state.json"
+        if state_file.exists():
+            try:
+                with open(state_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except: pass
+        return {}
+    
+    def _load_cluster_config(self):
+        if CLUSTER_CONFIG.exists():
+            try:
+                with open(CLUSTER_CONFIG, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except: pass
+        return {}
+    
+    def _hash_password(self, password): return hashlib.sha256(password.encode()).hexdigest()
+    def _generate_token(self): return secrets.token_urlsafe(32)
+    
+    def _check_auth(self):
+        if not self.auth_config.get("enabled", True): return True, None, False
+        for p in self.PUBLIC_PATHS:
+            if self.path.startswith(p): return True, None, False
+        cookie = self.headers.get('Cookie', '')
+        token = None
+        for item in cookie.split(';'):
+            if '=' in item:
+                k, v = item.strip().split('=', 1)
+                if k == 'auth_token': token = v; break
+        if not token: return False, None, True
+        if token in self.sessions:
+            s = self.sessions[token]
+            if time.time() - s.get("created_at", 0) < self.auth_config.get("session_timeout_hours", 24) * 3600:
+                s["last_activity"] = time.time()
+                self._save_sessions()
+                return True, token, False
+        return False, None, True
+    
+    def _get_client_ip(self):
+        f = self.headers.get('X-Forwarded-For')
+        return f.split(',')[0].strip() if f else self.client_address[0]
+    
+    def do_GET(self):
+        path = urllib.parse.urlparse(self.path).path
+        is_auth, token, _ = self._check_auth()
+        
+        if not is_auth and not any(path.startswith(p) for p in self.PUBLIC_PATHS):
+            self.send_response(302); self.send_header('Location', '/login'); self.end_headers(); return
+        
+        if path == '/api/status': self.send_json(self.get_status())
+        elif path == '/api/agents': self.send_json(self.get_agents())
+        elif path == '/api/phases': self.send_json(self.get_phases())
+        elif path == '/api/quality-gate': self.send_json(self.get_quality_gate())
+        elif path == '/api/workflows' and is_auth: self.send_json(self.get_workflows())
+        elif path == '/api/templates' and is_auth: self.send_json(self.get_templates())
+        elif path == '/api/costs' and is_auth: self.send_json(self.get_costs())
+        elif path == '/api/projects' and is_auth: self.send_json(self.get_projects())
+        elif path == '/api/kanban' and is_auth: self.send_json(self.get_kanban())
+        elif path == '/api/kanban/project' and is_auth: self.send_json(self.get_project_kanban())
+        elif path == '/api/kanban/task' and is_auth: self.send_json(self.update_kanban_task())
+        elif path == '/api/bugs' and is_auth: self.send_json(self.get_bugs())
+        elif path == '/api/bugs/submit' and is_auth: self.send_json(self.submit_bug())
+        elif path == '/login': self.send_html(self.get_login_page())
+        elif path == '/': 
+            if not is_auth: self.send_response(302); self.send_header('Location', '/login'); self.end_headers(); return
+            self.send_html(self.get_main_page())
+        elif path == '/workflows' and is_auth: self.send_html(self.get_workflows_page())
+        elif path == '/agents' and is_auth: self.send_html(self.get_agents_page())
+        elif path == '/phases' and is_auth: self.send_html(self.get_phases_page())
+        elif path == '/quality' and is_auth: self.send_html(self.get_quality_page())
+        elif path == '/bugs' and is_auth: self.send_html(self.get_bugs_page())
+        elif path == '/templates' and is_auth: self.send_html(self.get_templates_page())
+        elif path == '/costs' and is_auth: self.send_html(self.get_costs_page())
+        elif path == '/kanban' and is_auth: self.send_html(self.get_kanban_page())
+        elif path == '/settings' and is_auth: self.send_html(self.get_settings_page())
+        else: super().do_GET()
+    
+    def do_POST(self):
+        path = urllib.parse.urlparse(self.path).path
+        cl = int(self.headers.get('Content-Length', 0))
+        data = json.loads(self.rfile.read(cl).decode('utf-8')) if cl else {}
+        
+        if path == '/api/login': self.handle_login(data); return
+        is_auth, token, _ = self._check_auth()
+        if not is_auth: self.send_json({"error": "未授权"}, 401); return
+        
+        if path == '/api/submit': self.send_json(self.submit_task(data))
+        elif path == '/api/bugs/submit': self.send_json(self.submit_bug(data))
+        elif path == '/api/kanban/project': self.send_json(self.get_project_kanban(data))
+        elif path == '/api/kanban/task':
+            if data.get('title'):
+                self.send_json(self.create_kanban_task(data))
+            else:
+                self.send_json(self.update_kanban_task(data))
+        elif path == '/api/bugs': self.send_json(self.get_bugs())
+        elif path == '/api/template/save': self.send_json(self.save_template(data))
+        elif path == '/api/template/delete': self.send_json(self.delete_template(data))
+        elif path == '/api/logout': self.handle_logout(token)
+        elif path == '/api/change-password': self.handle_change_password(data, token)
+        elif path == '/api/kanban/task':
+            # 根据数据判断是创建还是更新
+            if data.get('title'):
+                self.send_json(self.create_kanban_task(data))
+            else:
+                self.send_json(self.update_kanban_task(data))
+        else: self.send_error(404)
+    
+    def send_json(self, data, status=200):
+        self.send_response(status); self.send_header('Content-Type', 'application/json; charset=utf-8'); self.end_headers()
+        self.wfile.write(json.dumps(data, ensure_ascii=False).encode('utf-8'))
+    
+    def send_html(self, html):
+        self.send_response(200); self.send_header('Content-Type', 'text/html; charset=utf-8'); self.end_headers()
+        self.wfile.write(html.encode('utf-8'))
+    
+    def handle_login(self, data):
+        u, p = data.get("username", ""), data.get("password", "")
+        if u != self.auth_config.get("username") or self._hash_password(p) != self.auth_config.get("password_hash"):
+            self.send_json({"success": False, "error": "用户名或密码错误"}); return
+        token = self._generate_token()
+        self.sessions[token] = {"username": u, "ip": self._get_client_ip(), "created_at": time.time(), "last_activity": time.time()}
+        self._save_sessions()
+        self.send_json({"success": True, "token": token})
+    
+    def handle_logout(self, token):
+        if token in self.sessions: del self.sessions[token]; self._save_sessions()
+        self.send_response(302); self.send_header('Location', '/login'); self.send_header('Set-Cookie', 'auth_token=; Path=/; Max-Age=0'); self.end_headers()
+    
+    def handle_change_password(self, data, token):
+        if self._hash_password(data.get("old_password", "")) != self.auth_config.get("password_hash"):
+            self.send_json({"success": False, "error": "原密码错误"}); return
+        if len(data.get("new_password", "")) < 6:
+            self.send_json({"success": False, "error": "密码至少 6 位"}); return
+        self.auth_config["password_hash"] = self._hash_password(data["new_password"])
+        with open(AUTH_CONFIG_FILE, 'w', encoding='utf-8') as f: json.dump({"auth": self.auth_config}, f, ensure_ascii=False, indent=2)
+        self.sessions = {}; self._save_sessions()
+        self.send_json({"success": True, "message": "密码已修改，请重新登录"})
+    
+    def get_status(self):
+        try:
+            orch = bool(subprocess.run(['pgrep', '-f', 'orchestrator.py'], capture_output=True, text=True, timeout=2).stdout.strip())
+        except:
+            orch = False
+        try:
+            deploy = bool(subprocess.run(['pgrep', '-f', 'deploy_listener.py'], capture_output=True, text=True, timeout=2).stdout.strip())
+        except:
+            deploy = False
+        wf = self.workflow_state.get("workflows", {})
+        wfl = list(wf.values()) if isinstance(wf, dict) else wf
+        return {"status": "running" if orch else "stopped", "deploy_listener": "running" if deploy else "stopped",
+                "timestamp": datetime.now().isoformat(), "active_workflows": len([w for w in wfl if w.get("status")=="running"]),
+                "completed_today": len([w for w in wfl if w.get("status")=="completed"]),
+                "failed_today": len([w for w in wfl if w.get("status")=="failed"]),
+                "agents_ready": 10, "dingtalk_enabled": self.cluster_config.get("dingtalk", {}).get("webhook") is not None}
+    
+    def get_agents(self):
+        return {"executors": [
+            {"name": "Product Manager", "role": "产品经理", "phase": "Phase 1", "model": "qwen-max"},
+            {"name": "Tech Lead", "role": "技术负责人", "phase": "Phase 2", "model": "qwen-max"},
+            {"name": "Designer", "role": "设计师", "phase": "Phase 2", "model": "qwen-vl-plus"},
+            {"name": "DevOps", "role": "运维工程师", "phase": "Phase 2/6", "model": "qwen-plus"},
+            {"name": "Codex", "role": "后端专家", "phase": "Phase 3", "model": "qwen-coder-plus"},
+            {"name": "Claude-Code", "role": "前端专家", "phase": "Phase 3", "model": "kimi-k2.5"},
+            {"name": "Tester", "role": "测试工程师", "phase": "Phase 4", "model": "qwen-coder-plus"}],
+            "reviewers": [
+            {"name": "Codex Reviewer", "role": "逻辑审查", "phase": "Phase 5", "model": "glm-4.7"},
+            {"name": "Gemini Reviewer", "role": "安全审查", "phase": "Phase 5", "model": "qwen-plus"},
+            {"name": "Claude Reviewer", "role": "基础审查", "phase": "Phase 5", "model": "MiniMax-M2.5"}]}
+    
+    def get_phases(self):
+        return {"phases": [
+            {"id": 1, "name": "需求分析", "agents": ["Product Manager"], "outputs": ["PRD 文档", "用户故事", "验收标准"]},
+            {"id": 2, "name": "技术设计", "agents": ["Tech Lead", "Designer", "DevOps"], "outputs": ["架构文档", "UI 设计", "部署配置"]},
+            {"id": 3, "name": "开发实现", "agents": ["Codex", "Claude-Code"], "outputs": ["后端代码", "前端代码"]},
+            {"id": 4, "name": "测试验证", "agents": ["Tester"], "outputs": ["测试报告", "Bug 列表"], "quality_gate": True},
+            {"id": 5, "name": "代码审查", "agents": ["Codex Reviewer", "Gemini Reviewer", "Claude Reviewer"], "outputs": ["审查报告"], "quality_gate": True},
+            {"id": 6, "name": "部署上线", "agents": ["DevOps"], "outputs": ["运行中的系统"], "require_confirmation": True}]}
+    
+    def get_quality_gate(self):
+        cfg = self.cluster_config.get("quality_gate", {})
+        return {"phase_4": {"enabled": True, "min_coverage": cfg.get("phase_4", {}).get("min_coverage", 80), "max_critical_bugs": 0},
+                "phase_5": {"enabled": True, "min_review_score": cfg.get("phase_5", {}).get("min_review_score", 80), "required_approvals": 3},
+                "deployment": {"require_confirmation": True, "confirmation_timeout_minutes": 30}}
+    
+    def get_workflows(self):
+        wf = self.workflow_state.get("workflows", {})
+        wfl = list(wf.values()) if isinstance(wf, dict) else wf
+        wfl.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        return {"workflows": wfl[-50:]}
+    
+    def get_templates(self):
+        tf = MEMORY_DIR / "templates.json"
+        if tf.exists():
+            try:
+                with open(tf, 'r', encoding='utf-8') as f: return {"templates": json.load(f)}
+            except: pass
+        return {"templates": []}
+    
+    def get_costs(self):
+        cf = MEMORY_DIR / "cost_stats.json"
+        if cf.exists():
+            try:
+                with open(cf, 'r', encoding='utf-8') as f: return json.load(f)
+            except: pass
+        return {"today": {"total": 0}, "week": {"total": 0}, "month": {"total": 0}, "by_model": {}}
+    
+    def get_projects(self):
+        pf = BASE_DIR / "projects.json"
+        if pf.exists():
+            try:
+                with open(pf, 'r', encoding='utf-8') as f: return {"projects": json.load(f)}
+            except: pass
+        return {"projects": []}
+    
+    def get_kanban(self):
+        try:
+            sys.path.insert(0, str(BASE_DIR))
+            from utils.project_manager import get_project_manager
+            pm = get_project_manager()
+            projects = pm.list_projects()
+            stats = pm.get_task_stats()
+            progress = pm.get_progress()
+            return {"success": True, "projects": projects, "overall_stats": stats, "overall_progress": progress}
+        except Exception as e:
+            return {"success": False, "error": str(e), "projects": [], "overall_stats": {}, "overall_progress": {}}
+    
+    def get_project_kanban(self, data=None):
+        try:
+            sys.path.insert(0, str(BASE_DIR))
+            from utils.project_manager import get_project_manager
+            pm = get_project_manager()
+            project_id = data.get("project_id") if data else None
+            if not project_id:
+                projects = pm.list_projects()
+                if projects: project_id = projects[0].get("id")
+            if not project_id: return {"success": False, "error": "没有可用项目"}
+            board = pm.get_kanban_board(project_id)
+            detail = pm.get_project_detail(project_id)
+            return {"success": True, "board": board, "project": detail}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def create_kanban_task(self, data=None):
+        """创建看板任务"""
+        try:
+            sys.path.insert(0, str(BASE_DIR))
+            from utils.project_manager import get_project_manager
+            pm = get_project_manager()
+            if not data: return {"success": False, "error": "数据为空"}
+            
+            task_id = data.get("task_id", f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}")
+            title = data.get("title", "未命名任务")
+            phase = data.get("phase", "3_development")
+            priority = data.get("priority", "medium")
+            estimated_hours = data.get("estimated_hours", 0)
+            project_id = data.get("project_id", "default")
+            description = data.get("description", "")
+            
+            # 先创建项目（如果不存在）
+            pm.create_project(project_id, f"项目{project_id}", "")
+            
+            # 创建任务
+            success = pm.add_task(task_id, title, phase, priority, estimated_hours, project_id)
+            return {"success": success, "message": "任务已创建" if success else "创建失败", "task_id": task_id}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def update_kanban_task(self, data=None):
+        """更新看板任务状态"""
+        try:
+            sys.path.insert(0, str(BASE_DIR))
+            from utils.project_manager import get_project_manager, TaskStatus
+            pm = get_project_manager()
+            if not data: return {"success": False, "error": "数据为空"}
+            task_id = data.get("task_id")
+            status = data.get("status")
+            if not task_id or not status: return {"success": False, "error": "任务 ID 和状态不能为空"}
+            success = pm.update_task_status(task_id, status)
+            return {"success": success, "message": "任务状态已更新" if success else "更新失败"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def get_bugs(self):
+        bugs_file = MEMORY_DIR / "bugs.json"
+        if bugs_file.exists():
+            try:
+                with open(bugs_file, 'r', encoding='utf-8') as f:
+                    bugs = json.load(f)
+                bugs.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+                return {"bugs": bugs[-50:]}
+            except: pass
+        return {"bugs": []}
+    
+    def submit_bug(self, data=None):
+        if not data: return {"success": False, "error": "数据为空"}
+        title = data.get("title", "")
+        priority = data.get("priority", "medium")
+        description = data.get("description", "")
+        files = data.get("files", "")
+        project = data.get("project", "default")
+        
+        if not title or not description:
+            return {"success": False, "error": "标题和描述不能为空"}
+        
+        import random
+        bug_id = f"BUG{random.randint(1000, 9999)}"
+        
+        bugs_file = MEMORY_DIR / "bugs.json"
+        bugs = []
+        if bugs_file.exists():
+            try:
+                with open(bugs_file, 'r', encoding='utf-8') as f: bugs = json.load(f)
+            except: pass
+        
+        bug_record = {
+            "id": bug_id, "title": title, "priority": priority, "description": description,
+            "files": files, "project": project, "status": "new",
+            "created_at": datetime.now().isoformat(), "workflow_id": None, "pr_url": None
+        }
+        bugs.append(bug_record)
+        
+        with open(bugs_file, 'w', encoding='utf-8') as f:
+            json.dump(bugs, f, ensure_ascii=False, indent=2)
+        
+        requirement = f"""🐛 Bug 修复任务
+
+**Bug ID**: {bug_id}
+**标题**: {title}
+**优先级**: {priority}
+**问题描述**: {description}
+**相关文件**: {files if files else '待分析'}
+
+**修复要求**:
+1. 分析 Bug 根本原因
+2. 修复相关代码
+3. 编写/更新单元测试
+4. 确保测试覆盖率 > 80%
+5. 通过所有质量门禁
+6. 创建 Pull Request
+"""
+        
+        try:
+            cmd = f"cd {BASE_DIR} && python3 orchestrator.py \"{requirement}\""
+            subprocess.Popen(cmd, shell=True, stdout=open(LOGS_DIR / f"bug_{bug_id}.log", 'a'), stderr=subprocess.STDOUT)
+            bug_record["status"] = "fixing"
+            bug_record["workflow_id"] = f"wf_{bug_id}"
+            with open(bugs_file, 'w', encoding='utf-8') as f:
+                json.dump(bugs, f, ensure_ascii=False, indent=2)
+            return {"success": True, "message": "Bug 已提交，智能体集群正在修复中", "bug_id": bug_id, "workflow_id": bug_record["workflow_id"]}
+        except Exception as e:
+            return {"success": False, "error": f"提交成功但启动修复失败：{str(e)}"}
+    
+    def submit_task(self, data):
+        req = data.get("requirement", "")
+        if not req: return {"success": False, "error": "需求不能为空"}
+        try:
+            subprocess.Popen(f"cd {BASE_DIR} && python3 orchestrator.py \"{req}\"", shell=True, stdout=open(LOGS_DIR/"web.log",'a'), stderr=subprocess.STDOUT)
+            return {"success": True, "message": "任务已提交"}
+        except Exception as e: return {"success": False, "error": str(e)}
+    
+    def save_template(self, data):
+        tf = MEMORY_DIR / "templates.json"
+        tpl = []
+        if tf.exists():
+            try:
+                with open(tf, 'r', encoding='utf-8') as f: tpl = json.load(f)
+            except: pass
+        new = {"id": f"tpl_{datetime.now().strftime('%Y%m%d%H%M%S')}", "name": data.get("name",""), "description": data.get("description",""),
+               "requirement": data.get("requirement",""), "project": data.get("project","default"), "created_at": datetime.now().isoformat()}
+        tpl.append(new)
+        with open(tf, 'w', encoding='utf-8') as f: json.dump(tpl, f, ensure_ascii=False, indent=2)
+        return {"success": True, "template": new}
+    
+    def delete_template(self, data):
+        tf = MEMORY_DIR / "templates.json"
+        if not tf.exists(): return {"success": False, "error": "模板文件不存在"}
+        with open(tf, 'r', encoding='utf-8') as f: tpl = json.load(f)
+        tpl = [t for t in tpl if t.get("id") != data.get("id")]
+        with open(tf, 'w', encoding='utf-8') as f: json.dump(tpl, f, ensure_ascii=False, indent=2)
+        return {"success": True}
+    
+    # HTML 页面方法（简化版）
+    def get_login_page(self):
+        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>登录 - AI 产品开发智能体</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;display:flex;align-items:center;justify-content:center}.login-container{background:white;border-radius:16px;padding:40px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.3)}.logo{text-align:center;margin-bottom:30px}.logo h1{font-size:28px;color:#333}.logo .version{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:4px 12px;border-radius:20px;font-size:12px;display:inline-block;margin-top:8px}.form-group{margin-bottom:20px}.form-group label{display:block;margin-bottom:8px;color:#555;font-weight:500}.form-group input{width:100%;padding:12px 16px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px}.btn{width:100%;padding:14px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}.error{background:#fee;color:#c33;padding:12px;border-radius:8px;margin-bottom:20px;display:none}</style></head><body>
+<div class="login-container"><div class="logo"><h1>🤖 AI 产品开发智能体</h1><p>智能协作开发系统</p><span class="version">V2.2</span></div>
+<div class="error" id="err"></div>
+<form id="loginForm"><div class="form-group"><label>用户名</label><input type="text" id="username" value="admin" required></div>
+<div class="form-group"><label>密码</label><input type="password" id="password" value="admin123" required></div>
+<button type="submit" class="btn">登录</button></form></div>
+<script>document.getElementById('loginForm').addEventListener('submit',async function(e){e.preventDefault();const btn=e.target.querySelector('button');btn.disabled=true;btn.textContent='登录中...';try{const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('username').value,password:document.getElementById('password').value})});const d=await res.json();if(d.success){document.cookie='auth_token='+d.token+';Path=/;Max-Age='+(24*60*60);window.location.href='/';}else{document.getElementById('err').textContent=d.error;document.getElementById('err').style.display='block';btn.disabled=false;btn.textContent='登录';}}catch(err){document.getElementById('err').textContent='网络错误';document.getElementById('err').style.display='block';btn.disabled=false;btn.textContent='登录';}});</script></body></html>"""
+    
+    def get_main_page(self):
+        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>AI 产品开发智能体控制台</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px}.nav a:hover{background:rgba(255,255,255,0.2)}.container{max-width:1400px;margin:0 auto;padding:30px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}.card{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.card h3{color:#666;font-size:14px}.card .value{font-size:32px;font-weight:bold;color:#333}</style></head><body>
+<div class="header"><h1>🤖 AI 产品开发智能体控制台 V2.2</h1>
+<div class="nav"><a href="/">📊 概览</a><a href="/phases">🔄 开发流程</a><a href="/agents">🤖 AI 智能体</a><a href="/workflows">📋 工作流</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/kanban">📋 项目看板</a><a href="/templates">📝 模板库</a><a href="/costs">💰 成本统计</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div>
+<div class="container"><div class="cards">
+<div class="card"><h3>系统状态</h3><div class="value" id="status">-</div></div>
+<div class="card"><h3>进行中的工作流</h3><div class="value" id="active">-</div></div>
+<div class="card"><h3>今日完成</h3><div class="value" id="completed">-</div></div>
+<div class="card"><h3>今日失败</h3><div class="value" id="failed">-</div></div>
+</div></div>
+<script>async function load(){const res=await fetch('/api/status');const d=await res.json();document.getElementById('status').textContent=d.status==='running'?'运行中':'已停止';document.getElementById('active').textContent=d.active_workflows;document.getElementById('completed').textContent=d.completed_today;document.getElementById('failed').textContent=d.failed_today;}load();setInterval(load,30000);function logout(){if(confirm('确定登出？')){fetch('/api/logout',{method:'POST'}).then(()=>{document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';});}}</script></body></html>"""
+    
+    def get_agents_page(self): return self._list_page("AI 智能体", "/api/agents", ["name", "role", "phase", "model"])
+    def get_phases_page(self): return self._list_page("开发流程", "/api/phases", ["id", "name", "agents", "outputs"])
+    def get_workflows_page(self): return self._list_page("工作流", "/api/workflows", ["id", "status", "created_at"])
+    def get_quality_page(self): return """<!DOCTYPE html><html><head><title>质量门禁</title></head><body><h1>🚦 质量门禁</h1><p>加载中...</p><script>fetch('/api/quality-gate').then(r=>r.json()).then(d=>{document.body.innerHTML='<pre>'+JSON.stringify(d,null,2)+'</pre>';});</script></body></html>"""
+    def get_bugs_page(self): return self._list_page("Bug 管理", "/api/bugs", ["id", "title", "priority", "status", "created_at"])
+    def get_templates_page(self): return self._list_page("模板库", "/api/templates", ["name", "description", "created_at"])
+    def get_costs_page(self): return self._list_page("成本统计", "/api/costs", ["today", "week", "month"])
+    def get_settings_page(self): return """<!DOCTYPE html><html><head><title>设置</title></head><body><h1>⚙️ 设置</h1><p>功能开发中...</p></body></html>"""
+    
+    def get_kanban_page(self):
+        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>项目看板</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:white;text-decoration:none;padding:8px 16px;border-radius:6px}.container{padding:30px}.board{display:grid;grid-template-columns:repeat(5,1fr);gap:20px}.column{background:#ebecf0;border-radius:8px;padding:15px;min-height:400px}.column h3{margin-bottom:15px;color:#5e6c84}</style></head><body>
+<div class="header"><h1>📋 项目看板</h1>
+<div class="nav"><a href="/">📊 概览</a><a href="/phases">🔄 开发流程</a><a href="/agents">🤖 AI 智能体</a><a href="/workflows">📋 工作流</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/kanban" style="background:rgba(255,255,255,0.2);">📋 项目看板</a><a href="/templates">📝 模板库</a><a href="/costs">💰 成本统计</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div>
+<div class="container"><div class="board">
+<div class="column"><h3>📝 待办</h3><div id="backlog"></div></div>
+<div class="column"><h3>📋 准备做</h3><div id="todo"></div></div>
+<div class="column"><h3>🔄 进行中</h3><div id="inprogress"></div></div>
+<div class="column"><h3>🔍 审查中</h3><div id="review"></div></div>
+<div class="column"><h3>✅ 已完成</h3><div id="done"></div></div>
+</div></div>
+<script>async function load(){const res=await fetch('/api/kanban/project');const d=await res.json();if(d.success&&d.board){['backlog','todo','in_progress','review','done'].forEach(s=>{const el=document.getElementById(s==='in_progress'?'inprogress':s);const tasks=d.board[s]||[];el.innerHTML=tasks.map(t=>'<div style="background:white;padding:10px;margin-bottom:10px;border-radius:4px;">'+(t.title||'未命名')+'</div>').join('');});}}load();function logout(){if(confirm('确定登出？')){fetch('/api/logout',{method:'POST'}).then(()=>{document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';});}}</script></body></html>"""
+    
+    def _list_page(self, title, api, fields):
+        headers = ''.join(f'<th>{f}</th>' for f in fields)
+        first_field = fields[0].lower()
+        return f"""<!DOCTYPE html><html><head><title>{title}</title><style>body{{font-family:sans-serif;background:#f5f7fa}}.header{{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}}.nav{{display:flex;gap:15px;margin-top:15px}}.nav a{{color:white;text-decoration:none;padding:8px 16px;border-radius:6px}}.container{{padding:30px}}table{{width:100%;background:white;border-collapse:collapse}}th,td{{padding:12px;text-align:left;border-bottom:1px solid #eee}}th{{background:#f8f9fa}}</style></head><body>
+<div class="header"><h1>📋 {title}</h1>
+<div class="nav"><a href="/">📊 概览</a><a href="/phases">🔄 开发流程</a><a href="/agents">🤖 AI 智能体</a><a href="/workflows">📋 工作流</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/kanban">📋 项目看板</a><a href="/templates">📝 模板库</a><a href="/costs">💰 成本统计</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div>
+<div class="container"><table><thead><tr>{headers}</tr></thead><tbody id="tbody"><tr><td colspan="{len(fields)}">加载中...</td></tr></tbody></table></div>
+<script>fetch('{api}').then(r=>r.json()).then(d=>{{var t=d.{first_field}||[];document.getElementById('tbody').innerHTML=t.length?'<tr><td>数据加载中</td></tr>':'<tr><td colspan="{len(fields)}">暂无数据</td></tr>';}});function logout(){{if(confirm('确定登出？')){{fetch('/api/logout',{{method:'POST'}}).then(()=>{{document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}});}}</script></body></html>"""
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='AI 产品开发智能体 Web 界面 V2.2')
+    parser.add_argument('--host', default='0.0.0.0', help='绑定地址')
+    parser.add_argument('--port', type=int, default=8890, help='端口')
+    args = parser.parse_args()
+    server = HTTPServer((args.host, args.port), WebUIHandler)
+    print(f"🌐 AI 产品开发智能体 Web V2.2 已启动！")
+    print(f"   本地访问：http://localhost:{args.port}")
+    print(f"   外网访问：http://39.107.101.25:{args.port}")
+    print(f"   默认账号：admin / admin123")
+    server.serve_forever()

@@ -1,0 +1,1155 @@
+{
+  "workflows": {
+    "wf-20260315-185705-webhook-test": {
+      "id": "wf-20260315-185705-webhook-test",
+      "status": "completed",
+      "deployment_status": "deploying",
+      "project": "webhook-test",
+      "requirement": "测试钉钉 webhook 自动部署功能",
+      "created_at": "2026-03-15T18:57:05.975443",
+      "phases": {
+        "analysis": {
+          "status": "completed"
+        },
+        "design": {
+          "status": "completed"
+        },
+        "coding": {
+          "status": "completed"
+        },
+        "testing": {
+          "status": "completed"
+        },
+        "review": {
+          "status": "completed"
+        },
+        "deployment": {
+          "status": "waiting_confirmation",
+          "result": {
+            "pr_info": {
+              "pr_number": "999",
+              "pr_url": "https://github.com/test/pr/999"
+            },
+            "notified_at": "2026-03-15T18:57:05.975452",
+            "confirmation_timeout": 1800
+          }
+        }
+      }
+    },
+    "wf-20260315-185122-test": {
+      "id": "wf-20260315-185122-test",
+      "status": "completed",
+      "deployment_status": "waiting_confirmation",
+      "project": "webhook-test",
+      "requirement": "测试钉钉 webhook 自动部署",
+      "created_at": "2026-03-15T18:51:22.241715",
+      "phases": {
+        "deployment": {
+          "status": "waiting_confirmation",
+          "result": {
+            "pr_info": {
+              "pr_number": "999",
+              "pr_url": "https://github.com/test/pr/999"
+            },
+            "notified_at": "2026-03-15T18:51:22.241721",
+            "confirmation_timeout": 1800
+          }
+        }
+      }
+    },
+    "wf-20260305-092022-e7ea": {
+      "id": "wf-20260305-092022-e7ea",
+      "status": "started",
+      "requirement": "创建一个电商小程序的购物车功能，包括添加商品、修改数量、删除商品、计算总价和结算功能",
+      "phases": {
+        "analysis": {
+          "status": "pending"
+        },
+        "design": {
+          "status": "pending"
+        },
+        "coding": {
+          "status": "pending"
+        },
+        "testing": {
+          "status": "pending"
+        },
+        "review": {
+          "status": "pending"
+        },
+        "pr": {
+          "status": "pending"
+        }
+      },
+      "started_at": "2026-03-05T09:20:22.473691",
+      "completed_at": null,
+      "result": null
+    },
+    "wf-20260305-092029-32bb": {
+      "id": "wf-20260305-092029-32bb",
+      "status": "completed",
+      "requirement": "创建一个电商小程序的购物车功能",
+      "phases": {
+        "analysis": {
+          "status": "completed",
+          "result": {
+            "tasks": [
+              {
+                "id": "task-001",
+                "type": "design",
+                "agent": "designer",
+                "description": "UI/UX 设计",
+                "requirements": [
+                  "线框图",
+                  "设计规范",
+                  "HTML 原型"
+                ]
+              },
+              {
+                "id": "task-002",
+                "type": "backend",
+                "agent": "codex",
+                "description": "后端 API 开发",
+                "requirements": [
+                  "数据库设计",
+                  "API 接口",
+                  "业务逻辑"
+                ]
+              },
+              {
+                "id": "task-003",
+                "type": "frontend",
+                "agent": "claude-code",
+                "description": "前端组件开发",
+                "requirements": [
+                  "React 组件",
+                  "样式实现",
+                  "状态管理"
+                ]
+              }
+            ]
+          }
+        },
+        "design": {
+          "status": "completed",
+          "result": {
+            "status": "completed",
+            "design_files": []
+          }
+        },
+        "coding": {
+          "status": "completed",
+          "result": {
+            "status": "completed",
+            "code_files": []
+          }
+        },
+        "testing": {
+          "status": "completed",
+          "result": {
+            "status": "passed",
+            "tests_run": 10,
+            "tests_passed": 10
+          }
+        },
+        "review": {
+          "status": "completed",
+          "result": {
+            "status": "approved",
+            "reviews": [
+              {
+                "reviewer": "codex-reviewer",
+                "status": "approved"
+              },
+              {
+                "reviewer": "gemini-reviewer",
+                "status": "approved"
+              },
+              {
+                "reviewer": "claude-reviewer",
+                "status": "approved"
+              }
+            ]
+          }
+        },
+        "pr": {
+          "status": "completed",
+          "result": {
+            "pr_number": 1,
+            "pr_url": "https://github.com/phoenixbull/agent-cluster-test/pull/1",
+            "status": "ready_for_review",
+            "ci_status": "success",
+            "reviews": {
+              "approved": 3
+            }
+          }
+        }
+      },
+      "started_at": "2026-03-05T09:20:29.418696",
+      "completed_at": "2026-03-05T09:20:37.504997",
+      "result": {
+        "pr_info": {
+          "pr_number": 1,
+          "pr_url": "https://github.com/phoenixbull/agent-cluster-test/pull/1",
+          "status": "ready_for_review",
+          "ci_status": "success",
+          "reviews": {
+            "approved": 3
+          }
+        },
+        "tasks": [
+          {
+            "id": "task-001",
+            "type": "design",
+            "agent": "designer",
+            "description": "UI/UX 设计",
+            "requirements": [
+              "线框图",
+              "设计规范",
+              "HTML 原型"
+            ]
+          },
+          {
+            "id": "task-002",
+            "type": "backend",
+            "agent": "codex",
+            "description": "后端 API 开发",
+            "requirements": [
+              "数据库设计",
+              "API 接口",
+              "业务逻辑"
+            ]
+          },
+          {
+            "id": "task-003",
+            "type": "frontend",
+            "agent": "claude-code",
+            "description": "前端组件开发",
+            "requirements": [
+              "React 组件",
+              "样式实现",
+              "状态管理"
+            ]
+          }
+        ]
+      }
+    },
+    "wf-20260305-095420-e6a7": {
+      "id": "wf-20260305-095420-e6a7",
+      "status": "completed",
+      "requirement": "测试：创建一个简单的计算器功能",
+      "phases": {
+        "analysis": {
+          "status": "completed",
+          "result": {
+            "tasks": [
+              {
+                "id": "task-001",
+                "type": "design",
+                "agent": "designer",
+                "description": "UI/UX 设计",
+                "requirements": [
+                  "线框图",
+                  "设计规范",
+                  "HTML 原型"
+                ]
+              },
+              {
+                "id": "task-002",
+                "type": "backend",
+                "agent": "codex",
+                "description": "后端 API 开发",
+                "requirements": [
+                  "数据库设计",
+                  "API 接口",
+                  "业务逻辑"
+                ]
+              },
+              {
+                "id": "task-003",
+                "type": "frontend",
+                "agent": "claude-code",
+                "description": "前端组件开发",
+                "requirements": [
+                  "React 组件",
+                  "样式实现",
+                  "状态管理"
+                ]
+              }
+            ]
+          }
+        },
+        "design": {
+          "status": "completed",
+          "result": {
+            "status": "completed",
+            "design_files": []
+          }
+        },
+        "coding": {
+          "status": "completed",
+          "result": {
+            "status": "completed",
+            "code_files": []
+          }
+        },
+        "testing": {
+          "status": "completed",
+          "result": {
+            "status": "passed",
+            "tests_run": 10,
+            "tests_passed": 10
+          }
+        },
+        "review": {
+          "status": "completed",
+          "result": {
+            "status": "approved",
+            "reviews": [
+              {
+                "reviewer": "codex-reviewer",
+                "status": "approved"
+              },
+              {
+                "reviewer": "gemini-reviewer",
+                "status": "approved"
+              },
+              {
+                "reviewer": "claude-reviewer",
+                "status": "approved"
+              }
+            ]
+          }
+        },
+        "pr": {
+          "status": "completed",
+          "result": {
+            "pr_number": 1,
+            "pr_url": "https://github.com/phoenixbull/agent-cluster-test/pull/1",
+            "status": "ready_for_review",
+            "ci_status": "success",
+            "reviews": {
+              "approved": 3
+            }
+          }
+        }
+      },
+      "started_at": "2026-03-05T09:54:20.764387",
+      "completed_at": "2026-03-05T09:54:28.859325",
+      "result": {
+        "pr_info": {
+          "pr_number": 1,
+          "pr_url": "https://github.com/phoenixbull/agent-cluster-test/pull/1",
+          "status": "ready_for_review",
+          "ci_status": "success",
+          "reviews": {
+            "approved": 3
+          }
+        },
+        "tasks": [
+          {
+            "id": "task-001",
+            "type": "design",
+            "agent": "designer",
+            "description": "UI/UX 设计",
+            "requirements": [
+              "线框图",
+              "设计规范",
+              "HTML 原型"
+            ]
+          },
+          {
+            "id": "task-002",
+            "type": "backend",
+            "agent": "codex",
+            "description": "后端 API 开发",
+            "requirements": [
+              "数据库设计",
+              "API 接口",
+              "业务逻辑"
+            ]
+          },
+          {
+            "id": "task-003",
+            "type": "frontend",
+            "agent": "claude-code",
+            "description": "前端组件开发",
+            "requirements": [
+              "React 组件",
+              "样式实现",
+              "状态管理"
+            ]
+          }
+        ]
+      }
+    },
+    "wf-20260305-110158-a88c": {
+      "id": "wf-20260305-110158-a88c",
+      "status": "failed",
+      "requirement": "测试：创建一个简单的 TODO 应用",
+      "phases": {
+        "analysis": {
+          "status": "completed",
+          "result": {
+            "tasks": [
+              {
+                "id": "task-backend-001",
+                "type": "backend",
+                "agent": "codex",
+                "description": "后端开发",
+                "requirements": [
+                  "API 设计",
+                  "业务逻辑"
+                ],
+                "prompt": "实现以下功能：测试：创建一个简单的 TODO 应用"
+              },
+              {
+                "id": "task-frontend-001",
+                "type": "frontend",
+                "agent": "claude-code",
+                "description": "前端开发",
+                "requirements": [
+                  "UI 组件",
+                  "交互逻辑"
+                ],
+                "prompt": "实现以下功能的前端：测试：创建一个简单的 TODO 应用"
+              }
+            ]
+          }
+        },
+        "design": {
+          "status": "completed",
+          "result": {
+            "status": "skipped",
+            "design_files": []
+          }
+        },
+        "coding": {
+          "status": "completed",
+          "result": {
+            "status": "completed",
+            "results": [
+              {
+                "task": {
+                  "id": "task-backend-001",
+                  "type": "backend",
+                  "agent": "codex",
+                  "description": "后端开发",
+                  "requirements": [
+                    "API 设计",
+                    "业务逻辑"
+                  ],
+                  "prompt": "实现以下功能：测试：创建一个简单的 TODO 应用"
+                },
+                "result": {
+                  "status": "completed",
+                  "session_id": "ce9eb7c3",
+                  "agent_id": "codex",
+                  "session_file": "/home/admin/.openclaw/workspace/agents/codex/sessions/ce9eb7c3.json",
+                  "output": "任务已完成：实现以下功能：测试：创建一个简单的 TODO 应用..."
+                }
+              },
+              {
+                "task": {
+                  "id": "task-frontend-001",
+                  "type": "frontend",
+                  "agent": "claude-code",
+                  "description": "前端开发",
+                  "requirements": [
+                    "UI 组件",
+                    "交互逻辑"
+                  ],
+                  "prompt": "实现以下功能的前端：测试：创建一个简单的 TODO 应用"
+                },
+                "result": {
+                  "status": "completed",
+                  "session_id": "5f9faae6",
+                  "agent_id": "claude-code",
+                  "session_file": "/home/admin/.openclaw/workspace/agents/claude-code/sessions/5f9faae6.json",
+                  "output": "任务已完成：实现以下功能的前端：测试：创建一个简单的 TODO 应用..."
+                }
+              }
+            ],
+            "code_files": []
+          }
+        },
+        "testing": {
+          "status": "completed",
+          "result": {
+            "status": "passed",
+            "tests_run": 10,
+            "tests_passed": 10,
+            "coverage": 85.5
+          }
+        },
+        "review": {
+          "status": "completed",
+          "result": {
+            "status": "approved",
+            "reviews": [
+              {
+                "reviewer": "codex-reviewer",
+                "status": "approved",
+                "comments": []
+              },
+              {
+                "reviewer": "gemini-reviewer",
+                "status": "approved",
+                "comments": []
+              },
+              {
+                "reviewer": "claude-reviewer",
+                "status": "approved",
+                "comments": []
+              }
+            ]
+          }
+        },
+        "pr": {
+          "status": "in_progress"
+        }
+      },
+      "started_at": "2026-03-05T11:01:58.197119",
+      "completed_at": "2026-03-05T11:02:22.322716",
+      "result": null,
+      "error": "__init__() got an unexpected keyword argument 'capture_output'"
+    },
+    "wf-20260305-110432-efe9": {
+      "id": "wf-20260305-110432-efe9",
+      "status": "failed",
+      "requirement": "测试：创建一个天气查询小程序",
+      "phases": {
+        "analysis": {
+          "status": "completed",
+          "result": {
+            "tasks": [
+              {
+                "id": "task-backend-001",
+                "type": "backend",
+                "agent": "codex",
+                "description": "后端开发",
+                "requirements": [
+                  "API 设计",
+                  "业务逻辑"
+                ],
+                "prompt": "实现以下功能：测试：创建一个天气查询小程序"
+              },
+              {
+                "id": "task-frontend-001",
+                "type": "frontend",
+                "agent": "claude-code",
+                "description": "前端开发",
+                "requirements": [
+                  "UI 组件",
+                  "交互逻辑"
+                ],
+                "prompt": "实现以下功能的前端：测试：创建一个天气查询小程序"
+              }
+            ]
+          }
+        },
+        "design": {
+          "status": "completed",
+          "result": {
+            "status": "skipped",
+            "design_files": []
+          }
+        },
+        "coding": {
+          "status": "completed",
+          "result": {
+            "status": "completed",
+            "results": [
+              {
+                "task": {
+                  "id": "task-backend-001",
+                  "type": "backend",
+                  "agent": "codex",
+                  "description": "后端开发",
+                  "requirements": [
+                    "API 设计",
+                    "业务逻辑"
+                  ],
+                  "prompt": "实现以下功能：测试：创建一个天气查询小程序"
+                },
+                "result": {
+                  "status": "completed",
+                  "session_id": "623cfeec",
+                  "agent_id": "codex",
+                  "session_file": "/home/admin/.openclaw/workspace/agents/codex/sessions/623cfeec.json",
+                  "output": "任务已完成：实现以下功能：测试：创建一个天气查询小程序..."
+                }
+              },
+              {
+                "task": {
+                  "id": "task-frontend-001",
+                  "type": "frontend",
+                  "agent": "claude-code",
+                  "description": "前端开发",
+                  "requirements": [
+                    "UI 组件",
+                    "交互逻辑"
+                  ],
+                  "prompt": "实现以下功能的前端：测试：创建一个天气查询小程序"
+                },
+                "result": {
+                  "status": "completed",
+                  "session_id": "1250a58f",
+                  "agent_id": "claude-code",
+                  "session_file": "/home/admin/.openclaw/workspace/agents/claude-code/sessions/1250a58f.json",
+                  "output": "任务已完成：实现以下功能的前端：测试：创建一个天气查询小程序..."
+                }
+              }
+            ],
+            "code_files": []
+          }
+        },
+        "testing": {
+          "status": "completed",
+          "result": {
+            "status": "passed",
+            "tests_run": 10,
+            "tests_passed": 10,
+            "coverage": 85.5
+          }
+        },
+        "review": {
+          "status": "completed",
+          "result": {
+            "status": "approved",
+            "reviews": [
+              {
+                "reviewer": "codex-reviewer",
+                "status": "approved",
+                "comments": []
+              },
+              {
+                "reviewer": "gemini-reviewer",
+                "status": "approved",
+                "comments": []
+              },
+              {
+                "reviewer": "claude-reviewer",
+                "status": "approved",
+                "comments": []
+              }
+            ]
+          }
+        },
+        "pr": {
+          "status": "in_progress"
+        }
+      },
+      "started_at": "2026-03-05T11:04:32.072954",
+      "completed_at": "2026-03-05T11:04:56.891876",
+      "result": null,
+      "error": "克隆仓库失败：Cloning into '/home/admin/.openclaw/workspace/phoenixbull/agent-cluster-test'...\nremote: Not Found\nfatal: repository 'https://github.com/phoenixbull/phoenixbull/agent-cluster-test.git/' not found\n"
+    },
+    "wf-20260305-112407-58ae": {
+      "id": "wf-20260305-112407-58ae",
+      "status": "failed",
+      "requirement": "测试：创建一个简单的计算器功能",
+      "phases": {
+        "analysis": {
+          "status": "completed",
+          "result": {
+            "tasks": [
+              {
+                "id": "task-backend-001",
+                "type": "backend",
+                "agent": "codex",
+                "description": "后端开发",
+                "requirements": [
+                  "API 设计",
+                  "业务逻辑"
+                ],
+                "prompt": "实现以下功能：测试：创建一个简单的计算器功能"
+              },
+              {
+                "id": "task-frontend-001",
+                "type": "frontend",
+                "agent": "claude-code",
+                "description": "前端开发",
+                "requirements": [
+                  "UI 组件",
+                  "交互逻辑"
+                ],
+                "prompt": "实现以下功能的前端：测试：创建一个简单的计算器功能"
+              }
+            ]
+          }
+        },
+        "design": {
+          "status": "completed",
+          "result": {
+            "status": "skipped",
+            "design_files": []
+          }
+        },
+        "coding": {
+          "status": "completed",
+          "result": {
+            "status": "completed",
+            "results": [
+              {
+                "task": {
+                  "id": "task-backend-001",
+                  "type": "backend",
+                  "agent": "codex",
+                  "description": "后端开发",
+                  "requirements": [
+                    "API 设计",
+                    "业务逻辑"
+                  ],
+                  "prompt": "实现以下功能：测试：创建一个简单的计算器功能"
+                },
+                "result": {
+                  "status": "completed",
+                  "session_id": "e88fd33f",
+                  "agent_id": "codex",
+                  "session_file": "/home/admin/.openclaw/workspace/agents/codex/sessions/e88fd33f.json",
+                  "output": "任务已完成：实现以下功能：测试：创建一个简单的计算器功能..."
+                }
+              },
+              {
+                "task": {
+                  "id": "task-frontend-001",
+                  "type": "frontend",
+                  "agent": "claude-code",
+                  "description": "前端开发",
+                  "requirements": [
+                    "UI 组件",
+                    "交互逻辑"
+                  ],
+                  "prompt": "实现以下功能的前端：测试：创建一个简单的计算器功能"
+                },
+                "result": {
+                  "status": "completed",
+                  "session_id": "401c0487",
+                  "agent_id": "claude-code",
+                  "session_file": "/home/admin/.openclaw/workspace/agents/claude-code/sessions/401c0487.json",
+                  "output": "任务已完成：实现以下功能的前端：测试：创建一个简单的计算器功能..."
+                }
+              }
+            ],
+            "code_files": []
+          }
+        },
+        "testing": {
+          "status": "completed",
+          "result": {
+            "status": "passed",
+            "tests_run": 10,
+            "tests_passed": 10,
+            "coverage": 85.5
+          }
+        },
+        "review": {
+          "status": "completed",
+          "result": {
+            "status": "approved",
+            "reviews": [
+              {
+                "reviewer": "codex-reviewer",
+                "status": "approved",
+                "comments": []
+              },
+              {
+                "reviewer": "gemini-reviewer",
+                "status": "approved",
+                "comments": []
+              },
+              {
+                "reviewer": "claude-reviewer",
+                "status": "approved",
+                "comments": []
+              }
+            ]
+          }
+        },
+        "pr": {
+          "status": "in_progress"
+        }
+      },
+      "started_at": "2026-03-05T11:24:07.843648",
+      "completed_at": "2026-03-05T11:24:32.918532",
+      "result": null,
+      "error": "提交失败：Author identity unknown\n\n*** Please tell me who you are.\n\nRun\n\n  git config --global user.email \"you@example.com\"\n  git config --global user.name \"Your Name\"\n\nto set your account's default identity.\nOmit --global to set the identity only in this repository.\n\nfatal: unable to auto-detect email address (got 'admin@iZ2ze3xu6p7e8obt25mlz3Z.(none)')\n"
+    },
+    "wf-20260305-112454-5602": {
+      "id": "wf-20260305-112454-5602",
+      "status": "failed",
+      "requirement": "测试：创建一个天气查询功能",
+      "phases": {
+        "analysis": {
+          "status": "completed",
+          "result": {
+            "tasks": [
+              {
+                "id": "task-backend-001",
+                "type": "backend",
+                "agent": "codex",
+                "description": "后端开发",
+                "requirements": [
+                  "API 设计",
+                  "业务逻辑"
+                ],
+                "prompt": "实现以下功能：测试：创建一个天气查询功能"
+              },
+              {
+                "id": "task-frontend-001",
+                "type": "frontend",
+                "agent": "claude-code",
+                "description": "前端开发",
+                "requirements": [
+                  "UI 组件",
+                  "交互逻辑"
+                ],
+                "prompt": "实现以下功能的前端：测试：创建一个天气查询功能"
+              }
+            ]
+          }
+        },
+        "design": {
+          "status": "completed",
+          "result": {
+            "status": "skipped",
+            "design_files": []
+          }
+        },
+        "coding": {
+          "status": "completed",
+          "result": {
+            "status": "completed",
+            "results": [
+              {
+                "task": {
+                  "id": "task-backend-001",
+                  "type": "backend",
+                  "agent": "codex",
+                  "description": "后端开发",
+                  "requirements": [
+                    "API 设计",
+                    "业务逻辑"
+                  ],
+                  "prompt": "实现以下功能：测试：创建一个天气查询功能"
+                },
+                "result": {
+                  "status": "completed",
+                  "session_id": "b35cd1d6",
+                  "agent_id": "codex",
+                  "session_file": "/home/admin/.openclaw/workspace/agents/codex/sessions/b35cd1d6.json",
+                  "output": "任务已完成：实现以下功能：测试：创建一个天气查询功能..."
+                }
+              },
+              {
+                "task": {
+                  "id": "task-frontend-001",
+                  "type": "frontend",
+                  "agent": "claude-code",
+                  "description": "前端开发",
+                  "requirements": [
+                    "UI 组件",
+                    "交互逻辑"
+                  ],
+                  "prompt": "实现以下功能的前端：测试：创建一个天气查询功能"
+                },
+                "result": {
+                  "status": "completed",
+                  "session_id": "e57bcbd0",
+                  "agent_id": "claude-code",
+                  "session_file": "/home/admin/.openclaw/workspace/agents/claude-code/sessions/e57bcbd0.json",
+                  "output": "任务已完成：实现以下功能的前端：测试：创建一个天气查询功能..."
+                }
+              }
+            ],
+            "code_files": []
+          }
+        },
+        "testing": {
+          "status": "completed",
+          "result": {
+            "status": "passed",
+            "tests_run": 10,
+            "tests_passed": 10,
+            "coverage": 85.5
+          }
+        },
+        "review": {
+          "status": "completed",
+          "result": {
+            "status": "approved",
+            "reviews": [
+              {
+                "reviewer": "codex-reviewer",
+                "status": "approved",
+                "comments": []
+              },
+              {
+                "reviewer": "gemini-reviewer",
+                "status": "approved",
+                "comments": []
+              },
+              {
+                "reviewer": "claude-reviewer",
+                "status": "approved",
+                "comments": []
+              }
+            ]
+          }
+        },
+        "pr": {
+          "status": "in_progress"
+        }
+      },
+      "started_at": "2026-03-05T11:24:54.990309",
+      "completed_at": "2026-03-05T11:25:20.135559",
+      "result": null,
+      "error": "提交失败："
+    },
+    "wf-20260305-112644-3c10": {
+      "id": "wf-20260305-112644-3c10",
+      "status": "in_progress",
+      "requirement": "测试：创建一个待办事项列表",
+      "phases": {
+        "analysis": {
+          "status": "completed",
+          "result": {
+            "tasks": [
+              {
+                "id": "task-backend-001",
+                "type": "backend",
+                "agent": "codex",
+                "description": "后端开发",
+                "requirements": [
+                  "API 设计",
+                  "业务逻辑"
+                ],
+                "prompt": "实现以下功能：测试：创建一个待办事项列表"
+              },
+              {
+                "id": "task-frontend-001",
+                "type": "frontend",
+                "agent": "claude-code",
+                "description": "前端开发",
+                "requirements": [
+                  "UI 组件",
+                  "交互逻辑"
+                ],
+                "prompt": "实现以下功能的前端：测试：创建一个待办事项列表"
+              }
+            ]
+          }
+        },
+        "design": {
+          "status": "completed",
+          "result": {
+            "status": "skipped",
+            "design_files": []
+          }
+        },
+        "coding": {
+          "status": "completed",
+          "result": {
+            "status": "completed",
+            "results": [
+              {
+                "task": {
+                  "id": "task-backend-001",
+                  "type": "backend",
+                  "agent": "codex",
+                  "description": "后端开发",
+                  "requirements": [
+                    "API 设计",
+                    "业务逻辑"
+                  ],
+                  "prompt": "实现以下功能：测试：创建一个待办事项列表"
+                },
+                "result": {
+                  "status": "completed",
+                  "session_id": "3a9248a8",
+                  "agent_id": "codex",
+                  "session_file": "/home/admin/.openclaw/workspace/agents/codex/sessions/3a9248a8.json",
+                  "output": "任务已完成：实现以下功能：测试：创建一个待办事项列表..."
+                }
+              },
+              {
+                "task": {
+                  "id": "task-frontend-001",
+                  "type": "frontend",
+                  "agent": "claude-code",
+                  "description": "前端开发",
+                  "requirements": [
+                    "UI 组件",
+                    "交互逻辑"
+                  ],
+                  "prompt": "实现以下功能的前端：测试：创建一个待办事项列表"
+                },
+                "result": {
+                  "status": "completed",
+                  "session_id": "420d537d",
+                  "agent_id": "claude-code",
+                  "session_file": "/home/admin/.openclaw/workspace/agents/claude-code/sessions/420d537d.json",
+                  "output": "任务已完成：实现以下功能的前端：测试：创建一个待办事项列表..."
+                }
+              }
+            ],
+            "code_files": []
+          }
+        },
+        "testing": {
+          "status": "completed",
+          "result": {
+            "status": "passed",
+            "tests_run": 10,
+            "tests_passed": 10,
+            "coverage": 85.5
+          }
+        },
+        "review": {
+          "status": "completed",
+          "result": {
+            "status": "approved",
+            "reviews": [
+              {
+                "reviewer": "codex-reviewer",
+                "status": "approved",
+                "comments": []
+              },
+              {
+                "reviewer": "gemini-reviewer",
+                "status": "approved",
+                "comments": []
+              },
+              {
+                "reviewer": "claude-reviewer",
+                "status": "approved",
+                "comments": []
+              }
+            ]
+          }
+        },
+        "pr": {
+          "status": "in_progress"
+        }
+      },
+      "started_at": "2026-03-05T11:26:44.611704",
+      "completed_at": null,
+      "result": null
+    },
+    "wf-20260315-191109-df59": {
+      "id": "wf-20260315-191109-df59",
+      "status": "completed",
+      "requirement": "开发一个完整的个人博客系统，包含用户注册登录、文章发布编辑删除、文章列表详情展示、支持 Markdown 编辑，界面简洁现代",
+      "phases": {
+        "analysis": {
+          "status": "completed",
+          "result": {
+            "tasks": [
+              {
+                "id": "task-design-001",
+                "type": "design",
+                "agent": "designer",
+                "description": "UI/UX 设计",
+                "requirements": [
+                  "线框图",
+                  "设计规范",
+                  "HTML 原型"
+                ],
+                "prompt": "为以下需求设计 UI: 开发一个完整的个人博客系统，包含用户注册登录、文章发布编辑删除、文章列表详情展示、支持 Markdown 编辑，界面简洁现代"
+              }
+            ]
+          }
+        },
+        "design": {
+          "status": "completed",
+          "result": {
+            "status": "completed",
+            "results": [
+              {
+                "status": "completed",
+                "session_id": "c8897775",
+                "agent_id": "designer",
+                "session_file": "/home/admin/.openclaw/workspace/agents/designer/sessions/c8897775.json",
+                "output": "任务已完成：为以下需求设计 UI: 开发一个完整的个人博客系统，包含用户注册登录、文章发布编辑删除、文章列表详情..."
+              }
+            ],
+            "design_files": []
+          }
+        },
+        "coding": {
+          "status": "completed",
+          "result": {
+            "status": "skipped",
+            "code_files": []
+          }
+        },
+        "testing": {
+          "status": "completed",
+          "result": {
+            "status": "passed",
+            "tests_run": 10,
+            "tests_passed": 10,
+            "coverage": 85.5
+          }
+        },
+        "review": {
+          "status": "completed",
+          "result": {
+            "status": "approved",
+            "reviews": [
+              {
+                "reviewer": "codex-reviewer",
+                "status": "approved",
+                "comments": []
+              },
+              {
+                "reviewer": "gemini-reviewer",
+                "status": "approved",
+                "comments": []
+              },
+              {
+                "reviewer": "claude-reviewer",
+                "status": "approved",
+                "comments": []
+              }
+            ]
+          }
+        },
+        "pr": {
+          "status": "pending"
+        },
+        "deployment": {
+          "status": "waiting_confirmation",
+          "result": {
+            "pr_info": {},
+            "confirmation_timeout": 1800,
+            "notified_at": "2026-03-15T19:11:24.045677"
+          }
+        }
+      },
+      "started_at": "2026-03-15T19:11:09.854515",
+      "completed_at": "2026-03-15T19:11:24.050217",
+      "result": {
+        "pr_info": {},
+        "tasks": [
+          {
+            "id": "task-design-001",
+            "type": "design",
+            "agent": "designer",
+            "description": "UI/UX 设计",
+            "requirements": [
+              "线框图",
+              "设计规范",
+              "HTML 原型"
+            ],
+            "prompt": "为以下需求设计 UI: 开发一个完整的个人博客系统，包含用户注册登录、文章发布编辑删除、文章列表详情展示、支持 Markdown 编辑，界面简洁现代"
+          }
+        ],
+        "deployment_status": "waiting_confirmation"
+      },
+      "project_id": "blog",
+      "deployment_status": "deploying"
+    }
+  }
+}

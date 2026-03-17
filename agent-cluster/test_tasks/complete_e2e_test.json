@@ -1,0 +1,59 @@
+{
+  "test_id": "complete-e2e-test-001",
+  "test_name": "Agent 集群 V2.1 - 完整产品开发流程测试",
+  "test_date": "2026-03-09",
+  "description": "模拟真实产品开发，从需求到部署完整测试所有阶段",
+  
+  "product_requirement": {
+    "name": "在线待办事项管理系统",
+    "description": "一个简洁的在线待办事项管理系统，用户可以创建、编辑、删除待办事项，支持分类管理、优先级设置、完成状态标记，界面简洁现代，支持移动端访问",
+    "target_users": "个人用户、小团队",
+    "key_features": [
+      "用户注册登录",
+      "待办事项 CRUD",
+      "分类管理",
+      "优先级设置（高/中/低）",
+      "完成状态标记",
+      "搜索和筛选",
+      "响应式设计"
+    ]
+  },
+  
+  "quality_requirements": {
+    "test_coverage": ">80%",
+    "max_critical_bugs": 0,
+    "max_major_bugs": 3,
+    "security_score": ">80",
+    "code_review_score": ">85"
+  },
+  
+  "deployment_requirements": {
+    "environment": "staging",
+    "require_docker": true,
+    "require_ci_cd": true,
+    "require_monitoring": true
+  },
+  
+  "expected_deliverables": {
+    "phase_1": ["PRD 文档", "用户故事", "验收标准"],
+    "phase_2": ["架构设计", "API 定义", "数据库设计", "UI 设计", "Docker 配置"],
+    "phase_3": ["后端代码", "前端代码", "数据库迁移脚本"],
+    "phase_4": ["测试代码", "测试报告", "Bug 修复记录"],
+    "phase_5": ["审查报告", "改进建议", "修复记录"],
+    "phase_6": ["部署配置", "监控配置", "上线报告"]
+  },
+  
+  "success_criteria": {
+    "all_phases_completed": true,
+    "quality_gates_passed": true,
+    "no_critical_bugs": true,
+    "deployment_successful": true,
+    "documentation_complete": true
+  },
+  
+  "timeline": {
+    "start_time": "2026-03-09T21:35:00+08:00",
+    "expected_duration_hours": 3,
+    "end_time": null
+  }
+}

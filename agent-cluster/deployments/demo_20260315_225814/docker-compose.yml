@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  app:
+    image: demo_20260315_225814:latest
+    container_name: demo_20260315_225814
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    environment:
+      - ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

@@ -1,0 +1,112 @@
+{
+  "test_id": "e2e-test-001",
+  "test_name": "个人博客系统 - 端到端流程测试",
+  "test_date": "2026-03-09",
+  "description": "测试 Agent 集群 V2.1 完整开发流程",
+  
+  "user_request": "我需要一个个人博客系统，可以写文章、分类管理、评论功能，支持 Markdown 编辑器，界面简洁现代",
+  
+  "expected_workflow": {
+    "phase_1_requirement": {
+      "agent": "product-manager",
+      "expected_outputs": [
+        "PRD 文档",
+        "用户故事列表",
+        "功能优先级",
+        "验收标准"
+      ],
+      "success_criteria": [
+        "PRD 文档完整清晰",
+        "用户故事符合格式",
+        "功能优先级明确",
+        "验收标准可验证"
+      ]
+    },
+    "phase_2_design": {
+      "agents": ["tech-lead", "designer"],
+      "expected_outputs": [
+        "技术架构文档",
+        "API 接口定义",
+        "数据库设计",
+        "UI 设计稿"
+      ],
+      "success_criteria": [
+        "架构图清晰",
+        "API 设计 RESTful",
+        "数据库设计合理",
+        "UI 设计现代简洁"
+      ]
+    },
+    "phase_3_development": {
+      "agents": ["codex", "claude-code"],
+      "expected_outputs": [
+        "后端代码",
+        "前端代码",
+        "数据库迁移脚本"
+      ],
+      "success_criteria": [
+        "代码可运行",
+        "功能完整",
+        "代码质量高",
+        "有注释文档"
+      ]
+    },
+    "phase_4_testing": {
+      "agent": "tester",
+      "expected_outputs": [
+        "单元测试代码",
+        "测试报告",
+        "Bug 列表",
+        "覆盖率报告"
+      ],
+      "success_criteria": [
+        "测试覆盖率>80%",
+        "核心功能 100% 测试",
+        "测试报告清晰",
+        "Bug 描述准确"
+      ]
+    },
+    "phase_5_review": {
+      "agents": ["codex-reviewer", "gemini-reviewer", "claude-reviewer"],
+      "expected_outputs": [
+        "代码审查报告",
+        "问题列表",
+        "改进建议"
+      ],
+      "success_criteria": [
+        "审查覆盖所有代码",
+        "问题描述清晰",
+        "建议具体可行"
+      ]
+    }
+  },
+  
+  "timeline": {
+    "start_time": "2026-03-09T20:00:00+08:00",
+    "expected_duration_hours": 2,
+    "end_time": null
+  },
+  
+  "deliverables": {
+    "required": [
+      "PRD 文档",
+      "架构设计文档",
+      "完整代码",
+      "测试报告",
+      "审查报告"
+    ],
+    "optional": [
+      "部署指南",
+      "用户手册",
+      "API 文档"
+    ]
+  },
+  
+  "quality_metrics": {
+    "code_coverage": ">80%",
+    "bug_count": "<5",
+    "performance": "页面加载<2s",
+    "security": "无高危漏洞",
+    "documentation": "完整清晰"
+  }
+}

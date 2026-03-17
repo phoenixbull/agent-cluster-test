@@ -1,0 +1,36 @@
+{
+  "version": "2.2",
+  "estimations": [
+    {
+      "task_title": "实现用户登录功能",
+      "phase": "3_development",
+      "complexity": "simple",
+      "estimated_hours": 3.0,
+      "min_hours": 1.5,
+      "max_hours": 4.5,
+      "confidence": "low",
+      "factors": {
+        "base_hours": 2,
+        "phase_multiplier": 1.5,
+        "history_adjustment": 1.0
+      },
+      "estimated_at": "2026-03-15T11:23:20.064978"
+    },
+    {
+      "task_title": "实现用户登录功能",
+      "phase": "3_development",
+      "complexity": "simple",
+      "estimated_hours": 3.0,
+      "min_hours": 1.5,
+      "max_hours": 4.5,
+      "confidence": "low",
+      "factors": {
+        "base_hours": 2,
+        "phase_multiplier": 1.5,
+        "history_adjustment": 1.0
+      },
+      "estimated_at": "2026-03-15T11:23:44.245126"
+    }
+  ],
+  "actuals": []
+}

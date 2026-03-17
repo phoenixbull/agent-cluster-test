@@ -1,0 +1,14 @@
+[
+  {
+    "agent": "codex",
+    "task": "创建一个 Python 工具模块，实现以下功能：1) 文件批量重命名 2) JSON 数据格式化 3) 简单的数据验证"
+  },
+  {
+    "agent": "claude-code",
+    "task": "创建一个响应式的导航栏组件，使用 HTML/CSS/JavaScript，支持移动端汉堡菜单"
+  },
+  {
+    "agent": "designer",
+    "task": "设计一个电商 APP 的商品详情页线框图，包含商品图片、价格、详情、评价等模块"
+  }
+]

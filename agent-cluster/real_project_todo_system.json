@@ -1,0 +1,18 @@
+{
+  "project_id": "real-project-001",
+  "project_name": "个人任务管理系统",
+  "requirement": "我需要一个个人任务管理系统，可以创建和管理待办事项，支持分类、优先级、截止日期，界面简洁现代，支持移动端访问。核心功能包括：用户注册登录、任务 CRUD、分类管理、优先级设置（高/中/低）、截止日期提醒、完成状态标记、搜索筛选、统计面板（完成率、待办数量）、响应式设计适配手机和电脑。",
+  "priority": "high",
+  "estimated_duration": "2-3 hours",
+  "quality_requirements": {
+    "test_coverage": ">80%",
+    "max_critical_bugs": 0,
+    "security_score": ">80",
+    "code_review_score": ">85"
+  },
+  "deployment": {
+    "environment": "staging",
+    "require_docker": true,
+    "require_monitoring": true
+  }
+}

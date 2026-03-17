@@ -1,0 +1,116 @@
+{
+  "version": "2.2",
+  "environments": {
+    "development": {
+      "name": "开发环境",
+      "description": "开发人员日常使用，自动部署",
+      "auto_deploy": true,
+      "require_approval": false,
+      "notify_on_deploy": false,
+      "rollback_enabled": true,
+      "max_rollback_versions": 5,
+      "health_check": {
+        "enabled": true,
+        "endpoint": "/health",
+        "timeout_seconds": 30,
+        "interval_seconds": 60
+      },
+      "resources": {
+        "cpu_limit": "2",
+        "memory_limit": "4Gi",
+        "replicas": 1
+      }
+    },
+    "staging": {
+      "name": "预发布环境",
+      "description": "PR 合并后自动部署，用于测试验证",
+      "auto_deploy": true,
+      "require_approval": false,
+      "notify_on_deploy": true,
+      "rollback_enabled": true,
+      "max_rollback_versions": 10,
+      "health_check": {
+        "enabled": true,
+        "endpoint": "/health",
+        "timeout_seconds": 30,
+        "interval_seconds": 30
+      },
+      "resources": {
+        "cpu_limit": "4",
+        "memory_limit": "8Gi",
+        "replicas": 2
+      }
+    },
+    "production": {
+      "name": "生产环境",
+      "description": "正式环境，需要人工审批",
+      "auto_deploy": false,
+      "require_approval": true,
+      "approvers": ["all"],
+      "notify_on_deploy": true,
+      "rollback_enabled": true,
+      "max_rollback_versions": 20,
+      "health_check": {
+        "enabled": true,
+        "endpoint": "/health",
+        "timeout_seconds": 15,
+        "interval_seconds": 15
+      },
+      "resources": {
+        "cpu_limit": "8",
+        "memory_limit": "16Gi",
+        "replicas": 3
+      },
+      "deployment_strategy": {
+        "type": "blue_green",
+        "canary_percentage": 10,
+        "canary_duration_minutes": 30
+      }
+    }
+  },
+  "deployment": {
+    "default_timeout_minutes": 30,
+    "confirmation_timeout_minutes": 30,
+    "auto_cancel_on_timeout": true,
+    "notification_channel": "dingtalk",
+    "docker": {
+      "registry": "registry.cn-hangzhou.aliyuncs.com",
+      "namespace": "agent-cluster",
+      "tag_format": "{version}-{commit_hash}-{timestamp}"
+    },
+    "kubernetes": {
+      "enabled": false,
+      "namespace": "agent-cluster",
+      "config_path": "~/.kube/config"
+    }
+  },
+  "rollback": {
+    "enabled": true,
+    "auto_rollback_on_failure": true,
+    "health_check_failures_threshold": 3,
+    "rollback_timeout_minutes": 10,
+    "notify_on_rollback": true,
+    "preserve_logs": true,
+    "log_retention_days": 30
+  },
+  "monitoring": {
+    "enabled": true,
+    "metrics_endpoint": "/metrics",
+    "log_aggregation": true,
+    "alerting": {
+      "enabled": true,
+      "channels": ["dingtalk"],
+      "rules": {
+        "deployment_failure": "immediate",
+        "health_check_failure": "after_3_failures",
+        "rollback_triggered": "immediate"
+      }
+    }
+  },
+  "history": {
+    "enabled": true,
+    "storage_path": "~/.openclaw/workspace/agent-cluster/memory/deployment_history.json",
+    "max_entries": 100,
+    "include_details": true
+  }
+}

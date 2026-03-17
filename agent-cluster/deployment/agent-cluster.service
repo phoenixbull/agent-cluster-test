@@ -1,0 +1,23 @@
+[Unit]
+Description=AI Product Development Agent Cluster
+After=network.target
+
+[Service]
+Type=simple
+User=admin
+WorkingDirectory=/home/admin/.openclaw/workspace/agent-cluster
+Environment="PATH=/usr/bin:/usr/local/bin"
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/usr/bin/python3 web_app_v2.py --port 8890
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=agent-cluster
+
+# 资源限制
+LimitNOFILE=65535
+Nice=5
+
+[Install]
+WantedBy=multi-user.target
