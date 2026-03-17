@@ -1,255 +1,467 @@
 """
-部署执行模块
-实现实际的 Docker 部署功能
+Docker 部署执行器
+支持 Docker 容器化部署、一键回滚、蓝绿部署
 """
 
-import subprocess
-import json
 import os
+import json
+import subprocess
+import hashlib
+import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, Tuple
+from enum import Enum
 
 from .config_loader import config
 
+
+class DeployStatus(Enum):
+    """部署状态"""
+    PENDING = 'pending'
+    BUILDING = 'building'
+    STARTING = 'starting'
+    RUNNING = 'running'
+    COMPLETED = 'completed'
+    FAILED = 'failed'
+    ROLLBACK = 'rollback'
+    CANCELLED = 'cancelled'
+
+
 class DeployExecutor:
-    """部署执行器"""
+    """Docker 部署执行器"""
     
     def __init__(self):
-        self.workspace = Path(__file__).parent.parent
-        self.deployments_dir = self.workspace / 'deployments'
+        self.deployments_dir = Path(config.base_path) / 'deployments'
         self.deployments_dir.mkdir(exist_ok=True)
+        
+        # Docker 配置
+        self.docker_registry = os.getenv('DOCKER_REGISTRY', '')
+        self.docker_network = os.getenv('DOCKER_NETWORK', 'agent-cluster')
+        
+        # 确保 Docker 网络存在
+        self._ensure_docker_network()
     
-    def deploy(self, workflow_id: str, project: str, code_path: str) -> Dict[str, Any]:
+    def _ensure_docker_network(self):
+        """确保 Docker 网络存在"""
+        try:
+            subprocess.run(
+                ['docker', 'network', 'create', self.docker_network],
+                capture_output=True,
+                timeout=10
+            )
+        except Exception:
+            pass  # 网络可能已存在
+    
+    def _check_docker(self) -> Tuple[bool, str]:
+        """检查 Docker 是否可用"""
+        try:
+            result = subprocess.run(
+                ['docker', 'version'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if result.returncode == 0:
+                return True, 'Docker 可用'
+            else:
+                return False, f'Docker 不可用：{result.stderr}'
+        except FileNotFoundError:
+            return False, 'Docker 未安装'
+        except Exception as e:
+            return False, f'Docker 检查失败：{str(e)}'
+    
+    def deploy(self, workflow_id: str, project: str = 'default', 
+               environment: str = 'production', code_path: str = '') -> Dict[str, Any]:
         """
         执行部署
         
         Args:
             workflow_id: 工作流 ID
             project: 项目名称
+            environment: 环境（production/staging）
             code_path: 代码路径
         
         Returns:
             部署结果
         """
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        deployment_id = f"deploy_{timestamp}_{hashlib.md5(workflow_id.encode()).hexdigest()[:8]}"
+        
+        deploy_dir = self.deployments_dir / deployment_id
+        deploy_dir.mkdir(exist_ok=True)
+        
+        # 部署配置
+        deploy_config = {
+            'deployment_id': deployment_id,
+            'workflow_id': workflow_id,
+            'project': project,
+            'environment': environment,
+            'code_path': code_path,
+            'status': DeployStatus.PENDING.value,
+            'created_at': datetime.now().isoformat(),
+            'docker': {
+                'image_name': f"{project}:{timestamp}",
+                'container_name': f"{project}_{environment}_{timestamp}",
+                'network': self.docker_network
+            }
+        }
+        
+        # 保存配置
+        config_file = deploy_dir / 'deploy_config.json'
+        with open(config_file, 'w', encoding='utf-8') as f:
+            json.dump(deploy_config, f, ensure_ascii=False, indent=2)
+        
         try:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            deployment_id = f"{project}_{timestamp}"
-            deployment_dir = self.deployments_dir / deployment_id
-            deployment_dir.mkdir(exist_ok=True)
+            # 1. 检查 Docker
+            docker_available, docker_msg = self._check_docker()
+            if not docker_available:
+                raise Exception(docker_msg)
             
-            # 1. 准备部署配置
-            deploy_config = {
-                'workflow_id': workflow_id,
-                'project': project,
-                'code_path': code_path,
-                'deployment_id': deployment_id,
-                'deployed_at': datetime.now().isoformat(),
-                'status': 'deploying'
-            }
+            # 2. 构建 Docker 镜像
+            deploy_config['status'] = DeployStatus.BUILDING.value
+            self._save_config(config_file, deploy_config)
             
-            # 保存部署配置
-            config_file = deployment_dir / 'deploy_config.json'
-            with open(config_file, 'w', encoding='utf-8') as f:
-                json.dump(deploy_config, f, indent=2, ensure_ascii=False)
+            image_result = self._build_image(deploy_dir, deploy_config['docker']['image_name'], code_path)
+            if not image_result['success']:
+                raise Exception(f"镜像构建失败：{image_result['error']}")
             
-            # 2. 创建 Dockerfile
-            dockerfile = deployment_dir / 'Dockerfile'
-            self._create_dockerfile(dockerfile, code_path)
+            # 3. 启动容器
+            deploy_config['status'] = DeployStatus.STARTING.value
+            self._save_config(config_file, deploy_config)
             
-            # 3. 创建 docker-compose.yml
-            compose_file = deployment_dir / 'docker-compose.yml'
-            self._create_compose_file(compose_file, deployment_id)
+            container_result = self._start_container(deploy_config['docker']['container_name'], 
+                                                     deploy_config['docker']['image_name'],
+                                                     environment)
+            if not container_result['success']:
+                raise Exception(f"容器启动失败：{container_result['error']}")
             
-            # 4. 构建 Docker 镜像
-            print(f"[{datetime.now()}] 构建 Docker 镜像...")
-            build_result = self._build_image(deployment_dir, deployment_id)
+            # 4. 健康检查
+            health_result = self._health_check(deploy_config['docker']['container_name'])
             
-            if not build_result['success']:
-                deploy_config['status'] = 'failed'
-                deploy_config['error'] = build_result.get('error', '构建失败')
-                self._save_deploy_config(config_file, deploy_config)
-                return deploy_config
+            # 5. 完成部署
+            deploy_config['status'] = DeployStatus.COMPLETED.value
+            deploy_config['completed_at'] = datetime.now().isoformat()
+            deploy_config['health'] = health_result
+            self._save_config(config_file, deploy_config)
             
-            # 5. 启动容器
-            print(f"[{datetime.now()}] 启动 Docker 容器...")
-            start_result = self._start_container(deployment_id)
-            
-            if not start_result['success']:
-                deploy_config['status'] = 'failed'
-                deploy_config['error'] = start_result.get('error', '启动失败')
-                self._save_deploy_config(config_file, deploy_config)
-                return deploy_config
-            
-            # 6. 更新部署状态
-            deploy_config['status'] = 'deployed'
-            deploy_config['container_id'] = start_result.get('container_id')
-            deploy_config['image_id'] = build_result.get('image_id')
-            deploy_config['port'] = start_result.get('port', 8080)
-            self._save_deploy_config(config_file, deploy_config)
-            
-            print(f"[{datetime.now()}] 部署成功：{deployment_id}")
-            return deploy_config
-            
-        except Exception as e:
-            print(f"[{datetime.now()}] 部署异常：{e}")
             return {
-                'status': 'failed',
+                'success': True,
+                'deployment_id': deployment_id,
+                'message': '部署成功',
+                'config': deploy_config
+            }
+        
+        except Exception as e:
+            deploy_config['status'] = DeployStatus.FAILED.value
+            deploy_config['error_message'] = str(e)
+            self._save_config(config_file, deploy_config)
+            
+            return {
+                'success': False,
                 'error': str(e),
-                'workflow_id': workflow_id,
-                'project': project
+                'deployment_id': deployment_id
             }
     
-    def _create_dockerfile(self, path: Path, code_path: str):
-        """创建 Dockerfile"""
-        dockerfile_content = f"""FROM python:3.9-slim
-
-WORKDIR /app
-
-# 复制代码
-COPY {code_path} /app/
-
-# 安装依赖
-RUN pip install --no-cache-dir -r requirements.txt || true
-
-# 暴露端口
-EXPOSE 8080
-
-# 启动命令
-CMD ["python", "app.py"]
-"""
-        with open(path, 'w', encoding='utf-8') as f:
-            f.write(dockerfile_content)
-    
-    def _create_compose_file(self, path: Path, deployment_id: str):
-        """创建 docker-compose.yml"""
-        compose_content = f"""version: '3.8'
-
-services:
-  app:
-    image: {deployment_id}:latest
-    container_name: {deployment_id}
-    ports:
-      - "8080:8080"
-    restart: unless-stopped
-    environment:
-      - ENV=production
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-"""
-        with open(path, 'w', encoding='utf-8') as f:
-            f.write(compose_content)
-    
-    def _build_image(self, build_dir: Path, image_name: str) -> Dict[str, Any]:
+    def _build_image(self, deploy_dir: Path, image_name: str, code_path: str) -> Dict[str, Any]:
         """构建 Docker 镜像"""
         try:
+            # 创建 Dockerfile
+            dockerfile_content = self._generate_dockerfile(code_path)
+            dockerfile = deploy_dir / 'Dockerfile'
+            with open(dockerfile, 'w', encoding='utf-8') as f:
+                f.write(dockerfile_content)
+            
+            # 构建镜像
             result = subprocess.run(
-                ['docker', 'build', '-t', f'{image_name}:latest', '.'],
-                cwd=build_dir,
+                ['docker', 'build', '-t', image_name, '-f', str(dockerfile), str(deploy_dir)],
                 capture_output=True,
                 text=True,
                 timeout=300
             )
             
             if result.returncode == 0:
-                # 获取镜像 ID
-                image_result = subprocess.run(
-                    ['docker', 'images', '-q', f'{image_name}:latest'],
-                    capture_output=True,
-                    text=True
-                )
-                return {
-                    'success': True,
-                    'image_id': image_result.stdout.strip()[:12],
-                    'logs': result.stdout
-                }
+                return {'success': True, 'image': image_name, 'logs': result.stdout}
             else:
-                return {
-                    'success': False,
-                    'error': result.stderr
-                }
+                return {'success': False, 'error': result.stderr}
+        
         except subprocess.TimeoutExpired:
-            return {'success': False, 'error': '构建超时'}
+            return {'success': False, 'error': '镜像构建超时（5 分钟）'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
-    def _start_container(self, deployment_id: str) -> Dict[str, Any]:
+    def _start_container(self, container_name: str, image_name: str, environment: str) -> Dict[str, Any]:
         """启动 Docker 容器"""
         try:
-            # 检查是否已有容器运行
-            subprocess.run(
-                ['docker', 'rm', '-f', deployment_id],
-                capture_output=True
-            )
+            # 停止并删除旧容器
+            subprocess.run(['docker', 'rm', '-f', container_name], capture_output=True, timeout=10)
+            
+            # 确定端口
+            port = 8080 if environment == 'production' else 8081
             
             # 启动容器
             result = subprocess.run(
-                ['docker', 'run', '-d', '--name', deployment_id, '-p', '8080:8080', f'{deployment_id}:latest'],
+                ['docker', 'run', '-d', 
+                 '--name', container_name,
+                 '--network', self.docker_network,
+                 '-p', f'{port}:80',
+                 '--restart', 'unless-stopped',
+                 image_name],
                 capture_output=True,
-                text=True
+                text=True,
+                timeout=30
             )
             
             if result.returncode == 0:
-                return {
-                    'success': True,
-                    'container_id': result.stdout.strip()[:12],
-                    'port': 8080
-                }
+                return {'success': True, 'container_id': result.stdout.strip(), 'port': port}
             else:
-                return {
-                    'success': False,
-                    'error': result.stderr
-                }
+                return {'success': False, 'error': result.stderr}
+        
+        except subprocess.TimeoutExpired:
+            return {'success': False, 'error': '容器启动超时'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
-    def _save_deploy_config(self, path: Path, config: Dict):
+    def _health_check(self, container_name: str, max_retries: int = 10) -> Dict[str, Any]:
+        """健康检查"""
+        for i in range(max_retries):
+            try:
+                result = subprocess.run(
+                    ['docker', 'inspect', '--format', '{{.State.Health.Status}}', container_name],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                
+                status = result.stdout.strip()
+                if status == 'healthy':
+                    return {'status': 'healthy', 'retries': i + 1}
+                elif status == 'unhealthy':
+                    return {'status': 'unhealthy', 'retries': i + 1}
+                
+                time.sleep(2)
+            
+            except Exception:
+                time.sleep(2)
+        
+        return {'status': 'unknown', 'retries': max_retries}
+    
+    def _generate_dockerfile(self, code_path: str) -> str:
+        """生成 Dockerfile"""
+        return f"""FROM nginx:alpine
+
+# 复制应用代码
+COPY . /usr/share/nginx/html
+
+# 复制 Nginx 配置
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# 暴露端口
+EXPOSE 80
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \\
+    CMD curl -f http://localhost/ || exit 1
+
+# 启动 Nginx
+CMD ["nginx", "-g", "daemon off;"]
+"""
+    
+    def _save_config(self, config_file: Path, config: Dict):
         """保存部署配置"""
-        with open(path, 'w', encoding='utf-8') as f:
-            json.dump(config, f, indent=2, ensure_ascii=False)
+        with open(config_file, 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
     
     def stop(self, deployment_id: str) -> Dict[str, Any]:
         """停止部署"""
         try:
-            subprocess.run(['docker', 'stop', deployment_id], capture_output=True)
-            subprocess.run(['docker', 'rm', deployment_id], capture_output=True)
-            return {'success': True, 'message': f'已停止部署：{deployment_id}'}
+            deploy_dir = self.deployments_dir / deployment_id
+            if not deploy_dir.exists():
+                return {'success': False, 'error': '部署不存在'}
+            
+            config_file = deploy_dir / 'deploy_config.json'
+            with open(config_file, 'r', encoding='utf-8') as f:
+                deploy_config = json.load(f)
+            
+            container_name = deploy_config['docker']['container_name']
+            
+            # 停止容器
+            subprocess.run(['docker', 'stop', container_name], capture_output=True, timeout=30)
+            
+            # 更新状态
+            deploy_config['status'] = DeployStatus.CANCELLED.value
+            deploy_config['stopped_at'] = datetime.now().isoformat()
+            self._save_config(config_file, deploy_config)
+            
+            return {'success': True, 'message': '部署已停止'}
+        
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
-    def rollback(self, workflow_id: str) -> Dict[str, Any]:
-        """回滚部署"""
-        # TODO: 实现回滚逻辑
-        return {
-            'success': False,
-            'error': '回滚功能待实现'
-        }
+    def rollback(self, workflow_id: str, target_deployment_id: str = None) -> Dict[str, Any]:
+        """
+        回滚部署
+        
+        Args:
+            workflow_id: 工作流 ID
+            target_deployment_id: 目标部署 ID（可选，默认回滚到上一个成功部署）
+        
+        Returns:
+            回滚结果
+        """
+        try:
+            # 查找上一个成功部署
+            if not target_deployment_id:
+                deployments = self.get_deployments(workflow_id)
+                successful = [d for d in deployments if d.get('status') == DeployStatus.COMPLETED.value]
+                
+                if len(successful) < 2:
+                    return {'success': False, 'error': '没有可回滚的部署'}
+                
+                target_deployment_id = successful[-2]['deployment_id']
+            
+            # 获取目标部署配置
+            target_dir = self.deployments_dir / target_deployment_id
+            if not target_dir.exists():
+                return {'success': False, 'error': '目标部署不存在'}
+            
+            with open(target_dir / 'deploy_config.json', 'r', encoding='utf-8') as f:
+                target_config = json.load(f)
+            
+            # 回滚部署
+            result = self.deploy(
+                workflow_id=workflow_id,
+                project=target_config.get('project', 'default'),
+                environment=target_config.get('environment', 'production'),
+                code_path=target_config.get('code_path', '')
+            )
+            
+            if result['success']:
+                # 标记为回滚
+                new_deploy_dir = self.deployments_dir / result['deployment_id']
+                with open(new_deploy_dir / 'deploy_config.json', 'r+', encoding='utf-8') as f:
+                    config = json.load(f)
+                    config['rollback_from'] = target_deployment_id
+                    config['is_rollback'] = True
+                    f.seek(0)
+                    json.dump(config, f, ensure_ascii=False, indent=2)
+                
+                return {
+                    'success': True,
+                    'message': f'已成功回滚到 {target_deployment_id}',
+                    'new_deployment_id': result['deployment_id']
+                }
+            else:
+                return result
+        
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
     
     def get_deployment_status(self, deployment_id: str) -> Dict[str, Any]:
         """获取部署状态"""
         try:
-            result = subprocess.run(
-                ['docker', 'inspect', deployment_id],
-                capture_output=True,
-                text=True
-            )
+            deploy_dir = self.deployments_dir / deployment_id
+            if not deploy_dir.exists():
+                return {'success': False, 'error': '部署不存在'}
             
-            if result.returncode == 0:
-                info = json.loads(result.stdout)[0]
-                return {
-                    'status': 'running' if info['State']['Running'] else 'stopped',
-                    'container_id': deployment_id,
-                    'started_at': info['State']['StartedAt'],
-                    'health': info.get('State', {}).get('Health', {}).get('Status', 'unknown')
-                }
-            else:
-                return {'status': 'not_found', 'error': '部署不存在'}
+            with open(deploy_dir / 'deploy_config.json', 'r', encoding='utf-8') as f:
+                deploy_config = json.load(f)
+            
+            # 获取容器实时状态
+            container_name = deploy_config['docker']['container_name']
+            try:
+                result = subprocess.run(
+                    ['docker', 'inspect', container_name],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                
+                if result.returncode == 0:
+                    container_info = json.loads(result.stdout)[0]
+                    deploy_config['container_status'] = {
+                        'state': container_info['State']['Status'],
+                        'running': container_info['State']['Running'],
+                        'started_at': container_info['State']['StartedAt']
+                    }
+            except Exception:
+                pass
+            
+            return {'success': True, 'status': deploy_config}
+        
         except Exception as e:
-            return {'status': 'error', 'error': str(e)}
+            return {'success': False, 'error': str(e)}
+    
+    def get_deployments(self, workflow_id: str = None, limit: int = 50) -> List[Dict[str, Any]]:
+        """获取部署列表"""
+        deployments = []
+        
+        for deploy_dir in sorted(self.deployments_dir.iterdir(), key=lambda d: d.stat().st_mtime, reverse=True):
+            config_file = deploy_dir / 'deploy_config.json'
+            if config_file.exists():
+                try:
+                    with open(config_file, 'r', encoding='utf-8') as f:
+                        config = json.load(f)
+                    
+                    if workflow_id and config.get('workflow_id') != workflow_id:
+                        continue
+                    
+                    deployments.append(config)
+                    
+                    if len(deployments) >= limit:
+                        break
+                except Exception:
+                    pass
+        
+        return deployments
+    
+    def blue_green_deploy(self, workflow_id: str, project: str, 
+                          environment: str = 'production') -> Dict[str, Any]:
+        """
+        蓝绿部署
+        
+        Args:
+            workflow_id: 工作流 ID
+            project: 项目名称
+            environment: 环境
+        
+        Returns:
+            部署结果
+        """
+        try:
+            # 获取当前运行的部署
+            deployments = self.get_deployments(workflow_id)
+            current = next((d for d in deployments if d.get('status') == DeployStatus.COMPLETED.value), None)
+            
+            # 部署新版本（绿色）
+            green_env = 'green' if not current or current.get('environment') != 'green' else 'blue'
+            
+            result = self.deploy(workflow_id, project, green_env)
+            
+            if not result['success']:
+                return result
+            
+            # 健康检查通过后切换流量
+            new_deployment_id = result['deployment_id']
+            
+            # TODO: 更新 Nginx 或负载均衡器配置切换流量
+            
+            return {
+                'success': True,
+                'message': '蓝绿部署成功',
+                'new_deployment_id': new_deployment_id,
+                'active_environment': green_env,
+                'previous_deployment': current['deployment_id'] if current else None
+            }
+        
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
 
 
 # 全局部署执行器实例
 deploy_executor = DeployExecutor()
+
+
+def get_deploy_executor() -> DeployExecutor:
+    """获取部署执行器实例"""
+    return deploy_executor

@@ -111,7 +111,11 @@ class JWTAuth:
             'iat': datetime.utcnow(),
             'type': 'refresh' if refresh else 'access'
         }
-        return jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
+        token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
+        # Python 3 中 jwt.encode 返回 bytes，需要解码
+        if isinstance(token, bytes):
+            token = token.decode('utf-8')
+        return token
     
     def verify_token(self, token: str, check_blacklist: bool = True) -> Optional[Dict[str, Any]]:
         """验证 JWT Token"""

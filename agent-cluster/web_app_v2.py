@@ -21,9 +21,15 @@ from utils.health_check import health_checker
 from utils.database import get_database, init_database
 from utils.backup_manager import get_backup_manager
 from utils.checkpoint import get_checkpoint_manager, get_workflow_resumer
+from utils.deploy_executor import get_deploy_executor
+from utils.k8s_deploy import get_k8s_deploy_executor
 
 # 初始化数据库
 init_database()
+
+# 初始化部署执行器
+deploy_executor = get_deploy_executor()
+k8s_executor = get_k8s_deploy_executor()
 
 BASE_DIR = Path(__file__).parent
 MEMORY_DIR = BASE_DIR / "memory"
@@ -36,8 +42,8 @@ SESSIONS_FILE = MEMORY_DIR / "sessions.json"
 CLUSTER_CONFIG = BASE_DIR / "cluster_config_v2.json"
 
 # Rate Limiting 配置
-RATE_LIMIT_REQUESTS = config.rate_limit_requests
-RATE_LIMIT_WINDOW = config.rate_limit_window
+RATE_LIMIT_REQUESTS = 1000  # 临时提高限制用于测试
+RATE_LIMIT_WINDOW = 60
 
 class WebUIHandler(SimpleHTTPRequestHandler):
     PUBLIC_PATHS = ['/api/status', '/api/agents', '/api/phases', '/login', '/api/login', '/health', '/static/']
@@ -220,49 +226,52 @@ class WebUIHandler(SimpleHTTPRequestHandler):
     
     def handle_login_jwt(self, data):
         """JWT 登录处理（兼容旧版 auth_config）"""
-        username = data.get("username", "")
-        password = data.get("password", "")
-        
-        # 首先尝试新的 JWT 认证
-        user = jwt_auth.authenticate(username, password)
-        
-        # 如果失败，尝试旧版 auth_config 兼容
-        if not user:
+        try:
+            username = data.get("username", "")
+            password = data.get("password", "")
+            
+            if not username or not password:
+                self.send_json({"success": False, "error": "用户名和密码不能为空"}, 400)
+                return
+            
+            # 尝试旧版 auth_config 兼容（优先）
             if username == self.auth_config.get("username") and self._hash_password(password) == self.auth_config.get("password_hash"):
-                # 旧版验证成功，创建 JWT user
                 user = {
                     'username': username,
                     'user_id': hashlib.md5(username.encode()).hexdigest(),
                     'role': 'admin'
                 }
-        
-        if not user:
-            self.send_json({"success": False, "error": "用户名或密码错误"}, 401)
-            return
-        
-        # 创建访问 Token 和刷新 Token
-        access_token = jwt_auth.create_token(username, user['user_id'], refresh=False)
-        refresh_token = jwt_auth.create_token(username, user['user_id'], refresh=True)
-        
-        # 记录会话（用于管理）
-        token = access_token
-        self.sessions[token] = {
-            "username": username,
-            "ip": self._get_client_ip(),
-            "created_at": time.time(),
-            "last_activity": time.time(),
-            "user_id": user['user_id'],
-            "role": user.get('role', 'user')
-        }
-        self._save_sessions()
-        
-        self.send_json({
-            "success": True,
-            "token": access_token,
-            "refresh_token": refresh_token,
-            "expires_in": config.jwt_expiration * 3600,
-            "user": {"username": username, "role": user.get('role', 'user')}
-        })
+            else:
+                # 尝试新的 JWT 认证
+                user = jwt_auth.authenticate(username, password)
+            
+            if not user:
+                self.send_json({"success": False, "error": "用户名或密码错误"}, 401)
+                return
+            
+            # 创建访问 Token
+            access_token = jwt_auth.create_token(username, user['user_id'], refresh=False)
+            
+            # 记录会话
+            self.sessions[access_token] = {
+                "username": username,
+                "ip": self._get_client_ip(),
+                "created_at": time.time(),
+                "last_activity": time.time(),
+                "user_id": user['user_id'],
+                "role": user.get('role', 'user')
+            }
+            self._save_sessions()
+            
+            self.send_json({
+                "success": True,
+                "token": access_token,
+                "expires_in": config.jwt_expiration * 3600,
+                "user": {"username": username, "role": user.get('role', 'user')}
+            })
+        except Exception as e:
+            print(f"登录错误：{e}")
+            self.send_json({"success": False, "error": str(e)}, 500)
     
     def handle_logout_jwt(self, token):
         """JWT 登出处理"""

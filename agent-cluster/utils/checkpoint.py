@@ -12,6 +12,7 @@ from enum import Enum
 
 from .config_loader import config
 from .database import get_database
+from typing import Tuple
 
 
 class CheckpointStatus(Enum):
@@ -237,7 +238,7 @@ class WorkflowResumer:
         self.checkpoint_manager = CheckpointManager()
         self.db = get_database()
     
-    def can_resume(self, workflow_id: str) -> tuple[bool, str]:
+    def can_resume(self, workflow_id: str) -> Tuple[bool, str]:
         """
         检查工作流是否可以恢复
         
