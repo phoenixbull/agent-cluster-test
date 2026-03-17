@@ -22,5 +22,13 @@
     "last_activity": 1773714025.5320065,
     "user_id": "21232f297a57a5a743894a0e4a801fc3",
     "role": "admin"
+  },
+  "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwidXNlcl9pZCI6IjIxMjMyZjI5N2E1N2E1YTc0Mzg5NGEwZTRhODAxZmMzIiwiZXhwIjoxNzczODA0MjQ3LCJpYXQiOjE3NzM3MTc4NDcsInR5cGUiOiJhY2Nlc3MifQ.w6sF0TWPV294mSvU8EIulH_zrSLnb1OpZ9gL7VaYm7M": {
+    "username": "admin",
+    "ip": "unknown",
+    "created_at": 1773717847.7142675,
+    "last_activity": 1773717847.7192383,
+    "user_id": "21232f297a57a5a743894a0e4a801fc3",
+    "role": "admin"
   }
 }

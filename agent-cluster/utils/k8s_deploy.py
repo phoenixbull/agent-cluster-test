@@ -9,7 +9,7 @@ import subprocess
 import yaml
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 
 
 class K8sDeployExecutor:
@@ -23,7 +23,7 @@ class K8sDeployExecutor:
         self.k8s_dir = Path(__file__).parent.parent / 'k8s'
         self.k8s_dir.mkdir(exist_ok=True)
     
-    def _check_kubectl(self) -> tuple[bool, str]:
+    def _check_kubectl(self) -> Tuple[bool, str]:
         """检查 kubectl 是否可用"""
         try:
             result = subprocess.run(
