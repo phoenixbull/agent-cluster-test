@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Agent 集群 Web 界面 V2.1
+Agent 集群 Web 界面 V2.3
 完整 6 阶段开发流程 | 10 个专业 Agent | 质量门禁 | 钉钉双向通知
+安全增强：JWT 认证 | Rate Limiting | 健康检查
 """
 
 import json, os, sys, hashlib, time, secrets
@@ -10,6 +11,13 @@ from datetime import datetime
 from pathlib import Path
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import urllib.parse, subprocess
+from typing import Tuple
+
+# 安全模块导入
+from utils.config_loader import config
+from utils.auth import jwt_auth, require_auth, require_admin
+from utils.rate_limiter import rate_limiter, get_client_ip
+from utils.health_check import health_checker
 
 BASE_DIR = Path(__file__).parent
 MEMORY_DIR = BASE_DIR / "memory"
@@ -21,8 +29,12 @@ AUTH_CONFIG_FILE = MEMORY_DIR / "auth_config.json"
 SESSIONS_FILE = MEMORY_DIR / "sessions.json"
 CLUSTER_CONFIG = BASE_DIR / "cluster_config_v2.json"
 
+# Rate Limiting 配置
+RATE_LIMIT_REQUESTS = config.rate_limit_requests
+RATE_LIMIT_WINDOW = config.rate_limit_window
+
 class WebUIHandler(SimpleHTTPRequestHandler):
-    PUBLIC_PATHS = ['/api/status', '/api/agents', '/api/phases', '/login', '/api/login', '/static/']
+    PUBLIC_PATHS = ['/api/status', '/api/agents', '/api/phases', '/login', '/api/login', '/health', '/static/']
     
     def __init__(self, *args, **kwargs):
         self.workflow_state = self._load_workflow_state()
@@ -93,17 +105,51 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         return False, None, True
     
     def _get_client_ip(self):
-        f = self.headers.get('X-Forwarded-For')
-        return f.split(',')[0].strip() if f else self.client_address[0]
+        """获取客户端 IP（支持代理）"""
+        return get_client_ip(dict(self.headers))
+    
+    def _check_rate_limit(self) -> Tuple[bool, int]:
+        """检查速率限制"""
+        client_id = self._get_client_ip()
+        return rate_limiter.is_allowed(client_id)
+    
+    def _send_rate_limit_response(self, retry_after):
+        # type: (int) -> None
+        """发送速率限制响应"""
+        self.send_response(429)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Retry-After', str(retry_after))
+        self.send_header('X-RateLimit-Limit', str(RATE_LIMIT_REQUESTS))
+        self.send_header('X-RateLimit-Remaining', '0')
+        self.end_headers()
+        self.wfile.write(json.dumps({
+            'error': '请求过于频繁',
+            'retry_after': retry_after
+        }).encode())
     
     def do_GET(self):
+        """处理 GET 请求（带 Rate Limiting）"""
         path = urllib.parse.urlparse(self.path).path
+        
+        # 检查速率限制（公开 API 也需要）
+        allowed, remaining = self._check_rate_limit()
+        if not allowed:
+            retry_after = rate_limiter.get_retry_after(self._get_client_ip())
+            self._send_rate_limit_response(retry_after)
+            return
+        
         is_auth, token, _ = self._check_auth()
         
         if not is_auth and not any(path.startswith(p) for p in self.PUBLIC_PATHS):
             self.send_response(302); self.send_header('Location', '/login'); self.end_headers(); return
         
-        if path == '/api/status': self.send_json(self.get_status())
+        if path == '/health':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(health_checker.full_check()).encode())
+            return
+        elif path == '/api/status': self.send_json(self.get_status())
         elif path == '/api/agents': self.send_json(self.get_agents())
         elif path == '/api/phases': self.send_json(self.get_phases())
         elif path == '/api/quality-gate': self.send_json(self.get_quality_gate())
@@ -127,11 +173,22 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         else: super().do_GET()
     
     def do_POST(self):
+        """处理 POST 请求（带 Rate Limiting）"""
         path = urllib.parse.urlparse(self.path).path
+        
+        # 检查速率限制
+        allowed, remaining = self._check_rate_limit()
+        if not allowed:
+            retry_after = rate_limiter.get_retry_after(self._get_client_ip())
+            self._send_rate_limit_response(retry_after)
+            return
+        
         cl = int(self.headers.get('Content-Length', 0))
         data = json.loads(self.rfile.read(cl).decode('utf-8')) if cl else {}
         
-        if path == '/api/login': self.handle_login(data); return
+        # 登录接口使用新的 JWT 认证
+        if path == '/api/login': self.handle_login_jwt(data); return
+        
         is_auth, token, _ = self._check_auth()
         if not is_auth: self.send_json({"error": "未授权"}, 401); return
         
@@ -143,8 +200,8 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         elif path == '/api/bugs' and is_auth: self.send_json(self.get_bugs())
         elif path == '/api/template/save': self.send_json(self.save_template(data))
         elif path == '/api/template/delete': self.send_json(self.delete_template(data))
-        elif path == '/api/logout': self.handle_logout(token)
-        elif path == '/api/change-password': self.handle_change_password(data, token)
+        elif path == '/api/logout': self.handle_logout_jwt(token)
+        elif path == '/api/change-password': self.handle_change_password_jwt(data, token)
         else: self.send_error(404)
     
     def send_json(self, data, status=200):
@@ -155,28 +212,104 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         self.send_response(200); self.send_header('Content-Type', 'text/html; charset=utf-8'); self.end_headers()
         self.wfile.write(html.encode('utf-8'))
     
-    def handle_login(self, data):
-        u, p = data.get("username", ""), data.get("password", "")
-        if u != self.auth_config.get("username") or self._hash_password(p) != self.auth_config.get("password_hash"):
-            self.send_json({"success": False, "error": "用户名或密码错误"}); return
-        token = self._generate_token()
-        self.sessions[token] = {"username": u, "ip": self._get_client_ip(), "created_at": time.time(), "last_activity": time.time()}
+    def handle_login_jwt(self, data):
+        """JWT 登录处理（兼容旧版 auth_config）"""
+        username = data.get("username", "")
+        password = data.get("password", "")
+        
+        # 首先尝试新的 JWT 认证
+        user = jwt_auth.authenticate(username, password)
+        
+        # 如果失败，尝试旧版 auth_config 兼容
+        if not user:
+            if username == self.auth_config.get("username") and self._hash_password(password) == self.auth_config.get("password_hash"):
+                # 旧版验证成功，创建 JWT user
+                user = {
+                    'username': username,
+                    'user_id': hashlib.md5(username.encode()).hexdigest(),
+                    'role': 'admin'
+                }
+        
+        if not user:
+            self.send_json({"success": False, "error": "用户名或密码错误"}, 401)
+            return
+        
+        # 创建访问 Token 和刷新 Token
+        access_token = jwt_auth.create_token(username, user['user_id'], refresh=False)
+        refresh_token = jwt_auth.create_token(username, user['user_id'], refresh=True)
+        
+        # 记录会话（用于管理）
+        token = access_token
+        self.sessions[token] = {
+            "username": username,
+            "ip": self._get_client_ip(),
+            "created_at": time.time(),
+            "last_activity": time.time(),
+            "user_id": user['user_id'],
+            "role": user.get('role', 'user')
+        }
         self._save_sessions()
-        self.send_json({"success": True, "token": token})
+        
+        self.send_json({
+            "success": True,
+            "token": access_token,
+            "refresh_token": refresh_token,
+            "expires_in": config.jwt_expiration * 3600,
+            "user": {"username": username, "role": user.get('role', 'user')}
+        })
+    
+    def handle_logout_jwt(self, token):
+        """JWT 登出处理"""
+        # 将 Token 加入黑名单
+        jwt_auth.logout(token)
+        
+        # 删除本地会话
+        if token in self.sessions:
+            del self.sessions[token]
+            self._save_sessions()
+        
+        self.send_response(302)
+        self.send_header('Location', '/login')
+        self.send_header('Set-Cookie', 'auth_token=; Path=/; Max-Age=0')
+        self.end_headers()
+    
+    def handle_change_password_jwt(self, data, token):
+        """JWT 修改密码处理"""
+        old_password = data.get("old_password", "")
+        new_password = data.get("new_password", "")
+        
+        # 获取当前用户
+        payload = jwt_auth.verify_token(token)
+        if not payload:
+            self.send_json({"success": False, "error": "Token 无效"}, 401)
+            return
+        
+        username = payload.get('username')
+        
+        # 修改密码
+        success, message = jwt_auth.change_password(username, old_password, new_password)
+        if not success:
+            self.send_json({"success": False, "error": message})
+            return
+        
+        # 使所有现有 Token 失效
+        jwt_auth.logout(token)
+        self.sessions = {}
+        self._save_sessions()
+        
+        self.send_json({"success": True, "message": "密码已修改，请重新登录"})
+    
+    def handle_login(self, data):
+        """兼容旧版登录（调用 JWT 版本）"""
+        self.handle_login_jwt(data)
     
     def handle_logout(self, token):
-        if token in self.sessions: del self.sessions[token]; self._save_sessions()
-        self.send_response(302); self.send_header('Location', '/login'); self.send_header('Set-Cookie', 'auth_token=; Path=/; Max-Age=0'); self.end_headers()
+        """兼容旧版登出（调用 JWT 版本）"""
+        self.handle_logout_jwt(token)
     
     def handle_change_password(self, data, token):
-        if self._hash_password(data.get("old_password", "")) != self.auth_config.get("password_hash"):
-            self.send_json({"success": False, "error": "原密码错误"}); return
-        if len(data.get("new_password", "")) < 6:
-            self.send_json({"success": False, "error": "密码至少 6 位"}); return
-        self.auth_config["password_hash"] = self._hash_password(data["new_password"])
-        with open(AUTH_CONFIG_FILE, 'w', encoding='utf-8') as f: json.dump({"auth": self.auth_config}, f, ensure_ascii=False, indent=2)
-        self.sessions = {}; self._save_sessions()
-        self.send_json({"success": True, "message": "密码已修改，请重新登录"})
+        """兼容旧版修改密码（调用 JWT 版本）"""
+        self.handle_change_password_jwt(data, token)
     
     def get_health(self):
         """健康检查端点"""
