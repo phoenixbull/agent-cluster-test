@@ -1,23 +1,33 @@
 [Unit]
-Description=AI Product Development Agent Cluster
+Description=Agent Cluster V2.4 Web Service
+Documentation=https://github.com/phoenixbull/agent-cluster-test
 After=network.target
 
 [Service]
 Type=simple
 User=admin
+Group=admin
 WorkingDirectory=/home/admin/.openclaw/workspace/agent-cluster
-Environment="PATH=/usr/bin:/usr/local/bin"
+Environment="PATH=/usr/bin:/bin:/usr/local/bin"
 Environment="PYTHONUNBUFFERED=1"
 ExecStart=/usr/bin/python3 web_app_v2.py --port 8890
 Restart=always
 RestartSec=10
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# 日志
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=agent-cluster
 
+# 安全加固
+NoNewPrivileges=true
+PrivateTmp=true
+
 # 资源限制
 LimitNOFILE=65535
-Nice=5
+LimitNPROC=4096
 
 [Install]
 WantedBy=multi-user.target

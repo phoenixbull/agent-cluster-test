@@ -18,6 +18,12 @@ from utils.config_loader import config
 from utils.auth import jwt_auth, require_auth, require_admin
 from utils.rate_limiter import rate_limiter, get_client_ip
 from utils.health_check import health_checker
+from utils.database import get_database, init_database
+from utils.backup_manager import get_backup_manager
+from utils.checkpoint import get_checkpoint_manager, get_workflow_resumer
+
+# 初始化数据库
+init_database()
 
 BASE_DIR = Path(__file__).parent
 MEMORY_DIR = BASE_DIR / "memory"
