@@ -1,0 +1,60 @@
+# Filebeat 配置
+# 收集 Agent Cluster 日志并发送到 Logstash
+
+filebeat.inputs:
+  # Agent Cluster 应用日志
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/agent-cluster/*.log
+    fields:
+      service: agent-cluster
+      environment: production
+    json.keys_under_root: true
+    json.add_error_key: true
+    json.message_key: message
+
+  # Web 应用日志
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/agent-cluster/web_app_v2.log
+    fields:
+      service: web-app
+      environment: production
+
+  # 监控日志
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/agent-cluster/monitor.log
+      - /var/log/agent-cluster/monitor_tasks.log
+    fields:
+      service: monitor
+      environment: production
+
+# Docker 日志自动收集
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: true
+
+# 输出到 Logstash
+output.logstash:
+  hosts: ["logstash:5044"]
+
+# 日志
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat.log
+  keepfiles: 7
+  permissions: 0640
+
+# 仪表板
+setup.dashboards.enabled: false
+
+# 模板
+setup.template.settings:
+  index.number_of_shards: 1
