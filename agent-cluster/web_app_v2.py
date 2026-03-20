@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Agent 集群 Web 界面 V2.3
+Agent 集群 Web 界面 V2.2.0
 完整 6 阶段开发流程 | 10 个专业 Agent | 质量门禁 | 钉钉双向通知
 安全增强：JWT 认证 | Rate Limiting | 健康检查
+智能增强：智能重试 | 指标监控 | Dashboard 可视化
 """
 
 import json, os, sys, hashlib, time, secrets
@@ -24,6 +25,7 @@ from utils.checkpoint import get_checkpoint_manager, get_workflow_resumer
 from utils.deploy_executor import get_deploy_executor
 from utils.k8s_deploy import get_k8s_deploy_executor
 from utils.metrics import get_prometheus_metrics
+from utils.metrics_collector import get_metrics_collector
 
 # 初始化数据库
 init_database()
@@ -47,7 +49,7 @@ RATE_LIMIT_REQUESTS = 1000  # 临时提高限制用于测试
 RATE_LIMIT_WINDOW = 60
 
 class WebUIHandler(SimpleHTTPRequestHandler):
-    PUBLIC_PATHS = ['/api/status', '/api/agents', '/api/phases', '/login', '/api/login', '/health', '/static/']
+    PUBLIC_PATHS = ['/api/status', '/api/agents', '/api/phases', '/login', '/api/login', '/health', '/api/health/v24', '/static/']
     
     def __init__(self, *args, **kwargs):
         self.workflow_state = self._load_workflow_state()
@@ -162,8 +164,20 @@ class WebUIHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps(health_checker.full_check()).encode())
             return
-        elif path == '/metrics':
-            # Prometheus 指标端点
+        elif path == '/api/health/v24':
+            # v2.4 版本健康检查端点（简化版）
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "version": "v2.4.0",
+                "status": "healthy",
+                "timestamp": datetime.now().isoformat(),
+                "codename": "稳定性增强版"
+            }).encode())
+            return
+        elif path == '/metrics/prometheus':
+            # Prometheus 指标端点 (修改路径避免冲突)
             self.send_response(200)
             self.send_header('Content-Type', 'text/plain; version=0.0.4')
             self.end_headers()
@@ -178,7 +192,13 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         elif path == '/api/costs' and is_auth: self.send_json(self.get_costs())
         elif path == '/api/projects' and is_auth: self.send_json(self.get_projects())
         elif path == '/login': self.send_html(self.get_login_page())
-        elif path == '/': 
+        # 指标 API 路由 (GET) - 需要认证
+        elif is_auth and path == '/api/metrics/summary': self.send_json(self.get_metrics_summary())
+        elif is_auth and path == '/api/metrics/agents': self.send_json(self.get_metrics_agents())
+        elif is_auth and path == '/api/metrics/tasks': self.send_json(self.get_metrics_tasks())
+        elif is_auth and path == '/api/metrics/failures': self.send_json(self.get_metrics_failures())
+        elif is_auth and path == '/api/metrics/report': self.send_json(self.get_metrics_report())
+        elif is_auth and path == '/': 
             if not is_auth: self.send_response(302); self.send_header('Location', '/login'); self.end_headers(); return
             self.send_html(self.get_main_page())
         elif path == '/workflows' and is_auth: self.send_html(self.get_workflows_page())
@@ -190,6 +210,8 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         elif path == '/templates' and is_auth: self.send_html(self.get_templates_page())
         elif path == '/costs' and is_auth: self.send_html(self.get_costs_page())
         elif path == '/monitoring' and is_auth: self.send_html(self.get_monitoring_page())
+        elif path == '/metrics' and is_auth: self.send_html(self.get_metrics_dashboard())
+        elif path == '/metrics.html' and is_auth: self.send_html(self.get_metrics_dashboard())
         elif path == '/settings' and is_auth: self.send_html(self.get_settings_page())
         else: super().do_GET()
     
@@ -223,6 +245,12 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         elif path == '/api/template/delete': self.send_json(self.delete_template(data))
         elif path == '/api/logout': self.handle_logout_jwt(token)
         elif path == '/api/change-password': self.handle_change_password_jwt(data, token)
+        # 指标 API 路由
+        elif path == '/api/metrics/summary': self.send_json(self.get_metrics_summary())
+        elif path == '/api/metrics/agents': self.send_json(self.get_metrics_agents())
+        elif path == '/api/metrics/tasks': self.send_json(self.get_metrics_tasks())
+        elif path == '/api/metrics/failures': self.send_json(self.get_metrics_failures())
+        elif path == '/api/metrics/report': self.send_json(self.get_metrics_report())
         else: self.send_error(404)
     
     def send_json(self, data, status=200):
@@ -450,7 +478,7 @@ class WebUIHandler(SimpleHTTPRequestHandler):
     def get_login_page(self):
         return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>登录 - Agent 集群 V2.1</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;display:flex;align-items:center;justify-content:center}.login-container{background:white;border-radius:16px;padding:40px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.3)}.logo{text-align:center;margin-bottom:30px}.logo h1{font-size:28px;color:#333;margin-bottom:10px}.logo p{color:#666;font-size:14px}.logo .version{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:4px 12px;border-radius:20px;font-size:12px;display:inline-block;margin-top:8px}.form-group{margin-bottom:20px}.form-group label{display:block;margin-bottom:8px;color:#555;font-weight:500}.form-group input{width:100%;padding:12px 16px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;transition:border-color 0.3s}.form-group input:focus{outline:none;border-color:#667eea}.btn{width:100%;padding:14px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s}.btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(102,126,234,0.4)}.btn:disabled{opacity:0.6;cursor:not-allowed;transform:none}.error-message{background:#fee;color:#c33;padding:12px;border-radius:8px;margin-bottom:20px;font-size:14px;display:none}.footer{text-align:center;margin-top:20px;color:#999;font-size:12px}.features{margin-top:20px;padding:15px;background:#f8f9fa;border-radius:8px}.features h4{color:#666;font-size:14px;margin-bottom:10px}.features ul{list-style:none}.features li{color:#888;font-size:12px;padding:4px 0}.features li:before{content:"✅ "}</style></head><body>
-<div class="login-container"><div class="logo"><h1>🤖 Agent 集群</h1><p>智能协作开发系统</p><span class="version">V2.1</span></div>
+<div class="login-container"><div class="logo"><h1>🤖 Agent 集群</h1><p>智能协作开发系统</p><span class="version">V2.2.0 智能增强版</span></div>
 <div class="error-message" id="errorMessage"></div>
 <form id="loginForm"><div class="form-group"><label for="username">用户名</label><input type="text" id="username" name="username" placeholder="请输入用户名" autocomplete="username" required></div>
 <div class="form-group"><label for="password">密码</label><input type="password" id="password" name="password" placeholder="请输入密码" autocomplete="current-password" required></div>
@@ -462,8 +490,8 @@ class WebUIHandler(SimpleHTTPRequestHandler):
     def get_main_page(self):
         return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Agent 集群 V2.1 控制台</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:20px 40px}.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.header h1{font-size:24px}.header .version{background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:20px;font-size:12px}.nav{display:flex;gap:15px;flex-wrap:wrap}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px;transition:background 0.3s;font-size:14px}.nav a:hover{background:rgba(255,255,255,0.2)}.container{max-width:1600px;margin:0 auto;padding:30px}.status-bar{background:white;border-radius:12px;padding:20px;margin-bottom:30px;display:flex;gap:30px;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.status-item{display:flex;align-items:center;gap:10px}.status-dot{width:12px;height:12px;border-radius:50%}.status-dot.green{background:#10b981}.status-dot.red{background:#ef4444}.status-dot.yellow{background:#f59e0b}.status-label{color:#666;font-size:14px}.status-value{font-weight:600;color:#333}.status-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:30px}.card{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08);transition:transform 0.2s}.card:hover{transform:translateY(-4px)}.card h3{color:#666;font-size:14px;margin-bottom:10px}.card .value{font-size:32px;font-weight:bold;color:#333}.card .sub{font-size:12px;color:#999;margin-top:8px}.card .icon{font-size:24px;margin-bottom:10px}.section{background:white;border-radius:12px;padding:24px;margin-bottom:30px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.section h2{margin-bottom:20px;color:#333;font-size:18px}.phase-timeline{display:flex;gap:10px;overflow-x:auto;padding-bottom:10px}.phase-card{min-width:200px;background:#f8f9fa;border-radius:12px;padding:20px;border-left:4px solid #667eea}.phase-card h4{color:#333;margin-bottom:8px;font-size:16px}.phase-card p{color:#666;font-size:13px;margin-bottom:10px}.phase-card .agents{display:flex;flex-wrap:wrap;gap:5px}.phase-card .agent-tag{background:#e0e7ff;color:#4f46e5;padding:3px 8px;border-radius:4px;font-size:11px}.phase-card .quality-gate{background:#fef3c7;color:#d97706;padding:3px 8px;border-radius:4px;font-size:11px;margin-top:8px;display:inline-block}.submit-form{background:linear-gradient(135deg,#f8f9fa,#e9ecef);border-radius:12px;padding:30px;margin-bottom:30px}.submit-form h2{margin-bottom:20px;color:#333}.form-group{margin-bottom:20px}.form-group label{display:block;margin-bottom:8px;color:#555;font-weight:500}.form-group textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;min-height:120px;font-family:inherit}.form-group textarea:focus{outline:none;border-color:#667eea}.form-group select{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px}.btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;border:none;padding:12px 30px;border-radius:8px;font-size:16px;cursor:pointer;transition:transform 0.2s}.btn:hover{transform:translateY(-2px)}.agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px}.agent-card{background:#f8f9fa;border-radius:10px;padding:16px;display:flex;align-items:center;gap:15px}.agent-avatar{width:48px;height:48px;border-radius:8px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:20px}.agent-info{flex:1}.agent-info h4{color:#333;font-size:14px;margin-bottom:4px}.agent-info p{color:#666;font-size:12px}.agent-info .model{color:#999;font-size:11px;margin-top:4px}.status-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500}.status-badge.ready{background:#d1fae5;color:#065f46}.workflow-list{max-height:400px;overflow-y:auto}.workflow-item{padding:15px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}.workflow-item:last-child{border-bottom:none}.workflow-item .info{flex:1}.workflow-item .title{font-weight:500;color:#333;font-size:14px}.workflow-item .meta{font-size:12px;color:#999;margin-top:5px}.workflow-item .status-badge{padding:4px 12px;border-radius:20px;font-size:12px}.status-badge.completed{background:#d1fae5;color:#065f46}.status-badge.running{background:#dbeafe;color:#1e40af}.status-badge.failed{background:#fee2e2;color:#991b1b}.quick-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;margin-top:20px}.quick-action{background:white;border:2px solid #e0e0e0;border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;text-decoration:none;color:#333}.quick-action:hover{border-color:#667eea;background:#f0f4ff}.quick-action .icon{font-size:28px;margin-bottom:8px}.quick-action .label{font-size:13px;font-weight:500}</style></head><body>
-<div class="header"><div class="header-top"><h1>🤖 Agent 集群控制台</h1><span class="version">V2.1</span></div>
-<div class="nav"><a href="/">📊 概览</a><a href="/phases">🔄 开发流程</a><a href="/agents">🤖 Agent 阵容</a><a href="/workflows">📋 工作流</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/deployments">🚀 发布管理</a><a href="/templates">📝 模板库</a><a href="/costs">💰 成本统计</a><a href="/monitoring">📈 监控日志</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout();return false;">🚪 登出</a></div></div>
+<div class="header"><div class="header-top"><h1>🤖 Agent 集群控制台</h1><span class="version">V2.2.0 智能增强版</span></div>
+<div class="nav"><a href="/">📊 概览</a><a href="/phases">🔄 开发流程</a><a href="/agents">🤖 Agent 阵容</a><a href="/workflows">📋 工作流</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/deployments">🚀 发布管理</a><a href="/templates">📝 模板库</a><a href="/costs">💰 成本统计</a><a href="/metrics">📈 指标</a><a href="/monitoring">📋 监控日志</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout();return false;">🚪 登出</a></div></div>
 <div class="container">
 <div class="status-bar"><div class="status-item"><span class="status-dot green" id="clusterStatusDot"></span><span class="status-label">集群状态:</span><span class="status-value" id="clusterStatus">-</span></div>
 <div class="status-item"><span class="status-dot green" id="deployStatusDot"></span><span class="status-label">部署监听:</span><span class="status-value" id="deployStatus">-</span></div>
@@ -701,6 +729,54 @@ Phase 6: 部署并创建 PR
             except:
                 pass
         return {"bugs": []}
+    
+    # ========== 指标 API 方法 ==========
+    
+    def get_metrics_summary(self):
+        """获取指标汇总"""
+        try:
+            collector = get_metrics_collector()
+            stats = collector.get_summary()
+            return {"success": True, "data": stats}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def get_metrics_agents(self):
+        """获取 Agent 统计"""
+        try:
+            collector = get_metrics_collector()
+            stats = collector.get_agent_stats()
+            return {"success": True, "data": stats}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def get_metrics_tasks(self):
+        """获取任务历史"""
+        try:
+            collector = get_metrics_collector()
+            tasks = collector.get_task_history(limit=50)
+            return {"success": True, "data": tasks}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def get_metrics_failures(self):
+        """获取失败分析"""
+        try:
+            collector = get_metrics_collector()
+            analysis = collector.get_failure_analysis()
+            return {"success": True, "data": analysis}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def get_metrics_report(self):
+        """获取完整报告"""
+        try:
+            collector = get_metrics_collector()
+            report = collector.export_report()
+            return {"success": True, "data": report}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
     def _settings_page(self):
         """设置页面"""
         return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>设置 - Agent 集群</title>
@@ -712,11 +788,32 @@ Phase 6: 部署并创建 PR
 <div class="card"><h2>ℹ️ 系统信息</h2><div class="form-group"><label>版本</label><input type="text" value="V2.7.1" readonly></div><div class="form-group"><label>工作目录</label><input type="text" value="/home/admin/.openclaw/workspace/agent-cluster" readonly></div><div class="form-group"><label>后端端口</label><input type="text" value="8890" readonly></div></div></div>
 <script>async function changePwd(){const old=document.getElementById('oldPwd').value;const new1=document.getElementById('newPwd').value;const new2=document.getElementById('confirmPwd').value;if(!old||!new1||!new2){alert('请填写所有字段');return;}if(new1!==new2){alert('两次输入的新密码不一致');return;}if(new1.length<6){alert('密码长度至少 6 位');return;}try{const res=await fetch('/api/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({old_password:old,new_password:new1})});const d=await res.json();if(d.success){alert('✅ '+d.message);document.getElementById('oldPwd').value='';document.getElementById('newPwd').value='';document.getElementById('confirmPwd').value='';setTimeout(()=>{window.location.href='/login';},1500);}else{alert('❌ '+d.error);}}catch(e){alert('请求失败：'+e.message);}}async function logout(){if(!confirm('确定登出？'))return;await fetch('/api/logout',{method:'POST'});document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}</script></body></html>"""
     
+    def get_metrics_dashboard(self):
+        """指标 Dashboard 页面"""
+        template_path = BASE_DIR / "templates" / "metrics_dashboard.html"
+        if template_path.exists():
+            try:
+                with open(template_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            except:
+                pass
+        # 如果模板文件不存在，返回简单版本
+        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>指标 Dashboard - Agent 集群</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px}.container{max-width:1400px;margin:0 auto;padding:30px}.section{background:white;border-radius:12px;padding:24px;margin-bottom:30px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.section h2{margin-bottom:20px;color:#333}.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:20px}.stat-card{background:white;border-radius:12px;padding:24px;box-shadow:0 4px 6px rgba(0,0,0,0.1)}.stat-card h3{color:#718096;font-size:14px;text-transform:uppercase;margin-bottom:12px}.stat-card .value{color:#1a202c;font-size:36px;font-weight:bold;margin-bottom:8px}.loading{text-align:center;padding:40px;color:#718096}</style></head><body>
+<div class="header"><h1>📊 指标 Dashboard</h1><div class="nav"><a href="/">📊 概览</a><a href="/workflows">📋 工作流</a><a href="/agents">🤖 Agent</a><a href="/phases">🔄 流程</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug</a><a href="/deployments">🚀 发布</a><a href="/templates">📝 模板</a><a href="/costs">💰 成本</a><a href="/metrics" style="background:rgba(255,255,255,0.2);">📈 指标</a><a href="/monitoring">📋 监控</a><a href="/settings">⚙️ 设置</a><a href="#" onclick="logout()" style="margin-left:auto;">🚪 登出</a></div></div>
+<div class="container">
+<div class="section"><h2>📊 核心指标</h2><div class="stats-grid" id="statsGrid"><div class="loading">加载中...</div></div></div>
+<div class="section"><h2>🤖 Agent 统计</h2><div id="agentsGrid"><div class="loading">加载中...</div></div></div>
+</div>
+<script>async function loadMetrics(){try{const res=await fetch('/api/metrics/summary');const d=await res.json();if(d.success){const s=d.data;document.getElementById('statsGrid').innerHTML=`<div class="stat-card"><h3>总任务数</h3><div class="value">${s.total_tasks||0}</div></div><div class="stat-card"><h3>完成数</h3><div class="value">${s.completed_tasks||0}</div></div><div class="stat-card"><h3>失败数</h3><div class="value">${s.failed_tasks||0}</div></div><div class="stat-card"><h3>总成本</h3><div class="value">¥${(s.total_cost||0).toFixed(2)}</div></div><div class="stat-card"><h3>CI 通过率</h3><div class="value">${((s.ci_pass_rate||0)*100).toFixed(1)}%</div></div><div class="stat-card"><h3>平均耗时</h3><div class="value">${Math.round(s.avg_duration_seconds||0)}秒</div></div>`;}const res2=await fetch('/api/metrics/agents');const d2=await res2.json();if(d2.success){const agents=d2.data;let html='';for(let k in agents){const a=agents[k];html+=`<div class="stat-card" style="margin-bottom:10px;"><h3>${a.agent_name||k}</h3><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;"><div>分配：<strong>${a.tasks_assigned||0}</strong></div><div>完成：<strong style="color:#22543d">${a.tasks_completed||0}</strong></div><div>失败：<strong style="color:#742a2a">${a.tasks_failed||0}</strong></div><div>成功率：<strong>${((a.success_rate||0)*100).toFixed(1)}%</strong></div></div></div>`;}document.getElementById('agentsGrid').innerHTML=html||'<div class="loading">暂无数据</div>';}}catch(e){console.error('加载失败:',e);document.getElementById('statsGrid').innerHTML='<div class="loading">加载失败：'+e.message+'</div>';}}
+function logout(){if(!confirm('确定登出？'))return;fetch('/api/logout',{method:'POST'}).then(()=>{window.location.href='/login';});}
+loadMetrics();setInterval(loadMetrics,30000);</script></body></html>"""
+    
     def get_monitoring_page(self):
         """监控日志页面"""
         return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>监控日志 - Agent 集群</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px}.container{max-width:1400px;margin:0 auto;padding:30px}.section{background:white;border-radius:12px;padding:24px;margin-bottom:30px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.section h2{margin-bottom:20px;color:#333}.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}.card{background:linear-gradient(135deg,#667eea,#764ba2);color:white;border-radius:12px;padding:24px;box-shadow:0 4px 12px rgba(102,126,234,0.3);transition:transform 0.2s}.card:hover{transform:translateY(-4px)}.card h3{font-size:16px;margin-bottom:10px;opacity:0.9}.card .url{font-size:14px;background:rgba(255,255,255,0.2);padding:8px;border-radius:6px;margin-bottom:15px;word-break:break-all}.card .btn{display:inline-block;background:white;color:#667eea;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:500}.card .btn:hover{background:#f0f0f0}.status{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;margin-left:10px}.status.ok{background:#d1fae5;color:#065f46}.status.error{background:#fee2e2;color:#991b1b}.info-box{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:15px;margin-bottom:20px}.info-box p{color:#0369a1;font-size:14px}</style></head><body>
-<div class="header"><h1>📈 监控与日志</h1><div class="nav"><a href="/">📊 概览</a><a href="/workflows">📋 工作流</a><a href="/agents">🤖 Agent</a><a href="/phases">🔄 流程</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug</a><a href="/deployments">🚀 发布</a><a href="/templates">📝 模板</a><a href="/costs">💰 成本</a><a href="/monitoring" style="background:rgba(255,255,255,0.2);">📈 监控日志</a><a href="/settings">⚙️ 设置</a><a href="#" onclick="logout()" style="margin-left:auto;">🚪 登出</a></div></div>
+<div class="header"><h1>📈 监控与日志</h1><div class="nav"><a href="/">📊 概览</a><a href="/workflows">📋 工作流</a><a href="/agents">🤖 Agent</a><a href="/phases">🔄 流程</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug</a><a href="/deployments">🚀 发布</a><a href="/templates">📝 模板</a><a href="/costs">💰 成本</a><a href="/metrics">📈 指标</a><a href="/monitoring" style="background:rgba(255,255,255,0.2);">📋 监控日志</a><a href="/settings">⚙️ 设置</a><a href="#" onclick="logout()" style="margin-left:auto;">🚪 登出</a></div></div>
 <div class="container">
 <div class="section"><h2>🔗 快速访问</h2><div class="info-box"><p>💡 点击下方卡片快速访问监控和日志系统</p></div>
 <div class="card-grid">
