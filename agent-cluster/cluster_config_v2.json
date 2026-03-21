@@ -298,7 +298,16 @@
       "agentId": "4286960567",
       "robotCode": "dingi8bd93ixhrm34vbd",
       "admin_user_ids": ["356820521035955"],
+      "agent_task_notifications": {
+        "enabled": true,
+        "notify_on_assign": true,
+        "notify_on_complete": true,
+        "include_task_details": true,
+        "include_time_estimate": true
+      },
       "events": [
+        "agent_task_assigned",
+        "agent_task_complete",
         "phase_complete",
         "pr_ready",
         "deploy_confirmation",
@@ -308,6 +317,8 @@
         "human_intervention_needed"
       ],
       "at_all": {
+        "agent_task_assigned": false,
+        "agent_task_complete": false,
         "phase_complete": false,
         "pr_ready": false,
         "deploy_confirmation": true,

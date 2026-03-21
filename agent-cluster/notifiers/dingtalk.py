@@ -525,6 +525,139 @@ class ClusterNotifier:
             return self.dingtalk.send_to_group(self.deploy_group_id, title, text, at_all)
         else:
             return self.dingtalk.send_markdown(self.admin_user_ids, title, text, at_all)
+    
+    def notify_agent_task_assigned(self, task: Dict[str, Any], agent_info: Dict[str, Any] = None):
+        """
+        通知 Agent 任务已分配
+        
+        Args:
+            task: 任务信息
+            agent_info: Agent 详细信息
+        """
+        task_id = task.get('id', 'N/A')
+        agent_name = agent_info.get('name', task.get('agent', 'N/A')) if agent_info else task.get('agent', 'N/A')
+        task_desc = task.get('description', '无描述')
+        task_type = task.get('type', task.get('task_type', 'N/A'))
+        phase = task.get('phase', 'N/A')
+        priority = task.get('priority', 'normal')
+        estimated_time = task.get('estimated_time', 'N/A')
+        
+        # 优先级图标
+        priority_icon = "🔴" if priority == "high" else "🟡" if priority == "medium" else "🟢"
+        
+        title = f"📥 {agent_name} 接受新任务"
+        
+        text = f"""## 📥 Agent 任务分配通知
+
+**任务 ID**: {task_id}
+**Agent**: {agent_name}
+**任务类型**: {task_type}
+**阶段**: {phase}
+**优先级**: {priority_icon} {priority}
+
+---
+
+### 📋 任务详情
+
+**描述**: {task_desc[:100]}{'...' if len(task_desc) > 100 else ''}
+
+**预计耗时**: {estimated_time}
+
+**创建时间**: {task.get('created_at', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))}
+
+---
+
+🤖 Agent 集群自动通知
+"""
+        at_all = self._get_at_all_flag('agent_task_assigned')
+        if self.deploy_group_id:
+            return self.dingtalk.send_to_group(self.deploy_group_id, title, text, at_all)
+        else:
+            return self.dingtalk.send_markdown(self.admin_user_ids, title, text, at_all)
+    
+    def notify_agent_task_complete(self, task: Dict[str, Any], result: Dict[str, Any], agent_info: Dict[str, Any] = None):
+        """
+        通知 Agent 任务完成
+        
+        Args:
+            task: 任务信息
+            result: 执行结果
+            agent_info: Agent 详细信息
+        """
+        task_id = task.get('id', 'N/A')
+        agent_name = agent_info.get('name', task.get('agent', 'N/A')) if agent_info else task.get('agent', 'N/A')
+        task_desc = task.get('description', '无描述')
+        task_type = task.get('type', task.get('task_type', 'N/A'))
+        phase = task.get('phase', 'N/A')
+        execution_time = result.get('execution_time', 0)
+        status = result.get('status', 'completed')
+        
+        # 状态图标
+        status_icon = "✅" if status == "completed" else "⚠️" if status == "partial" else "❌"
+        
+        title = f"{status_icon} {agent_name} 完成任务"
+        
+        text = f"""## {status_icon} Agent 任务完成
+
+**任务 ID**: {task_id}
+**Agent**: {agent_name}
+**任务类型**: {task_type}
+**阶段**: {phase}
+**状态**: {status_icon} {status}
+
+---
+
+### 📊 执行结果
+
+**描述**: {task_desc[:100]}{'...' if len(task_desc) > 100 else ''}
+
+**执行时间**: {execution_time:.1f} 秒
+
+**完成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+---
+
+### 📈 产出物
+
+{self._format_deliverables(result)}
+
+---
+
+🤖 Agent 集群自动通知
+"""
+        at_all = self._get_at_all_flag('agent_task_complete')
+        if self.deploy_group_id:
+            return self.dingtalk.send_to_group(self.deploy_group_id, title, text, at_all)
+        else:
+            return self.dingtalk.send_markdown(self.admin_user_ids, title, text, at_all)
+    
+    def _format_deliverables(self, result: Dict[str, Any]) -> str:
+        """格式化产出物列表"""
+        deliverables = result.get('deliverables', [])
+        if not deliverables:
+            # 尝试从其他字段获取
+            if result.get('pr_number'):
+                return f"- PR: #{result.get('pr_number')}"
+            elif result.get('files_modified'):
+                return f"- 修改文件：{len(result.get('files_modified', []))} 个"
+            elif result.get('output'):
+                return f"- 输出：{result.get('output', '')[:100]}"
+            else:
+                return "- 无特定产出物"
+        
+        items = []
+        for d in deliverables[:5]:  # 最多显示 5 个
+            if isinstance(d, dict):
+                name = d.get('name', '未知')
+                path = d.get('path', '')
+                items.append(f"- {name}{' (' + path + ')' if path else ''}")
+            else:
+                items.append(f"- {d}")
+        
+        if len(deliverables) > 5:
+            items.append(f"- ... 还有 {len(deliverables) - 5} 个")
+        
+        return '\n'.join(items)
 
 
 # 便捷函数

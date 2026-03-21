@@ -29,6 +29,14 @@ GATEWAY_TOKEN = "686803b591e9863514199d651a7893c4"
 # 设置环境变量（供 subprocess 使用）
 os.environ["OPENCLAW_GATEWAY_TOKEN"] = GATEWAY_TOKEN
 
+# 钉钉通知集成
+try:
+    from notifiers.dingtalk import get_notifier
+    DINGTALK_AVAILABLE = True
+except ImportError:
+    DINGTALK_AVAILABLE = False
+    print("⚠️  dingtalk 模块不可用，Agent 任务通知将禁用")
+
 
 class AgentConfig:
     """Agent 配置类"""
@@ -188,8 +196,31 @@ class ClusterManager:
         self.protocol_manager = ProtocolManager(self.config.get("protocols", {}))
         self.sub_agents: Dict[str, SubAgent] = {}
         self.running = False
+        self.dingtalk_notifier = None
+        
+        # 初始化钉钉通知
+        self._init_dingtalk_notifier()
         
         self._initialize_agents()
+    
+    def _init_dingtalk_notifier(self):
+        """初始化钉钉通知器"""
+        if not DINGTALK_AVAILABLE:
+            return
+        
+        try:
+            dingtalk_config = self.config.get("notifications", {}).get("dingtalk", {})
+            if dingtalk_config.get("enabled"):
+                agent_task_config = dingtalk_config.get("agent_task_notifications", {})
+                if agent_task_config.get("enabled"):
+                    self.dingtalk_notifier = get_notifier(dingtalk_config)
+                    print("✅ 钉钉 Agent 任务通知已启用")
+                else:
+                    print("⚠️  Agent 任务通知未启用")
+            else:
+                print("⚠️  钉钉通知未启用")
+        except Exception as e:
+            print(f"⚠️  初始化钉钉通知失败：{e}")
     
     def _load_config(self) -> Dict[str, Any]:
         """加载配置文件"""
@@ -412,7 +443,41 @@ class ClusterManager:
         self.sub_agents[session_id] = sub_agent
         
         print(f"🚀 生成子代理：{session_id} (Agent: {agent_id}, Task: {task[:50]}...)")
+        
+        # 4. 发送钉钉任务分配通知
+        self._notify_task_assigned(sub_agent)
+        
         return session_id
+    
+    def _notify_task_assigned(self, sub_agent: SubAgent):
+        """发送任务分配通知"""
+        if not self.dingtalk_notifier:
+            return
+        
+        try:
+            # 获取 Agent 信息
+            agent_config = self.agents.get(sub_agent.agent_id)
+            agent_info = {
+                "name": agent_config.name if agent_config else sub_agent.agent_id,
+                "role": agent_config.role if agent_config else "unknown"
+            } if agent_config else {"name": sub_agent.agent_id, "role": "unknown"}
+            
+            # 构建任务信息
+            task_info = {
+                "id": sub_agent.session_id,
+                "description": sub_agent.task,
+                "agent": sub_agent.agent_id,
+                "type": "sub_agent_task",
+                "phase": "execution",
+                "priority": "normal",
+                "created_at": sub_agent.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            }
+            
+            # 发送通知
+            self.dingtalk_notifier.notify_agent_task_assigned(task_info, agent_info)
+            print(f"📧 已发送任务分配通知到钉钉")
+        except Exception as e:
+            print(f"⚠️ 发送任务分配通知失败：{e}")
     
     def _call_openclaw_spawn(self, agent_id: str, task: str) -> Optional[str]:
         """通过 OpenClaw API 启动子代理 - 使用 Python 直接调用"""
@@ -478,6 +543,7 @@ class ClusterManager:
         """停止子代理"""
         if session_id in self.sub_agents:
             sub_agent = self.sub_agents[session_id]
+            old_status = sub_agent.status
             sub_agent.status = "stopped"
             sub_agent.completed_at = datetime.now()
             
@@ -488,8 +554,69 @@ class ClusterManager:
                 )
             
             print(f"✅ 已停止子代理：{session_id}")
+            
+            # 发送任务完成通知（如果是正常完成）
+            if old_status == "running":
+                self._notify_task_complete(sub_agent)
         else:
             print(f"❌ 子代理 '{session_id}' 不存在")
+    
+    def complete_sub_agent(self, session_id: str, result: Dict[str, Any] = None):
+        """标记子代理任务完成"""
+        if session_id in self.sub_agents:
+            sub_agent = self.sub_agents[session_id]
+            sub_agent.status = "completed"
+            sub_agent.result = result
+            sub_agent.completed_at = datetime.now()
+            
+            # 更新会话状态
+            if sub_agent.agent_id in self.session_managers:
+                self.session_managers[sub_agent.agent_id].update_session(
+                    session_id, {"status": "completed", "result": result}
+                )
+            
+            print(f"✅ 子代理完成任务：{session_id}")
+            
+            # 发送任务完成通知
+            self._notify_task_complete(sub_agent)
+        else:
+            print(f"❌ 子代理 '{session_id}' 不存在")
+    
+    def _notify_task_complete(self, sub_agent: SubAgent):
+        """发送任务完成通知"""
+        if not self.dingtalk_notifier:
+            return
+        
+        try:
+            # 获取 Agent 信息
+            agent_config = self.agents.get(sub_agent.agent_id)
+            agent_info = {
+                "name": agent_config.name if agent_config else sub_agent.agent_id,
+                "role": agent_config.role if agent_config else "unknown"
+            } if agent_config else {"name": sub_agent.agent_id, "role": "unknown"}
+            
+            # 构建任务信息
+            task_info = {
+                "id": sub_agent.session_id,
+                "description": sub_agent.task,
+                "agent": sub_agent.agent_id,
+                "type": "sub_agent_task",
+                "phase": "execution",
+                "created_at": sub_agent.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            }
+            
+            # 构建结果信息
+            result_info = {
+                "status": sub_agent.status,
+                "execution_time": (sub_agent.completed_at - sub_agent.created_at).total_seconds() if sub_agent.completed_at else 0,
+                "deliverables": sub_agent.result.get('deliverables', []) if sub_agent.result else []
+            }
+            
+            # 发送通知
+            self.dingtalk_notifier.notify_agent_task_complete(task_info, result_info, agent_info)
+            print(f"📧 已发送任务完成通知到钉钉")
+        except Exception as e:
+            print(f"⚠️ 发送任务完成通知失败：{e}")
     
     def stop_all_sub_agents(self):
         """停止所有子代理"""
