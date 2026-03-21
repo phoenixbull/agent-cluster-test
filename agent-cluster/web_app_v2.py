@@ -27,6 +27,15 @@ from utils.k8s_deploy import get_k8s_deploy_executor
 from utils.metrics import get_prometheus_metrics
 from utils.metrics_collector import get_metrics_collector
 
+# 钉钉消息接收模块（可选）
+try:
+    from notifiers.dingtalk_receiver import DingTalkMessageHandler
+    from notifiers.dingtalk import ClusterNotifier
+    DINGTALK_RECEIVER_AVAILABLE = True
+except ImportError:
+    DINGTALK_RECEIVER_AVAILABLE = False
+    print("⚠️  dingtalk_receiver 未安装，钉钉回调功能不可用")
+
 # 初始化数据库
 init_database()
 
@@ -56,7 +65,23 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         self.auth_config = self._load_auth_config()
         self.sessions = self._load_sessions()
         self.cluster_config = self._load_cluster_config()
+        self.dingtalk_config = self._load_dingtalk_config()
         super().__init__(*args, **kwargs)
+    
+    def _load_dingtalk_config(self):
+        """加载钉钉配置"""
+        default = {
+            "callback_token": "openclaw_callback_token_2026",
+            "webhook": "",
+            "secret": ""
+        }
+        if CLUSTER_CONFIG.exists():
+            try:
+                cfg = self.cluster_config.get("notifications", {}).get("dingtalk", {})
+                default["webhook"] = cfg.get("webhook", "")
+                default["secret"] = cfg.get("secret", "")
+            except: pass
+        return default
     
     def _load_auth_config(self):
         default = {"enabled": True, "username": "admin", "password_hash": hashlib.sha256("admin123".encode()).hexdigest(), "session_timeout_hours": 24}
@@ -146,6 +171,11 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         """处理 GET 请求（带 Rate Limiting）"""
         path = urllib.parse.urlparse(self.path).path
         
+        # 钉钉回调验证（公开端点，无需认证）
+        if path == '/api/dingtalk/callback':
+            self.handle_dingtalk_callback_verify()
+            return
+        
         # 检查速率限制（公开 API 也需要）
         allowed, remaining = self._check_rate_limit()
         if not allowed:
@@ -218,6 +248,11 @@ class WebUIHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         """处理 POST 请求（带 Rate Limiting）"""
         path = urllib.parse.urlparse(self.path).path
+        
+        # 钉钉回调消息（公开端点，无需认证）
+        if path == '/api/dingtalk/callback':
+            self.handle_dingtalk_callback_message()
+            return
         
         # 检查速率限制
         allowed, remaining = self._check_rate_limit()
@@ -362,6 +397,273 @@ class WebUIHandler(SimpleHTTPRequestHandler):
     def handle_change_password(self, data, token):
         """兼容旧版修改密码（调用 JWT 版本）"""
         self.handle_change_password_jwt(data, token)
+    
+    def handle_dingtalk_callback_verify(self):
+        """处理钉钉回调验证（GET 请求）"""
+        if not DINGTALK_RECEIVER_AVAILABLE:
+            self.send_json({"error": "钉钉接收模块未安装"}, 503)
+            return
+        
+        try:
+            # 解析查询参数
+            query_string = self.path.split('?')[1] if '?' in self.path else ''
+            params = urllib.parse.parse_qs(query_string)
+            
+            signature = params.get('signature', [''])[0]
+            timestamp = params.get('timestamp', [''])[0]
+            nonce = params.get('nonce', [''])[0]
+            echostr = params.get('echostr', [''])[0]
+            
+            # 验证签名
+            if self._verify_dingtalk_signature(signature, timestamp, nonce):
+                print(f"✅ 钉钉回调验证成功 (timestamp={timestamp})")
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/plain')
+                self.end_headers()
+                # 直接返回 echostr（钉钉要求）
+                self.wfile.write(echostr.encode())
+            else:
+                print(f"❌ 钉钉回调验证失败")
+                self.send_response(403)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "签名验证失败"}).encode())
+        except Exception as e:
+            print(f"❌ 钉钉回调验证异常：{e}")
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
+    
+    def handle_dingtalk_callback_message(self):
+        """处理钉钉消息回调（POST 请求）"""
+        if not DINGTALK_RECEIVER_AVAILABLE:
+            self.send_json({"error": "钉钉接收模块未安装"}, 503)
+            return
+        
+        try:
+            # 读取请求体
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(body)
+            
+            # 验证签名
+            signature = self.headers.get('x-ding-signature', '')
+            timestamp = self.headers.get('x-ding-timestamp', '')
+            nonce = self.headers.get('x-ding-nonce', '')
+            
+            if not self._verify_dingtalk_signature(signature, timestamp, nonce):
+                print(f"❌ 钉钉消息签名验证失败")
+                self.send_response(403)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "签名验证失败"}).encode())
+                return
+            
+            # 解析消息
+            message = self._parse_dingtalk_message(data)
+            if message:
+                print(f"📱 收到钉钉消息：{message['content']} (from {message['user']})")
+                
+                # 处理消息（部署确认等）
+                self._process_dingtalk_message(message)
+                
+                # 返回成功
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True}).encode())
+            else:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "无法解析消息"}).encode())
+                
+        except Exception as e:
+            print(f"❌ 处理钉钉消息失败：{e}")
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
+    
+    def _verify_dingtalk_signature(self, signature: str, timestamp: str, nonce: str) -> bool:
+        """验证钉钉签名"""
+        # 开发环境：如果签名为空，跳过验证
+        if not signature and not timestamp and not nonce:
+            return True
+        
+        callback_token = self.dingtalk_config.get("callback_token", "openclaw_callback_token_2026")
+        
+        try:
+            # 计算签名
+            sign_str = f"{timestamp}\n{nonce}\n{callback_token}"
+            expected = hmac.new(
+                callback_token.encode(),
+                sign_str.encode(),
+                hashlib.sha256
+            ).hexdigest()
+            
+            return signature == expected
+        except Exception as e:
+            print(f"⚠️ 签名验证异常：{e}")
+            return False
+    
+    def _parse_dingtalk_message(self, data: Dict) -> Optional[Dict]:
+        """解析钉钉消息"""
+        try:
+            msg_type = data.get('msgtype', 'text')
+            
+            if msg_type == 'text':
+                content = data.get('text', {}).get('content', '')
+            elif msg_type == 'markdown':
+                content = data.get('markdown', {}).get('text', '')
+            else:
+                content = str(data)
+            
+            # 提取用户信息
+            sender_id = data.get('senderId', 'unknown')
+            sender_nick = data.get('senderNick', '钉钉用户')
+            
+            return {
+                'content': content,
+                'user': sender_nick,
+                'user_id': sender_id,
+                'msg_type': msg_type,
+                'timestamp': data.get('timestamp', datetime.now().isoformat()),
+                'conversation_id': data.get('conversationId', ''),
+                'chatbot_user_id': data.get('chatbotUserId', '')
+            }
+        except Exception as e:
+            print(f"⚠️ 解析钉钉消息失败：{e}")
+            return None
+    
+    def _process_dingtalk_message(self, message: Dict):
+        """处理钉钉消息"""
+        content = message['content'].lower().strip()
+        user = message['user']
+        
+        # 部署确认命令
+        if any(kw in content for kw in ["部署", "确认", "deploy", "approve", "yes"]):
+            print(f"✅ 收到部署确认：{user}")
+            self._handle_deploy_confirm(user, message)
+        elif any(kw in content for kw in ["取消", "cancel", "reject", "no"]):
+            print(f"❌ 收到部署取消：{user}")
+            self._handle_deploy_cancel(user, message)
+        else:
+            print(f"ℹ️ 未知命令：{content}")
+    
+    def _handle_deploy_confirm(self, user: str, message: Dict):
+        """处理部署确认"""
+        try:
+            # 获取待确认的部署
+            wf_state = self._load_workflow_state()
+            pending = wf_state.get("pending_deployments", {})
+            
+            if not pending:
+                print("⚠️ 没有待确认的部署")
+                return
+            
+            # 获取最新的待确认部署
+            deploy_id = list(pending.keys())[0]
+            deploy_info = pending[deploy_id]
+            
+            # 发送确认通知
+            webhook = self.dingtalk_config.get("webhook", "")
+            secret = self.dingtalk_config.get("secret", "")
+            
+            if webhook:
+                notifier = ClusterNotifier(webhook, secret)
+                notifier.dingtalk.send_markdown(
+                    "🚀 部署已确认",
+                    f"""## 🚀 部署已确认
+
+**确认人**: {user}
+**部署 ID**: {deploy_id}
+**项目**: {deploy_info.get('project_name', 'N/A')}
+**版本**: {deploy_info.get('version', 'N/A')}
+**时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+正在执行部署，预计 5 分钟内完成...
+
+---
+
+🤖 Agent 集群自动部署
+"""
+                )
+            
+            # 更新部署状态
+            pending[deploy_id]['status'] = 'confirmed'
+            pending[deploy_id]['confirmed_by'] = user
+            pending[deploy_id]['confirmed_at'] = datetime.now().isoformat()
+            
+            # 保存状态
+            wf_state["pending_deployments"] = pending
+            self.workflow_state = wf_state
+            self._save_workflow_state(wf_state)
+            
+            print(f"✅ 部署 {deploy_id} 已确认，开始执行...")
+            
+            # TODO: 触发实际部署逻辑
+            # self.execute_deploy(deploy_info)
+            
+        except Exception as e:
+            print(f"❌ 处理部署确认失败：{e}")
+    
+    def _handle_deploy_cancel(self, user: str, message: Dict):
+        """处理部署取消"""
+        try:
+            wf_state = self._load_workflow_state()
+            pending = wf_state.get("pending_deployments", {})
+            
+            if not pending:
+                print("⚠️ 没有待确认的部署")
+                return
+            
+            deploy_id = list(pending.keys())[0]
+            deploy_info = pending[deploy_id]
+            
+            webhook = self.dingtalk_config.get("webhook", "")
+            secret = self.dingtalk_config.get("secret", "")
+            
+            if webhook:
+                notifier = ClusterNotifier(webhook, secret)
+                notifier.dingtalk.send_markdown(
+                    "❌ 部署已取消",
+                    f"""## ❌ 部署已取消
+
+**取消人**: {user}
+**部署 ID**: {deploy_id}
+**项目**: {deploy_info.get('project_name', 'N/A')}
+**时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+部署已取消。如需重新部署，请重新触发流程。
+
+---
+
+🤖 Agent 集群自动部署
+"""
+                )
+            
+            # 更新状态
+            pending[deploy_id]['status'] = 'cancelled'
+            pending[deploy_id]['cancelled_by'] = user
+            pending[deploy_id]['cancelled_at'] = datetime.now().isoformat()
+            
+            wf_state["pending_deployments"] = pending
+            self.workflow_state = wf_state
+            self._save_workflow_state(wf_state)
+            
+            print(f"❌ 部署 {deploy_id} 已取消")
+            
+        except Exception as e:
+            print(f"❌ 处理部署取消失败：{e}")
+    
+    def _save_workflow_state(self, state):
+        """保存工作流状态"""
+        state_file = MEMORY_DIR / "workflow_state.json"
+        state_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(state_file, 'w', encoding='utf-8') as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
     
     def get_health(self):
         """健康检查端点"""

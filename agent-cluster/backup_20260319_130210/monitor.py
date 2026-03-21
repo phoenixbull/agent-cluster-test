@@ -21,13 +21,8 @@ from metrics_collector import (
     start_task,
     complete_task,
     fail_task,
-    FailureReason as MetricsFailureReason
+    FailureReason
 )
-# 智能重试机制导入
-from retry_manager import get_retry_manager
-from failure_classifier import FailureReason
-# 告警系统导入
-from alert_manager import get_alert_manager, check_alerts
 
 
 class ClusterMonitor:
@@ -52,14 +47,6 @@ class ClusterMonitor:
         else:
             self.notifier = None
             print("⚠️ 钉钉通知未启用")
-        
-        # 初始化智能重试管理器
-        self.retry_manager = get_retry_manager(str(self.config_path))
-        print("✅ 智能重试管理器已初始化")
-        
-        # 初始化告警管理器
-        self.alert_manager = get_alert_manager(str(self.config_path))
-        print("✅ 告警管理器已初始化")
     
     def _load_config(self) -> Dict:
         """加载配置"""
@@ -313,17 +300,6 @@ class ClusterMonitor:
         print(f"  完成：{len(completed_tasks)}")
         print(f"  失败：{len(failed_tasks)}")
         print(f"  准备合并：{len(ready_tasks)}")
-        
-        # 检查告警
-        if hasattr(self, 'alert_manager'):
-            print(f"\n🔔 检查告警规则...")
-            alerts = self.alert_manager.check_all_rules()
-            if alerts:
-                print(f"  🚨 触发 {len(alerts)} 条告警")
-                for alert in alerts:
-                    print(f"    - {alert.rule_name}: {alert.metric_value:.2f} (阈值：{alert.threshold:.2f})")
-            else:
-                print(f"  ✅ 无告警触发")
     
     def _update_task_status(self, completed_tasks: List, failed_tasks: List):
         """更新任务状态"""
@@ -343,74 +319,33 @@ class ClusterMonitor:
                     cost=task.get("cost", 0.0)
                 )
         
-        # 更新失败的任务 - 集成智能重试机制
+        # 更新失败的任务
         for failed in failed_tasks:
             task = failed["task"]
             result = failed["result"]
             task["retry_count"] = task.get("retry_count", 0) + 1
-            retry_count = task["retry_count"]
             
-            # 使用智能重试管理器分析
-            if hasattr(self, 'retry_manager'):
-                # 创建重试上下文
-                try:
-                    retry_context = self.retry_manager.create_retry_context(
+            if task["retry_count"] >= 3:
+                # 超过最大重试次数，移到失败列表
+                self.tasks["running"].remove(task)
+                task["failed_at"] = datetime.now().isoformat()
+                self.tasks["failed"].append(task)
+                
+                # 记录指标：任务失败
+                if hasattr(self, 'metrics'):
+                    # 分析失败原因
+                    failure_reason = self._analyze_failure_reason(result)
+                    self.metrics.fail_task(
                         task_id=task.get("id"),
-                        task_description=task.get("description", ""),
-                        current_agent=task.get("agent", "codex"),
-                        error_message=", ".join(result.get('issues', ['未知错误'])),
-                        retry_count=retry_count,
-                        files=task.get("files", []),
-                        project=task.get("project", "default"),
-                        previous_attempts=task.get("attempts", [])
+                        reason=failure_reason,
+                        retry_count=task["retry_count"],
+                        cost=task.get("cost", 0.0)
                     )
-                    
-                    # 保存重试上下文到任务记录
-                    task["last_failure_reason"] = retry_context.failure_analysis.reason.value
-                    task["retry_strategy"] = retry_context.switch_decision.strategy.value
-                    task["target_agent"] = retry_context.switch_decision.target_agent
-                    task["retry_prompt"] = retry_context.retry_prompt
-                    
-                    print(f"  🔄 智能重试分析:")
-                    print(f"     失败原因：{retry_context.failure_analysis.reason.value}")
-                    print(f"     切换策略：{retry_context.switch_decision.strategy.value}")
-                    print(f"     目标 Agent: {retry_context.switch_decision.target_agent}")
-                    
-                    # 根据策略决定是否继续重试
-                    should_retry = self._should_retry_based_on_strategy(
-                        task, retry_context, result
-                    )
-                    
-                    if not should_retry and task in self.tasks["running"]:
-                        # 移到失败列表
-                        self.tasks["running"].remove(task)
-                        task["failed_at"] = datetime.now().isoformat()
-                        self.tasks["failed"].append(task)
-                        
-                        # 记录指标
-                        if hasattr(self, 'metrics'):
-                            failure_reason = self._map_to_metrics_failure_reason(
-                                retry_context.failure_analysis.reason
-                            )
-                            self.metrics.fail_task(
-                                task_id=task.get("id"),
-                                reason=failure_reason,
-                                retry_count=retry_count,
-                                cost=task.get("cost", 0.0)
-                            )
-                    
-                except Exception as e:
-                    print(f"  ⚠️ 智能重试分析失败：{e}，使用默认逻辑")
-                    # 回退到默认逻辑
-                    self._handle_failure_default(task, result, retry_count)
-            else:
-                # 无重试管理器，使用默认逻辑
-                self._handle_failure_default(task, result, retry_count)
         
         self._save_tasks()
     
     def _analyze_failure_reason(self, result: Dict) -> FailureReason:
-        """分析失败原因 (保留用于兼容)"""
+        """分析失败原因"""
         issues = result.get("issues", [])
         
         if "ci_failed" in issues:
@@ -423,73 +358,6 @@ class ClusterMonitor:
             return FailureReason.TIMEOUT
         else:
             return FailureReason.UNKNOWN
-    
-    def _should_retry_based_on_strategy(self, task: Dict, retry_context, result: Dict) -> bool:
-        """根据重试策略决定是否继续"""
-        from agent_switcher import SwitchStrategy
-        
-        strategy = retry_context.switch_decision.strategy
-        
-        # 需要人工介入 → 停止自动重试
-        if strategy == SwitchStrategy.HUMAN_INTERVENTION:
-            print(f"  🚨 需要人工介入，停止自动重试")
-            # 发送人工介入通知
-            asyncio.create_task(self.notify_human_intervention(
-                task, result, 
-                f"智能重试分析：{retry_context.switch_decision.reason}"
-            ))
-            return False
-        
-        # 任务拆解 → 创建子任务
-        if strategy == SwitchStrategy.DECOMPOSE:
-            print(f"  🔧 任务已拆解为 {len(retry_context.enhanced_context.get('subtasks', []))} 个子任务")
-            # TODO: 实现子任务创建逻辑
-            # 暂时继续重试
-            return True
-        
-        # 其他策略 → 继续重试
-        return True
-    
-    def _handle_failure_default(self, task: Dict, result: Dict, retry_count: int):
-        """默认失败处理逻辑"""
-        if retry_count >= 3:
-            # 超过最大重试次数，移到失败列表
-            if task in self.tasks["running"]:
-                self.tasks["running"].remove(task)
-            task["failed_at"] = datetime.now().isoformat()
-            if task not in self.tasks["failed"]:
-                self.tasks["failed"].append(task)
-            
-            # 记录指标
-            if hasattr(self, 'metrics'):
-                failure_reason = self._analyze_failure_reason(result)
-                self.metrics.fail_task(
-                    task_id=task.get("id"),
-                    reason=failure_reason,
-                    retry_count=retry_count,
-                    cost=task.get("cost", 0.0)
-                )
-    
-    def _map_to_metrics_failure_reason(self, failure_reason) -> MetricsFailureReason:
-        """将失败分类映射到指标系统的 FailureReason"""
-        from failure_classifier import FailureReason as ClassifierFailureReason
-        
-        mapping = {
-            ClassifierFailureReason.CODE_SYNTAX_ERROR: MetricsFailureReason.CI_FAILED,
-            ClassifierFailureReason.CODE_LOGIC_ERROR: MetricsFailureReason.CI_FAILED,
-            ClassifierFailureReason.CODE_IMPORT_ERROR: MetricsFailureReason.ENVIRONMENT,
-            ClassifierFailureReason.TEST_ASSERTION_FAILED: MetricsFailureReason.CI_FAILED,
-            ClassifierFailureReason.REVIEW_STYLE_ISSUE: MetricsFailureReason.REVIEW_REJECTED,
-            ClassifierFailureReason.REVIEW_SECURITY_ISSUE: MetricsFailureReason.REVIEW_REJECTED,
-            ClassifierFailureReason.REVIEW_ARCHITECTURE_ISSUE: MetricsFailureReason.REVIEW_REJECTED,
-            ClassifierFailureReason.ENV_GIT_ERROR: MetricsFailureReason.ENVIRONMENT,
-            ClassifierFailureReason.ENV_TIMEOUT: MetricsFailureReason.TIMEOUT,
-            ClassifierFailureReason.MODEL_TIMEOUT: MetricsFailureReason.TIMEOUT,
-            ClassifierFailureReason.PROMPT_AMBIGUOUS: MetricsFailureReason.UNKNOWN,
-            ClassifierFailureReason.PROMPT_INCOMPLETE: MetricsFailureReason.UNKNOWN,
-        }
-        
-        return mapping.get(failure_reason, MetricsFailureReason.UNKNOWN)
     
     async def notify_completion(self, task: Dict, result: Dict):
         """通知任务完成"""
@@ -536,28 +404,6 @@ CI: {result.get('ci_status')}
                 print("📱 钉钉通知已发送 (@所有人)")
             except Exception as e:
                 print(f"❌ 发送钉钉通知失败：{e}")
-    
-    async def notify_human_intervention(self, task: Dict, result: Dict, reason: str):
-        """通知需要人工介入（智能重试触发）"""
-        message = f"""
-🚨 需要人工介入
-
-任务：{task.get('description', task.get('id'))}
-原因：{reason}
-失败问题：{", ".join(result.get('issues', ['未知错误']))}
-重试次数：{task.get('retry_count', 0)}
-
-智能重试系统建议人工审查。
-"""
-        print(message)
-        
-        # 发送钉钉通知
-        if self.notifier:
-            try:
-                self.notifier.notify_human_intervention(task, result, reason)
-                print("📱 钉钉人工介入通知已发送")
-            except Exception as e:
-                print(f"❌ 发送通知失败：{e}")
     
     async def cleanup_old_tasks(self):
         """清理旧任务"""

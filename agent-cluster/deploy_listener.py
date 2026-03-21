@@ -3,7 +3,9 @@
 钉钉部署确认监听器
 自动接收钉钉消息并触发部署
 
-独立模块，不影响其他功能
+支持两种模式:
+1. 轮询模式 (v2.4) - 每 30 秒检查待确认部署
+2. 回调模式 (推荐) - 通过 dingtalk_receiver 接收实时消息
 """
 
 import asyncio
@@ -17,6 +19,14 @@ from typing import Optional, Dict
 sys.path.insert(0, str(Path(__file__).parent))
 
 from notifiers.dingtalk import ClusterNotifier
+
+# 尝试导入钉钉消息接收器（可选）
+try:
+    from notifiers.dingtalk_receiver import start_receiver, stop_receiver
+    RECEIVER_AVAILABLE = True
+except ImportError:
+    RECEIVER_AVAILABLE = False
+    print("⚠️  dingtalk_receiver 未安装，仅支持轮询模式")
 
 
 class DeployConfirmationListener:
@@ -316,17 +326,57 @@ async def main():
     # 创建测试用待确认部署
     listener.create_pending_deployment("个人任务管理系统", "v1.0.0")
     
-    # 开始监听
-    await listener.start_listening()
+    # 启动钉钉消息接收器（如果可用）
+    if RECEIVER_AVAILABLE:
+        print("\n✅ 检测到 dingtalk_receiver，启动回调模式...")
+        try:
+            start_receiver(port=8891, blocking=False)
+            print("✅ 回调模式已启动，实时接收钉钉消息")
+        except Exception as e:
+            print(f"⚠️  启动接收器失败：{e}，回退到轮询模式")
+            await listener.start_listening()
+    else:
+        print("\n⚠️  使用轮询模式，每 30 秒检查一次")
+        await listener.start_listening()
 
 
 if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='钉钉部署确认监听器')
+    parser.add_argument('--mode', choices=['poll', 'callback'], default='callback',
+                       help='监听模式：poll=轮询，callback=回调 (默认：callback)')
+    parser.add_argument('--port', type=int, default=8891, help='回调端口 (默认：8891)')
+    parser.add_argument('--token', type=str, help='钉钉回调验证 token')
+    
+    args = parser.parse_args()
+    
     try:
-        # Python 3.6 兼容性：使用 get_event_loop 替代 asyncio.run
-        loop = asyncio.get_event_loop()
-        try:
-            loop.run_until_complete(main())
-        finally:
-            loop.close()
+        listener = get_deploy_listener()
+        
+        if args.mode == 'callback' and RECEIVER_AVAILABLE:
+            # 回调模式
+            print("\n" + "=" * 60)
+            print("📱 钉钉部署确认监听器 - 回调模式")
+            print("=" * 60)
+            
+            start_receiver(port=args.port, token=args.token, blocking=True)
+        else:
+            # 轮询模式
+            if args.mode == 'callback' and not RECEIVER_AVAILABLE:
+                print("\n⚠️  dingtalk_receiver 不可用，回退到轮询模式")
+            
+            print("\n" + "=" * 60)
+            print("📱 钉钉部署确认监听器 - 轮询模式")
+            print("=" * 60)
+            
+            loop = asyncio.get_event_loop()
+            try:
+                loop.run_until_complete(main())
+            finally:
+                loop.close()
+                
     except KeyboardInterrupt:
         print("\n⏹️  监听器已停止")
+        if RECEIVER_AVAILABLE:
+            stop_receiver()

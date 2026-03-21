@@ -1,0 +1,15 @@
+{
+  "total_tasks": 1,
+  "completed_tasks": 1,
+  "failed_tasks": 0,
+  "total_cost": 0.05,
+  "avg_duration_seconds": 1.0,
+  "ci_pass_rate": 1.0,
+  "human_intervention_rate": 0.0,
+  "last_updated": "2026-03-19T09:46:24.202394",
+  "today": {
+    "tasks": 1,
+    "cost": 0.05,
+    "date": "2026-03-19"
+  }
+}

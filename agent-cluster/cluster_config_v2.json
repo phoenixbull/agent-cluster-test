@@ -1,7 +1,9 @@
 {
   "cluster": {
     "name": "openclaw-codex-cluster",
-    "version": "2.0",
+    "version": "2.2.0",
+    "release_date": "2026-03-19",
+    "codename": "智能增强版",
     "mode": "orchestrator",
     "max_parallel_agents": 3,
     "timeout_seconds": 300,
@@ -9,6 +11,24 @@
       "shared_node_modules": "~/.openclaw/shared/node_modules",
       "cleanup_interval_hours": 24,
       "task_retention_days": 7
+    },
+    "features": {
+      "smart_retry": true,
+      "metrics_monitoring": true,
+      "dashboard": true,
+      "failure_classification": true,
+      "agent_switching": true,
+      "task_decomposition": true,
+      "multimodal": {
+        "enabled": true,
+        "screenshot": true,
+        "visual_regression": true,
+        "figma_to_code": false,
+        "speech_to_task": false,
+        "task_to_speech": true,
+        "pr_gif": true,
+        "pr_video": false
+      }
     }
   },
   "orchestrator": {
@@ -273,6 +293,8 @@
       "enabled": true,
       "webhook": "https://oapi.dingtalk.com/robot/send?access_token=3c5282dc6240317a2c1e8677cee449384aeeee6c6accf066c5dcfbcb944eebea",
       "secret": "SEC34882f15108eb1d6ec9e780b991bc32440398ef284b1f72022e772972932fc6e",
+      "callback_token": "openclaw_callback_token_2026",
+      "callback_secret": "",
       "events": [
         "phase_complete",
         "pr_ready",

@@ -1,0 +1,2562 @@
+[
+  {
+    "id": "alert-20260319150001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T15:00:01.951372",
+    "notified": false,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319150001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T15:00:01.951403",
+    "notified": false,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319155001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T15:50:01.744358",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319155001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T15:50:01.744415",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319155925",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T15:59:25.612388",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319155925",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T15:59:25.612426",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319160002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T16:00:02.043011",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319160002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T16:00:02.043055",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319161001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T16:10:01.352168",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319161001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T16:10:01.352206",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319162001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T16:20:01.629238",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319162001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T16:20:01.629274",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319163001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T16:30:01.913597",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319163001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T16:30:01.913649",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319164001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T16:40:01.302140",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319164001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T16:40:01.302196",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319165001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T16:50:01.589112",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319165001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T16:50:01.589154",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319170001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T17:00:01.970892",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319170001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T17:00:01.970953",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319171001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T17:10:01.283786",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319171001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T17:10:01.283825",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319172001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T17:20:01.544924",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319172001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T17:20:01.544962",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319173001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T17:30:01.850611",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319173001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T17:30:01.850650",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319174002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T17:40:02.146062",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319174002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T17:40:02.146102",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319175001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T17:50:01.475630",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319175001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T17:50:01.475682",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319180001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T18:00:01.803508",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319180001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T18:00:01.803551",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319181002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T18:10:02.123813",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319181002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T18:10:02.123868",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319182001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T18:20:01.460274",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319182001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T18:20:01.460316",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319183001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T18:30:01.760004",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319183001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T18:30:01.760043",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319184002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T18:40:02.045371",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319184002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T18:40:02.045410",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319185001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T18:50:01.375236",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319185001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T18:50:01.375274",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319190001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T19:00:01.700458",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319190001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T19:00:01.700494",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319191002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T19:10:02.039213",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319191002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T19:10:02.039248",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319192001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T19:20:01.434782",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319192001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T19:20:01.434818",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319193001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T19:30:01.820911",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319193001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T19:30:01.820946",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319194002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T19:40:02.270015",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319194002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T19:40:02.270053",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319195001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T19:50:01.740864",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319195001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T19:50:01.740904",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319200002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T20:00:02.187583",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319200002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T20:00:02.187626",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319201001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T20:10:01.651679",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319201001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T20:10:01.651719",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319202002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T20:20:02.157341",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319202002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T20:20:02.157395",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319203001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T20:30:01.656160",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319203001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T20:30:01.656196",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319204001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T20:40:01.961566",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319204001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T20:40:01.961603",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319205001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T20:50:01.369139",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319205001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T20:50:01.369173",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319210001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T21:00:01.659599",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319210001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T21:00:01.659637",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319211001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T21:10:01.948178",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319211001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T21:10:01.948215",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319212001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T21:20:01.249928",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319212001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T21:20:01.249962",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319213001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T21:30:01.530588",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319213001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T21:30:01.530623",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319214001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T21:40:01.822189",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319214001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T21:40:01.822225",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319215002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T21:50:02.087081",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319215002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T21:50:02.087116",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319220001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T22:00:01.396636",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319220001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T22:00:01.396671",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319221001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T22:10:01.696858",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319221001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T22:10:01.696895",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319222001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T22:20:01.971248",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319222001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T22:20:01.971285",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319223001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T22:30:01.270972",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319223001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T22:30:01.271009",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319224001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T22:40:01.598886",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319224001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T22:40:01.598922",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319225001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T22:50:01.884015",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319225001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T22:50:01.884050",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319230002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T23:00:02.159991",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319230002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T23:00:02.160029",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319231001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T23:10:01.481480",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319231001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T23:10:01.481530",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319232001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T23:20:01.772668",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319232001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T23:20:01.772715",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319233002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T23:30:02.066360",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319233002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T23:30:02.066395",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319234001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T23:40:01.335666",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319234001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T23:40:01.335702",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319235001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-19T23:50:01.628419",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260319235001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-19T23:50:01.628456",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320000001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T00:00:01.975912",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320000001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T00:00:01.975969",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320001001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T00:10:01.279208",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320001001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T00:10:01.279242",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320002001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T00:20:01.564547",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320002001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T00:20:01.564581",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320003001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T00:30:01.840922",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320003001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T00:30:01.840957",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320004002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T00:40:02.144830",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320004002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T00:40:02.144879",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320005001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T00:50:01.415625",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320005001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T00:50:01.415658",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320010001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T01:00:01.931605",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320010001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T01:00:01.931640",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320011001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T01:10:01.254082",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320011001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T01:10:01.254117",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320012001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T01:20:01.534478",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320012001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T01:20:01.534512",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320013001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T01:30:01.825751",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320013001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T01:30:01.825787",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320014002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T01:40:02.093148",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320014002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T01:40:02.093182",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320015001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T01:50:01.368593",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320015001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T01:50:01.368627",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320020001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T02:00:01.647431",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320020001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T02:00:01.647467",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320021001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T02:10:01.952820",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320021001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T02:10:01.952869",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320022001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T02:20:01.237527",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320022001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T02:20:01.237561",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320023001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T02:30:01.538001",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320023001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T02:30:01.538035",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320024001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T02:40:01.817070",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320024001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T02:40:01.817109",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320025002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T02:50:02.118475",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320025002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T02:50:02.118512",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320030001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T03:00:01.400459",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320030001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T03:00:01.400492",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320031001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T03:10:01.687309",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320031001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T03:10:01.687343",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320032001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T03:20:01.955984",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320032001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T03:20:01.956032",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320033001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T03:30:01.255733",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320033001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T03:30:01.255768",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320034001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T03:40:01.532408",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320034001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T03:40:01.532441",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320035001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T03:50:01.815348",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320035001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T03:50:01.815383",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320040002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T04:00:02.096011",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320040002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T04:00:02.096044",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320041001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T04:10:01.391861",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320041001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T04:10:01.391895",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320042001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T04:20:01.661997",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320042001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T04:20:01.662039",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320043001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T04:30:01.927649",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320043001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T04:30:01.927684",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320044001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T04:40:01.212428",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320044001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T04:40:01.212463",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320045001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T04:50:01.500172",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320045001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T04:50:01.500206",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320050001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T05:00:01.771584",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320050001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T05:00:01.771617",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320051002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T05:10:02.059788",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320051002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T05:10:02.059821",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320052001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T05:20:01.335595",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320052001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T05:20:01.335630",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320053001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T05:30:01.624559",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320053001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T05:30:01.624594",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320054001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T05:40:01.899615",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320054001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T05:40:01.899655",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320055001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T05:50:01.180702",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320055001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T05:50:01.180736",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320060001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T06:00:01.444075",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320060001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T06:00:01.444109",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320061001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T06:10:01.737950",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320061001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T06:10:01.737984",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320062002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T06:20:02.024202",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320062002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T06:20:02.024236",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320063001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T06:30:01.289004",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320063001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T06:30:01.289037",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320064001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T06:40:01.595197",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320064001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T06:40:01.595230",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320065001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T06:50:01.864345",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320065001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T06:50:01.864381",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320070002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T07:00:02.146697",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320070002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T07:00:02.146731",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320071001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T07:10:01.475482",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320071001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T07:10:01.475519",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320072001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T07:20:01.762130",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320072001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T07:20:01.762165",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320073002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T07:30:02.040900",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320073002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T07:30:02.040935",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320074001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T07:40:01.311326",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320074001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T07:40:01.311359",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320075001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T07:50:01.605358",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320075001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T07:50:01.605394",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320080001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T08:00:01.867681",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320080001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T08:00:01.867716",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320081001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T08:10:01.187011",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320081001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T08:10:01.187045",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320082001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T08:20:01.474508",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320082001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T08:20:01.474544",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320083001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T08:30:01.742170",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320083001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T08:30:01.742203",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320084002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T08:40:02.052231",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320084002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T08:40:02.052266",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320085001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T08:50:01.411356",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320085001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T08:50:01.411391",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320090001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T09:00:01.709755",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320090001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T09:00:01.709793",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320091002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T09:10:02.026209",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320091002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T09:10:02.026244",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320092001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T09:20:01.296333",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320092001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T09:20:01.296367",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320093001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T09:30:01.566504",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320093001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T09:30:01.566537",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320094001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T09:40:01.909514",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320094001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T09:40:01.909549",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320095001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T09:50:01.239237",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320095001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T09:50:01.239270",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320100001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T10:00:01.657547",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320100001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T10:00:01.657581",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320101001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T10:10:01.962745",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320101001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T10:10:01.962779",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320102001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T10:20:01.267050",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320102001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T10:20:01.267085",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320103001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T10:30:01.569165",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320103001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T10:30:01.569200",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320104001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T10:40:01.865969",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320104001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T10:40:01.866004",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320105002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T10:50:02.151786",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320105002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T10:50:02.151822",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320110001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T11:00:01.435151",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320110001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T11:00:01.435185",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320111001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T11:10:01.742791",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320111001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T11:10:01.742827",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320112002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T11:20:02.040359",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320112002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T11:20:02.040394",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320113001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T11:30:01.355033",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320113001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T11:30:01.355068",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320114001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T11:40:01.673539",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320114001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T11:40:01.673573",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320115001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T11:50:01.963320",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320115001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T11:50:01.963353",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320120001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T12:00:01.236692",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320120001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T12:00:01.236727",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320121001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T12:10:01.550934",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320121001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T12:10:01.550968",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320122001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T12:20:01.839718",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320122001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T12:20:01.839753",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320123002",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T12:30:02.184356",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320123002",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T12:30:02.184391",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320124001",
+    "rule_id": "alert-001",
+    "rule_name": "CI 通过率过低",
+    "metric_value": 0.0,
+    "threshold": 0.7,
+    "triggered_at": "2026-03-20T12:40:01.478225",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  },
+  {
+    "id": "alert-20260320124001",
+    "rule_id": "alert-004",
+    "rule_name": "Agent 成功率过低",
+    "metric_value": 0.0,
+    "threshold": 0.6,
+    "triggered_at": "2026-03-20T12:40:01.478261",
+    "notified": true,
+    "notification_channel": "dingtalk"
+  }
+]
