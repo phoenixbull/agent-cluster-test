@@ -659,6 +659,15 @@ class ClusterNotifier:
         
         return '\n'.join(items)
     
+    def _get_coverage_message(self, coverage: float) -> str:
+        """获取覆盖率消息"""
+        if coverage >= 80:
+            return "### ✅ 覆盖率达标\n\n测试覆盖率 ≥ 80%，满足质量要求。"
+        elif coverage >= 60:
+            return "### ⚠️ 覆盖率不足\n\n测试覆盖率 < 80%，建议补充测试用例。"
+        else:
+            return "### 🔴 覆盖率严重不足\n\n测试覆盖率 < 60%，需要大量补充测试用例。"
+    
     # ========== Phase 阶段通知 ==========
     
     def notify_phase1_prd_complete(self, workflow: Dict, prd_info: Dict[str, Any]):
@@ -814,6 +823,228 @@ class ClusterNotifier:
 🤖 Agent 集群自动通知
 """
         at_all = self._get_at_all_flag('phase_complete')
+        if self.deploy_group_id:
+            return self.dingtalk.send_to_group(self.deploy_group_id, title, text, at_all)
+        else:
+            return self.dingtalk.send_markdown(self.admin_user_ids, title, text, at_all)
+    
+    # ========== 中优先级通知（方案 B） ==========
+    
+    def notify_phase2_design_review(self, workflow: Dict, design_info: Dict[str, Any]):
+        """
+        Phase 2: 设计评审通知
+        
+        Args:
+            workflow: 工作流信息
+            design_info: 设计相关信息
+        """
+        workflow_id = workflow.get('id', 'N/A')
+        tech_lead = design_info.get('tech_lead', 'Tech Lead')
+        designer = design_info.get('designer', 'Designer')
+        architecture_url = design_info.get('architecture_url', '#')
+        ui_design_url = design_info.get('ui_design_url', '#')
+        deploy_config_url = design_info.get('deploy_config_url', '#')
+        
+        title = f"📐 设计评审完成 - {workflow_id}"
+        
+        text = f"""## 📐 Phase 2: 技术设计完成
+
+**工作流**: {workflow_id}
+**技术负责人**: {tech_lead}
+**设计师**: {designer}
+
+---
+
+### 📋 产出物
+
+- **架构设计**: [查看文档]({architecture_url})
+- **UI 设计**: [查看设计]({ui_design_url})
+- **部署配置**: [查看配置]({deploy_config_url})
+
+---
+
+### ✅ Phase 2 完成
+
+技术设计阶段已完成，可以进入 Phase 3 开发实现阶段。
+
+---
+
+🤖 Agent 集群自动通知
+"""
+        at_all = self._get_at_all_flag('phase_complete')
+        if self.deploy_group_id:
+            return self.dingtalk.send_to_group(self.deploy_group_id, title, text, at_all)
+        else:
+            return self.dingtalk.send_markdown(self.admin_user_ids, title, text, at_all)
+    
+    def notify_phase3_code_commit(self, workflow: Dict, commit_info: Dict[str, Any]):
+        """
+        Phase 3: 代码提交通知
+        
+        Args:
+            workflow: 工作流信息
+            commit_info: 提交相关信息
+        """
+        workflow_id = workflow.get('id', 'N/A')
+        agent_name = commit_info.get('agent_name', 'Developer')
+        commit_message = commit_info.get('commit_message', '无提交信息')
+        files_changed = commit_info.get('files_changed', 0)
+        additions = commit_info.get('additions', 0)
+        deletions = commit_info.get('deletions', 0)
+        commit_url = commit_info.get('commit_url', '#')
+        
+        title = f"📝 代码提交 - {agent_name}"
+        
+        text = f"""## 📝 Phase 3: 代码提交
+
+**工作流**: {workflow_id}
+**开发者**: {agent_name}
+
+---
+
+### 📋 提交详情
+
+**提交信息**: {commit_message[:80]}{'...' if len(commit_message) > 80 else ''}
+
+**文件变更**: 
+- 📄 修改文件：{files_changed} 个
+- ➕ 新增行数：{additions} 行
+- ➖ 删除行数：{deletions} 行
+
+[查看提交]({commit_url})
+
+---
+
+🤖 Agent 集群自动通知
+"""
+        at_all = False
+        if self.deploy_group_id:
+            return self.dingtalk.send_to_group(self.deploy_group_id, title, text, at_all)
+        else:
+            return self.dingtalk.send_markdown(self.admin_user_ids, title, text, at_all)
+    
+    def notify_phase4_test_coverage(self, workflow: Dict, test_info: Dict[str, Any]):
+        """
+        Phase 4: 测试覆盖率通知
+        
+        Args:
+            workflow: 工作流信息
+            test_info: 测试相关信息
+        """
+        workflow_id = workflow.get('id', 'N/A')
+        tester = test_info.get('tester', 'Tester')
+        total_tests = test_info.get('total_tests', 0)
+        passed_tests = test_info.get('passed_tests', 0)
+        failed_tests = test_info.get('failed_tests', 0)
+        coverage = test_info.get('coverage', 0)
+        coverage_url = test_info.get('coverage_url', '#')
+        test_report_url = test_info.get('test_report_url', '#')
+        
+        # 覆盖率图标
+        coverage_icon = "🟢" if coverage >= 80 else "🟡" if coverage >= 60 else "🔴"
+        
+        title = f"📊 测试覆盖率报告 - {coverage}%"
+        
+        text = f"""## 📊 Phase 4: 测试报告
+
+**工作流**: {workflow_id}
+**测试工程师**: {tester}
+
+---
+
+### 📈 测试结果
+
+**总测试数**: {total_tests} 个
+**通过**: {passed_tests} 个 ✅
+**失败**: {failed_tests} 个 ❌
+**通过率**: {passed_tests/total_tests*100 if total_tests > 0 else 0:.1f}%
+
+---
+
+### 📊 代码覆盖率
+
+**覆盖率**: {coverage_icon} {coverage}%
+
+[查看覆盖率报告]({coverage_url})
+
+[查看测试报告]({test_report_url})
+
+---
+
+{self._get_coverage_message(coverage)}
+
+---
+
+🤖 Agent 集群自动通知
+"""
+        at_all = False
+        if self.deploy_group_id:
+            return self.dingtalk.send_to_group(self.deploy_group_id, title, text, at_all)
+        else:
+            return self.dingtalk.send_markdown(self.admin_user_ids, title, text, at_all)
+    
+    def notify_phase5_review_issues(self, workflow: Dict, review_info: Dict[str, Any]):
+        """
+        Phase 5: 审查问题通知
+        
+        Args:
+            workflow: 工作流信息
+            review_info: 审查相关信息
+        """
+        workflow_id = workflow.get('id', 'N/A')
+        pr_number = review_info.get('pr_number', 'N/A')
+        pr_url = review_info.get('pr_url', '#')
+        reviewers = review_info.get('reviewers', [])
+        issues = review_info.get('issues', [])
+        critical_count = review_info.get('critical_count', 0)
+        major_count = review_info.get('major_count', 0)
+        
+        # 问题严重程度图标
+        severity_icon = "🔴" if critical_count > 0 else "🟠" if major_count > 0 else "🟡"
+        
+        title = f"{severity_icon} 审查问题 - PR #{pr_number}"
+        
+        issues_list = '\n'.join([
+            f"- **{issue.get('reviewer', 'Unknown')}**: {issue.get('issue', '无描述')}"
+            for issue in issues[:5]
+        ])
+        
+        if len(issues) > 5:
+            issues_list += f"\n- ... 还有 {len(issues) - 5} 个问题"
+        
+        text = f"""## {severity_icon} Phase 5: 审查发现问题
+
+**工作流**: {workflow_id}
+**PR**: #{pr_number} - [查看 PR]({pr_url})
+
+---
+
+### 📋 审查问题
+
+**严重问题**: {critical_count} 个 🔴
+**主要问题**: {major_count} 个 🟠
+**次要问题**: {len(issues) - critical_count - major_count} 个 🟡
+
+---
+
+### ⚠️ 问题详情
+
+{issues_list}
+
+---
+
+### 📌 处理建议
+
+1. 优先修复严重问题（Critical）
+2. 其次修复主要问题（Major）
+3. 修复完成后重新提交审查
+
+---
+
+🤖 Agent 集群自动通知
+"""
+        # 有严重问题时@所有人
+        at_all = critical_count > 0
         if self.deploy_group_id:
             return self.dingtalk.send_to_group(self.deploy_group_id, title, text, at_all)
         else:
