@@ -297,6 +297,7 @@
       "corpId": "ding4ec28b66e08c978fee0f45d8e4f7c288",
       "agentId": "4286960567",
       "robotCode": "dingi8bd93ixhrm34vbd",
+      "admin_user_ids": ["356820521035955"],
       "events": [
         "phase_complete",
         "pr_ready",

@@ -143,9 +143,10 @@ class DingTalkNotifier:
             
             with urllib.request.urlopen(req, context=ssl_context, timeout=10) as response:
                 result = json.loads(response.read().decode('utf-8'))
-                process_id = result.get('processQueryId')
+                # 钉钉 API 返回 processQueryKey 或 processQueryId 都表示成功
+                process_id = result.get('processQueryId') or result.get('processQueryKey')
                 if process_id:
-                    print(f"✅ 钉钉消息发送成功 (processQueryId: {process_id})")
+                    print(f"✅ 钉钉消息发送成功 (processQueryId: {process_id[:30]}...)")
                     return True
                 else:
                     print(f"⚠️  钉钉消息发送失败：{result}")
