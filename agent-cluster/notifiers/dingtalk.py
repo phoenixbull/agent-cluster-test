@@ -658,6 +658,166 @@ class ClusterNotifier:
             items.append(f"- ... 还有 {len(deliverables) - 5} 个")
         
         return '\n'.join(items)
+    
+    # ========== Phase 阶段通知 ==========
+    
+    def notify_phase1_prd_complete(self, workflow: Dict, prd_info: Dict[str, Any]):
+        """
+        Phase 1: PRD 完成通知
+        
+        Args:
+            workflow: 工作流信息
+            prd_info: PRD 相关信息
+        """
+        workflow_id = workflow.get('id', 'N/A')
+        pm_name = prd_info.get('pm_name', 'Product Manager')
+        requirement = prd_info.get('requirement', '无需求描述')
+        prd_url = prd_info.get('prd_url', '#')
+        user_stories_count = prd_info.get('user_stories', 0)
+        acceptance_criteria_count = prd_info.get('acceptance_criteria', 0)
+        
+        title = f"📄 PRD 完成 - {workflow_id}"
+        
+        text = f"""## 📄 Phase 1: PRD 文档完成
+
+**工作流**: {workflow_id}
+**产品经理**: {pm_name}
+**需求**: {requirement[:80]}{'...' if len(requirement) > 80 else ''}
+
+---
+
+### 📋 产出物
+
+- **PRD 文档**: [查看文档]({prd_url})
+- **用户故事**: {user_stories_count} 个
+- **验收标准**: {acceptance_criteria_count} 个
+
+---
+
+### ✅ Phase 1 完成
+
+需求分析阶段已完成，可以进入 Phase 2 技术设计阶段。
+
+---
+
+🤖 Agent 集群自动通知
+"""
+        at_all = self._get_at_all_flag('phase_complete')
+        if self.deploy_group_id:
+            return self.dingtalk.send_to_group(self.deploy_group_id, title, text, at_all)
+        else:
+            return self.dingtalk.send_markdown(self.admin_user_ids, title, text, at_all)
+    
+    def notify_phase4_critical_bug(self, bug: Dict[str, Any]):
+        """
+        Phase 4: 严重 Bug 通知
+        
+        Args:
+            bug: Bug 信息
+        """
+        bug_id = bug.get('id', 'N/A')
+        severity = bug.get('severity', 'critical')
+        module = bug.get('module', 'N/A')
+        title_text = bug.get('title', '无标题')
+        description = bug.get('description', '无描述')
+        reproduction_steps = bug.get('reproduction_steps', 'N/A')
+        reporter = bug.get('reporter', 'Tester')
+        
+        # 严重程度图标
+        severity_icon = "🔴" if severity == "critical" else "🟠" if severity == "major" else "🟡"
+        
+        title = f"{severity_icon} 严重 Bug - {bug_id}"
+        
+        text = f"""## 🐛 Phase 4: 发现严重 Bug
+
+**Bug ID**: {bug_id}
+**严重程度**: {severity_icon} {severity.upper()}
+**模块**: {module}
+**发现者**: {reporter}
+
+---
+
+### 📋 Bug 详情
+
+**标题**: {title_text}
+
+**描述**: {description[:150]}{'...' if len(description) > 150 else ''}
+
+**复现步骤**: 
+{reproduction_steps[:200]}{'...' if len(reproduction_steps) > 200 else ''}
+
+---
+
+### ⚠️ 处理建议
+
+1. 立即评估 Bug 影响范围
+2. 优先修复严重 Bug
+3. 更新测试用例防止回归
+
+---
+
+🤖 Agent 集群自动通知
+"""
+        # 严重 Bug 需要@所有人
+        if self.deploy_group_id:
+            return self.dingtalk.send_to_group(self.deploy_group_id, title, text, at_all=True)
+        else:
+            return self.dingtalk.send_markdown(self.admin_user_ids, title, text, at_all=True)
+    
+    def notify_phase5_review_passed(self, workflow: Dict, review_info: Dict[str, Any]):
+        """
+        Phase 5: 审查通过通知
+        
+        Args:
+            workflow: 工作流信息
+            review_info: 审查相关信息
+        """
+        workflow_id = workflow.get('id', 'N/A')
+        pr_number = review_info.get('pr_number', 'N/A')
+        pr_url = review_info.get('pr_url', '#')
+        reviewers = review_info.get('reviewers', [])
+        approved_count = review_info.get('approved_count', 0)
+        security_score = review_info.get('security_score', 0)
+        code_quality_score = review_info.get('code_quality_score', 0)
+        
+        title = f"✅ 审查通过 - PR #{pr_number}"
+        
+        text = f"""## ✅ Phase 5: 代码审查通过
+
+**工作流**: {workflow_id}
+**PR**: #{pr_number} - [查看 PR]({pr_url})
+
+---
+
+### 📊 审查结果
+
+**审查通过**: {approved_count}/{len(reviewers)} 个审查者批准
+
+**审查者**:
+{chr(10).join(['- ✅ ' + r.get('name', 'Unknown') + (' (' + r.get('comment', '') + ')' if r.get('comment') else '') for r in reviewers])}
+
+---
+
+### 📈 质量评分
+
+- **安全评分**: {security_score}/100
+- **代码质量**: {code_quality_score}/100
+
+---
+
+### ✅ Phase 5 完成
+
+代码审查已通过，可以进入 Phase 6 部署上线阶段。
+
+---
+
+🤖 Agent 集群自动通知
+"""
+        at_all = self._get_at_all_flag('phase_complete')
+        if self.deploy_group_id:
+            return self.dingtalk.send_to_group(self.deploy_group_id, title, text, at_all)
+        else:
+            return self.dingtalk.send_markdown(self.admin_user_ids, title, text, at_all)
 
 
 # 便捷函数

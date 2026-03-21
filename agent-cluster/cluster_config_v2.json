@@ -308,6 +308,9 @@
       "events": [
         "agent_task_assigned",
         "agent_task_complete",
+        "phase1_prd_complete",
+        "phase4_critical_bug",
+        "phase5_review_passed",
         "phase_complete",
         "pr_ready",
         "deploy_confirmation",
@@ -319,6 +322,9 @@
       "at_all": {
         "agent_task_assigned": false,
         "agent_task_complete": false,
+        "phase1_prd_complete": false,
+        "phase4_critical_bug": true,
+        "phase5_review_passed": false,
         "phase_complete": false,
         "pr_ready": false,
         "deploy_confirmation": true,
