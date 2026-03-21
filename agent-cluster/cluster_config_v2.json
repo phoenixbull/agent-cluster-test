@@ -296,6 +296,7 @@
       "clientSecret": "PlyR_LbuiaIPVqocSlqj0x313N8p6PbKTGP4OP80K_Vx5PgDxMHK7IFApfy_-jfR",
       "corpId": "ding4ec28b66e08c978fee0f45d8e4f7c288",
       "agentId": "4286960567",
+      "robotCode": "dingi8bd93ixhrm34vbd",
       "events": [
         "phase_complete",
         "pr_ready",

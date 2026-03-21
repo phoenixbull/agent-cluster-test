@@ -32,12 +32,13 @@ class DingTalkNotifier:
         初始化钉钉通知器
         
         Args:
-            config: 配置字典，包含 clientId, clientSecret, corpId, agentId
+            config: 配置字典，包含 clientId, clientSecret, corpId, agentId, robotCode
         """
         self.client_id = config.get("clientId", "")
         self.client_secret = config.get("clientSecret", "")
         self.corp_id = config.get("corpId", "")
         self.agent_id = config.get("agentId", "")
+        self.robot_code = config.get("robotCode", "")
         
         self.access_token = None
         self.token_expires_at = 0
@@ -113,7 +114,8 @@ class DingTalkNotifier:
             
             data = json.dumps({
                 "agentId": self.agent_id,
-                "userIdList": user_ids,
+                "robotCode": self.robot_code,
+                "userIds": user_ids,
                 "msgKey": "sampleMarkdown",
                 "msgParam": json.dumps({
                     "title": title,
@@ -171,6 +173,7 @@ class DingTalkNotifier:
             
             data = json.dumps({
                 "agentId": self.agent_id,
+                "robotCode": self.robot_code,
                 "conversationId": conversation_id,
                 "msgKey": "sampleMarkdown",
                 "msgParam": json.dumps({

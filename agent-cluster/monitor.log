@@ -22102,3 +22102,13 @@ TypeError: _save_tasks() takes 1 positional argument but 2 were given
 
 🔔 检查告警规则...
   ✅ 无告警触发
+Traceback (most recent call last):
+  File "monitor.py", line 592, in <module>
+    loop.run_until_complete(main())
+  File "/usr/lib64/python3.6/asyncio/base_events.py", line 484, in run_until_complete
+    return future.result()
+  File "monitor.py", line 581, in main
+    monitor = ClusterMonitor()
+  File "monitor.py", line 49, in __init__
+    dingtalk_config.get("secret", "")
+TypeError: __init__() takes 2 positional arguments but 3 were given
