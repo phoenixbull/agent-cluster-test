@@ -39,15 +39,12 @@ class ClusterMonitor:
         self.task_registry_path = Path("~/.openclaw/workspace/agent-cluster/tasks.json").expanduser()
         self.tasks = self._load_tasks()
         
-        # 初始化钉钉通知器
+        # 初始化钉钉通知器（企业应用模式）
         notifications = self.config.get("notifications", {})
         dingtalk_config = notifications.get("dingtalk", {})
         
         if dingtalk_config.get("enabled"):
-            self.notifier = ClusterNotifier(
-                dingtalk_config.get("webhook", ""),
-                dingtalk_config.get("secret", "")
-            )
+            self.notifier = ClusterNotifier(dingtalk_config)
             print("✅ 钉钉通知器已初始化")
         else:
             self.notifier = None
