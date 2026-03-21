@@ -15,11 +15,12 @@ from typing import Dict, List, Optional, Any
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent))
 
-from notifiers.dingtalk import ClusterNotifier
+from notifiers.dingtalk import ClusterNotifier, get_notifier
 from utils.openclaw_api import OpenClawAPI
 from utils.github_helper import GitHubAPI, create_github_client
 from utils.agent_executor import AgentTaskExecutor
 from utils.project_router import ProjectRouter
+import json
 
 
 class WorkflowState:
@@ -157,15 +158,13 @@ class Orchestrator:
             return None
     
     def _init_notifier(self) -> Optional[ClusterNotifier]:
-        """初始化通知器"""
+        """初始化通知器（企业应用模式）"""
         notifications = self.config.get("notifications", {})
         dingtalk = notifications.get("dingtalk", {})
         
         if dingtalk.get("enabled"):
-            return ClusterNotifier(
-                dingtalk.get("webhook", ""),
-                dingtalk.get("secret", "")
-            )
+            # 使用企业应用模式，支持阶段通知
+            return get_notifier(dingtalk)
         return None
     
     def receive_requirement(self, requirement: str, source: str = "manual") -> str:
@@ -263,6 +262,21 @@ class Orchestrator:
             print("\n📊 阶段 1/6: 需求分析")
             self.state.update_phase(workflow_id, "analysis", "in_progress")
             tasks = self._analyze_requirement(requirement)
+            # ✅ 发送 PRD 完成通知
+            if self.notifier:
+                prd_info = {
+                    "pm_name": "Product Manager",
+                    "requirement": requirement[:200],
+                    "prd_url": f"https://github.com/.../wiki/PRD-{workflow_id}",
+                    "user_stories": len(tasks),
+                    "acceptance_criteria": len(tasks) * 2
+                }
+                self.notifier.notify_phase1_prd_complete(
+                    {"id": workflow_id, "requirement": requirement[:50]},
+                    prd_info
+                )
+                print(f"   📧 已发送 PRD 完成通知")
+            
             self.state.update_phase(workflow_id, "analysis", "completed", {"tasks": tasks})
             print(f"   ✅ 分解为 {len(tasks)} 个任务")
             
@@ -270,6 +284,21 @@ class Orchestrator:
             print("\n🎨 阶段 2/6: UI/UX 设计")
             self.state.update_phase(workflow_id, "design", "in_progress")
             design_result = self._design_phase(tasks)
+            # ✅ 发送设计评审通知
+            if self.notifier and design_result:
+                design_info = {
+                    "tech_lead": "Tech Lead",
+                    "designer": "Designer",
+                    "architecture_url": design_result.get('architecture_url', '#'),
+                    "ui_design_url": design_result.get('ui_design_url', '#'),
+                    "deploy_config_url": design_result.get('deploy_config_url', '#')
+                }
+                self.notifier.notify_phase2_design_review(
+                    {"id": workflow_id},
+                    design_info
+                )
+                print(f"   📧 已发送设计评审通知")
+            
             self.state.update_phase(workflow_id, "design", "completed", design_result)
             print(f"   ✅ 设计完成")
             
@@ -277,6 +306,14 @@ class Orchestrator:
             print("\n💻 阶段 3/6: 编码实现")
             self.state.update_phase(workflow_id, "coding", "in_progress")
             coding_result = self._coding_phase(tasks, design_result)
+            # ✅ 发送 PR 就绪通知
+            if self.notifier and coding_result and coding_result.get('pr_number'):
+                self.notifier.notify_pr_ready(
+                    {"id": workflow_id, "description": requirement[:50]},
+                    coding_result
+                )
+                print(f"   📧 已发送 PR 就绪通知")
+            
             self.state.update_phase(workflow_id, "coding", "completed", coding_result)
             print(f"   ✅ 编码完成")
             
@@ -284,6 +321,30 @@ class Orchestrator:
             print("\n🧪 阶段 4/6: 测试")
             self.state.update_phase(workflow_id, "testing", "in_progress")
             test_result = self._testing_loop(coding_result)
+            # ✅ 发送测试覆盖率通知
+            if self.notifier and test_result:
+                test_info = {
+                    "tester": "Tester",
+                    "total_tests": test_result.get('total_tests', 0),
+                    "passed_tests": test_result.get('passed_tests', 0),
+                    "failed_tests": test_result.get('failed_tests', 0),
+                    "coverage": test_result.get('coverage', 0),
+                    "coverage_url": test_result.get('coverage_url', '#'),
+                    "test_report_url": test_result.get('test_report_url', '#')
+                }
+                self.notifier.notify_phase4_test_coverage(
+                    {"id": workflow_id},
+                    test_info
+                )
+                print(f"   📧 已发送测试覆盖率通知")
+                
+                # 发送严重 Bug 通知
+                bugs = test_result.get('bugs', [])
+                for bug in bugs:
+                    if bug.get('severity') in ['critical', 'major']:
+                        self.notifier.notify_phase4_critical_bug(bug)
+                        print(f"   📧 已发送严重 Bug 通知：{bug.get('id')}")
+            
             self.state.update_phase(workflow_id, "testing", "completed", test_result)
             print(f"   ✅ 测试通过")
             
@@ -291,6 +352,35 @@ class Orchestrator:
             print("\n🔍 阶段 5/6: AI Review")
             self.state.update_phase(workflow_id, "review", "in_progress")
             review_result = self._review_phase(test_result)
+            # ✅ 发送审查结果通知
+            if self.notifier and review_result:
+                pr_info = review_result.get('pr_info', {})
+                review_info = {
+                    "pr_number": pr_info.get('number', 'N/A'),
+                    "pr_url": pr_info.get('url', '#'),
+                    "reviewers": review_result.get('reviewers', []),
+                    "approved_count": review_result.get('approved_count', 0),
+                    "security_score": review_result.get('security_score', 0),
+                    "code_quality_score": review_result.get('code_quality_score', 0),
+                    "issues": review_result.get('issues', []),
+                    "critical_count": review_result.get('critical_count', 0),
+                    "major_count": review_result.get('major_count', 0)
+                }
+                
+                # 根据审查结果发送不同通知
+                if review_result.get('approved', False):
+                    self.notifier.notify_phase5_review_passed(
+                        {"id": workflow_id},
+                        review_info
+                    )
+                    print(f"   📧 已发送审查通过通知")
+                elif review_info['issues']:
+                    self.notifier.notify_phase5_review_issues(
+                        {"id": workflow_id},
+                        review_info
+                    )
+                    print(f"   📧 已发送审查问题通知")
+            
             self.state.update_phase(workflow_id, "review", "completed", review_result)
             print(f"   ✅ Review 通过")
             
