@@ -291,10 +291,11 @@
   "notifications": {
     "dingtalk": {
       "enabled": true,
-      "webhook": "https://oapi.dingtalk.com/robot/send?access_token=3c5282dc6240317a2c1e8677cee449384aeeee6c6accf066c5dcfbcb944eebea",
-      "secret": "SEC34882f15108eb1d6ec9e780b991bc32440398ef284b1f72022e772972932fc6e",
-      "callback_token": "openclaw_callback_token_2026",
-      "callback_secret": "",
+      "mode": "enterprise_app",
+      "clientId": "dingi8bd93ixhrm34vbd",
+      "clientSecret": "PlyR_LbuiaIPVqocSlqj0x313N8p6PbKTGP4OP80K_Vx5PgDxMHK7IFApfy_-jfR",
+      "corpId": "ding4ec28b66e08c978fee0f45d8e4f7c288",
+      "agentId": "4286960567",
       "events": [
         "phase_complete",
         "pr_ready",
@@ -312,7 +313,8 @@
         "deploy_cancelled": false,
         "task_failed": true,
         "human_intervention_needed": true
-      }
+      },
+      "deploy_group_conversation_id": ""
     },
     "telegram": {
       "enabled": false
