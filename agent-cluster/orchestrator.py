@@ -23,6 +23,47 @@ from utils.project_router import ProjectRouter
 import json
 
 
+def split_large_requirement(req: str, max_length: int = 500) -> List[Dict]:
+    """自动拆分超大需求"""
+    if len(req) <= max_length:
+        return []
+    
+    # 按段落或标点拆分
+    import re
+    # 尝试按句号/感叹号/问号拆分
+    sentences = re.split(r'[。！？!?]', req)
+    sentences = [s.strip() for s in sentences if s.strip()]
+    
+    sub_tasks = []
+    current_task = []
+    current_length = 0
+    
+    for i, sentence in enumerate(sentences):
+        sentence_len = len(sentence)
+        if current_length + sentence_len > max_length and current_task:
+            # 当前任务已满，创建新任务
+            sub_tasks.append({
+                "part": len(sub_tasks) + 1,
+                "description": "。".join(current_task) + "。",
+                "estimated_tokens": current_length * 2
+            })
+            current_task = [sentence]
+            current_length = sentence_len
+        else:
+            current_task.append(sentence)
+            current_length += sentence_len
+    
+    # 添加最后一个任务
+    if current_task:
+        sub_tasks.append({
+            "part": len(sub_tasks) + 1,
+            "description": "。".join(current_task) + "。",
+            "estimated_tokens": current_length * 2
+        })
+    
+    return sub_tasks if len(sub_tasks) > 1 else []
+
+
 class WorkflowState:
     """工作流状态管理"""
     
@@ -194,6 +235,13 @@ class Orchestrator:
         """
         print(f"\n📥 接收到产品需求 (来源：{source})")
         print(f"   需求：{requirement[:100]}...")
+        
+        # 🔍 检查是否需要拆分超大需求
+        sub_tasks = split_large_requirement(requirement)
+        if sub_tasks:
+            print(f"   ⚠️  需求过大，自动拆分为 {len(sub_tasks)} 个子任务")
+            for i, sub in enumerate(sub_tasks):
+                print(f"      子任务{i+1}: {sub['description'][:50]}...")
         
         # 🆕 识别项目
         self.current_project = self.project_router.identify_project(requirement)
