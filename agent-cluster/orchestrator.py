@@ -670,7 +670,11 @@ class Orchestrator:
             
             # 2. 创建分支 (使用项目特定的分支前缀)
             branch_prefix = self.project_router.get_branch_prefix(self.current_project)
-            branch_name = f"{branch_prefix}{workflow_id}"
+            # 优化分支命名：包含日期和简短描述
+            date_str = datetime.now().strftime("%Y%m%d")
+            # 从需求中提取关键词作为分支名后缀
+            desc_keywords = req.replace(" ", "").replace("\n", "")[:30]
+            branch_name = f"{branch_prefix}{workflow_id}-{date_str}"
             print(f"\n   🌿 创建分支：{branch_name}")
             self.github.create_branch(branch_name)
             

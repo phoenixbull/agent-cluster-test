@@ -170,6 +170,24 @@ class GitHubAPI:
             "message": message
         }
     
+    def cleanup_merged_branch(self, branch_name: str) -> Dict:
+        """清理已合并的分支"""
+        try:
+            print(f"\n🧹 清理已合并分支：{branch_name}")
+            # 切换回 main
+            self.git_command("checkout", "main")
+            # 拉取最新
+            self.git_command("pull", "origin", "main")
+            # 删除本地分支
+            self.git_command("branch", "-d", branch_name)
+            # 删除远程分支
+            self.git_command("push", "origin", "--delete", branch_name)
+            print(f"   ✅ 分支已清理：{branch_name}")
+            return {"success": True, "message": f"分支已清理：{branch_name}"}
+        except Exception as e:
+            print(f"   ⚠️ 清理失败：{e}")
+            return {"success": False, "error": str(e)}
+    
     def push_branch(self, branch_name: str) -> Dict:
         """
         推送分支到远程
