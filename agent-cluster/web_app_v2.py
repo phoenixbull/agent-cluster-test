@@ -252,6 +252,7 @@ class WebUIHandler(SimpleHTTPRequestHandler):
             if not is_auth: self.send_response(302); self.send_header('Location', '/login'); self.end_headers(); return
             self.send_html(self.get_main_page())
         elif path == '/workflows' and is_auth: self.send_html(self.get_workflows_page())
+        elif path == '/history' and is_auth: self.send_html(self.get_history_page())
         elif path == '/agents' and is_auth: self.send_html(self.get_agents_page())
         elif path == '/phases' and is_auth: self.send_html(self.get_phases_page())
         elif path == '/quality' and is_auth: self.send_html(self.get_quality_page())
@@ -292,6 +293,8 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         
         if path == '/api/submit': self.send_json(self.submit_task(data))
         elif path == '/api/workflows': self.send_json(self.get_workflows(data))
+        elif path == '/api/task/history': self.send_json(self.get_task_history(data))
+        elif path == '/api/task/archive': self.send_json({"success": self._archive_completed_task(data.get('task_id', ''))})
         elif path == '/api/deploy/execute': self.send_json(self.execute_deploy(data))
         elif path == '/api/deploy/stop': self.send_json(self.stop_deploy(data))
         elif path == '/api/deploy/status': self.send_json(self.get_deploy_status(data))
@@ -823,6 +826,73 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         except:
             return {}
     
+    def _archive_completed_task(self, task_id: str):
+        """归档已完成的任务"""
+        try:
+            tasks = self._load_task_state()
+            if task_id not in tasks:
+                return False
+            
+            task = tasks[task_id]
+            if task.get('status') not in ['completed', 'failed']:
+                return False
+            
+            # 加载历史任务
+            history_file = MEMORY_DIR / "completed_tasks.json"
+            history = []
+            if history_file.exists():
+                try:
+                    with open(history_file, 'r', encoding='utf-8') as f:
+                        history = json.load(f)
+                except:
+                    pass
+            
+            # 添加到历史
+            task['archived_at'] = datetime.now().isoformat()
+            history.insert(0, task)
+            
+            # 保留最近 100 条
+            history = history[:100]
+            
+            # 保存历史
+            with open(history_file, 'w', encoding='utf-8') as f:
+                json.dump(history, f, ensure_ascii=False, indent=2)
+            
+            # 从 active 移除
+            del tasks[task_id]
+            tasks_file = MEMORY_DIR / "active_tasks.json"
+            with open(tasks_file, 'w', encoding='utf-8') as f:
+                json.dump(tasks, f, ensure_ascii=False, indent=2)
+            
+            logger.info(f"✅ 任务已归档：{task_id}")
+            return True
+        except Exception as e:
+            logger.error(f"归档任务失败：{e}")
+            return False
+    
+    def get_task_history(self, data: Dict = None) -> Dict:
+        """获取历史任务列表"""
+        try:
+            history_file = MEMORY_DIR / "completed_tasks.json"
+            if not history_file.exists():
+                return {"success": True, "history": [], "total": 0}
+            
+            with open(history_file, 'r', encoding='utf-8') as f:
+                history = json.load(f)
+            
+            # 支持过滤
+            status_filter = data.get('status') if data else None
+            if status_filter:
+                history = [t for t in history if t.get('status') == status_filter]
+            
+            # 按归档时间倒序
+            history.sort(key=lambda x: x.get('archived_at', x.get('created_at', '')), reverse=True)
+            
+            return {"success": True, "history": history[:50], "total": len(history)}
+        except Exception as e:
+            logger.error(f"获取历史任务失败：{e}")
+            return {"success": False, "error": str(e)}
+    
     def get_workflows(self, data: Dict = None) -> Dict:
         """获取工作流列表"""
         try:
@@ -885,7 +955,7 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Agent 集群 V2.1 控制台</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:20px 40px}.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.header h1{font-size:24px}.header .version{background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:20px;font-size:12px}.nav{display:flex;gap:15px;flex-wrap:wrap}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px;transition:background 0.3s;font-size:14px}.nav a:hover{background:rgba(255,255,255,0.2)}.container{max-width:1600px;margin:0 auto;padding:30px}.status-bar{background:white;border-radius:12px;padding:20px;margin-bottom:30px;display:flex;gap:30px;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.status-item{display:flex;align-items:center;gap:10px}.status-dot{width:12px;height:12px;border-radius:50%}.status-dot.green{background:#10b981}.status-dot.red{background:#ef4444}.status-dot.yellow{background:#f59e0b}.status-label{color:#666;font-size:14px}.status-value{font-weight:600;color:#333}.status-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:30px}.card{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08);transition:transform 0.2s}.card:hover{transform:translateY(-4px)}.card h3{color:#666;font-size:14px;margin-bottom:10px}.card .value{font-size:32px;font-weight:bold;color:#333}.card .sub{font-size:12px;color:#999;margin-top:8px}.card .icon{font-size:24px;margin-bottom:10px}.section{background:white;border-radius:12px;padding:24px;margin-bottom:30px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.section h2{margin-bottom:20px;color:#333;font-size:18px}.phase-timeline{display:flex;gap:10px;overflow-x:auto;padding-bottom:10px}.phase-card{min-width:200px;background:#f8f9fa;border-radius:12px;padding:20px;border-left:4px solid #667eea}.phase-card h4{color:#333;margin-bottom:8px;font-size:16px}.phase-card p{color:#666;font-size:13px;margin-bottom:10px}.phase-card .agents{display:flex;flex-wrap:wrap;gap:5px}.phase-card .agent-tag{background:#e0e7ff;color:#4f46e5;padding:3px 8px;border-radius:4px;font-size:11px}.phase-card .quality-gate{background:#fef3c7;color:#d97706;padding:3px 8px;border-radius:4px;font-size:11px;margin-top:8px;display:inline-block}.submit-form{background:linear-gradient(135deg,#f8f9fa,#e9ecef);border-radius:12px;padding:30px;margin-bottom:30px}.submit-form h2{margin-bottom:20px;color:#333}.form-group{margin-bottom:20px}.form-group label{display:block;margin-bottom:8px;color:#555;font-weight:500}.form-group textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;min-height:120px;font-family:inherit}.form-group textarea:focus{outline:none;border-color:#667eea}.form-group select{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px}.btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;border:none;padding:12px 30px;border-radius:8px;font-size:16px;cursor:pointer;transition:transform 0.2s}.btn:hover{transform:translateY(-2px)}.agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px}.agent-card{background:#f8f9fa;border-radius:10px;padding:16px;display:flex;align-items:center;gap:15px}.agent-avatar{width:48px;height:48px;border-radius:8px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:20px}.agent-info{flex:1}.agent-info h4{color:#333;font-size:14px;margin-bottom:4px}.agent-info p{color:#666;font-size:12px}.agent-info .model{color:#999;font-size:11px;margin-top:4px}.status-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500}.status-badge.ready{background:#d1fae5;color:#065f46}.workflow-list{max-height:400px;overflow-y:auto}.workflow-item{padding:15px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}.workflow-item:last-child{border-bottom:none}.workflow-item .info{flex:1}.workflow-item .title{font-weight:500;color:#333;font-size:14px}.workflow-item .meta{font-size:12px;color:#999;margin-top:5px}.workflow-item .status-badge{padding:4px 12px;border-radius:20px;font-size:12px}.status-badge.completed{background:#d1fae5;color:#065f46}.status-badge.running{background:#dbeafe;color:#1e40af}.status-badge.failed{background:#fee2e2;color:#991b1b}.quick-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;margin-top:20px}.quick-action{background:white;border:2px solid #e0e0e0;border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;text-decoration:none;color:#333}.quick-action:hover{border-color:#667eea;background:#f0f4ff}.quick-action .icon{font-size:28px;margin-bottom:8px}.quick-action .label{font-size:13px;font-weight:500}</style></head><body>
 <div class="header"><div class="header-top"><h1>🤖 Agent 集群控制台</h1><span class="version">V2.2.0 智能增强版</span></div>
-<div class="nav"><a href="/">📊 概览</a><a href="/phases">🔄 开发流程</a><a href="/agents">🤖 Agent 阵容</a><a href="/workflows">📋 工作流</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/deployments">🚀 发布管理</a><a href="/templates">📝 模板库</a><a href="/costs">💰 成本统计</a><a href="/metrics">📈 指标</a><a href="/monitoring">📋 监控日志</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout();return false;">🚪 登出</a></div></div>
+<div class="nav"><a href="/">📊 概览</a><a href="/phases">🔄 开发流程</a><a href="/agents">🤖 Agent 阵容</a><a href="/workflows">📋 工作流</a><a href="/history">📜 历史</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/deployments">🚀 发布管理</a><a href="/templates">📝 模板库</a><a href="/costs">💰 成本统计</a><a href="/metrics">📈 指标</a><a href="/monitoring">📋 监控日志</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout();return false;">🚪 登出</a></div></div>
 <div class="container">
 <div class="status-bar"><div class="status-item"><span class="status-dot green" id="clusterStatusDot"></span><span class="status-label">集群状态:</span><span class="status-value" id="clusterStatus">-</span></div>
 <div class="status-item"><span class="status-dot green" id="deployStatusDot"></span><span class="status-label">部署监听:</span><span class="status-value" id="deployStatus">-</span></div>
@@ -917,6 +987,17 @@ setInterval(loadStatus,30000);
 setInterval(loadWorkflows,10000);</script></body></html>"""
 
     def get_workflows_page(self): return self._list_page("工作流", "/api/workflows", ["workflow_id", "requirement", "project", "status", "created_at"])
+    def get_history_page(self):
+        return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>执行历史 - Agent 集群</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px}.container{max-width:1400px;margin:0 auto;padding:30px}.section{background:white;border-radius:12px;padding:24px;margin-bottom:30px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.section h2{margin-bottom:20px}.filters{display:flex;gap:15px;margin-bottom:20px}.filters select{padding:8px 16px;border:1px solid #ddd;border-radius:6px}.table-container{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{padding:12px;text-align:left;border-bottom:1px solid #eee}th{background:#f8f9fa;color:#666;font-weight:500;font-size:14px}.status-badge{padding:4px 12px;border-radius:20px;font-size:12px}.status-badge.completed{background:#d1fae5;color:#065f46}.status-badge.failed{background:#fee2e2;color:#991b1b}.empty{text-align:center;color:#999;padding:40px}</style></head><body>
+<div class="header"><h1>📜 执行历史</h1><div class="nav"><a href="/">📊 概览</a><a href="/workflows">📋 工作流</a><a href="/history">📜 历史</a><a href="/agents">🤖 Agent</a><a href="/phases">🔄 流程</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/deployments">🚀 发布管理</a><a href="/templates">📝 模板</a><a href="/costs">💰 成本</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div>
+<div class="container">
+<div class="section"><h2>📜 历史任务</h2>
+<div class="filters"><select id="statusFilter" onchange="loadHistory()"><option value="">全部状态</option><option value="completed">✅ 已完成</option><option value="failed">❌ 已失败</option></select><span id="totalCount" style="color:#666;margin-left:auto;"></span></div>
+<div class="table-container"><table><thead><tr><th>任务 ID</th><th>需求</th><th>项目</th><th>状态</th><th>阶段</th><th>创建时间</th><th>归档时间</th></tr></thead><tbody id="historyBody"><tr><td colspan="7" class="empty">加载中...</td></tr></tbody></table></div></div></div>
+<script>async function loadHistory(){const filter=document.getElementById('statusFilter').value;try{const res=await fetch('/api/task/history'+(filter?`?status=${filter}`:''));const d=await res.json();document.getElementById('totalCount').textContent=`共 ${d.total||0} 条`;const tbody=document.getElementById('historyBody');if(!d.history||d.history.length===0){tbody.innerHTML='<tr><td colspan="7" class="empty">暂无历史记录</td></tr>';return;}tbody.innerHTML=d.history.map(h=>{const sc=h.status==='completed'?'completed':'failed';const st=h.status==='completed'?'✅ 完成':'❌ 失败';return`<tr><td>${h.id||'-'}</td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(h.requirement||'').replace(/"/g,'&quot;')}">${h.requirement||'未命名'}</td><td>${h.project||'默认'}</td><td><span class="status-badge ${sc}">${st}</span></td><td>${(h.phase||'1_requirement').split('_')[1]||'需求'}</td><td>${new Date(h.created_at||'').toLocaleString('zh-CN')}</td><td>${new Date(h.archived_at||'').toLocaleString('zh-CN')}</td></tr>`;}).join('');}catch(e){console.error('加载历史失败:',e);}}
+async function logout(){if(!confirm('确定登出？'))return;await fetch('/api/logout',{method:'POST'});document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}
+loadHistory();</script></body></html>"""
     def get_agents_page(self): return self._agents_page()
     def get_phases_page(self): return self._phases_page()
     def get_quality_page(self): return self._quality_page()

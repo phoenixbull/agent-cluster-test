@@ -327,6 +327,9 @@ class ClusterMonitor:
         logger.info(f"  失败：{len(failed_tasks)}")
         logger.info(f"  准备合并：{len(ready_tasks)}")
         
+        # 检查归档标记
+        self._check_archive_flags()
+        
         # 检查告警
         if hasattr(self, 'alert_manager'):
             print(f"\n🔔 检查告警规则...")
@@ -337,6 +340,36 @@ class ClusterMonitor:
                     print(f"    - {alert.rule_name}: {alert.metric_value:.2f} (阈值：{alert.threshold:.2f})")
             else:
                 print(f"  ✅ 无告警触发")
+    
+    def _check_archive_flags(self):
+        """检查归档标记文件并调用 Web API 归档"""
+        try:
+            memory_dir = Path(__file__).parent / "memory"
+            flag_files = list(memory_dir.glob("archive_*.flag"))
+            
+            for flag_file in flag_files:
+                # 提取 workflow_id
+                workflow_id = flag_file.stem.replace("archive_", "")
+                
+                # 调用 Web API 归档
+                import urllib.request
+                import json
+                try:
+                    req = urllib.request.Request(
+                        "http://localhost:8890/api/task/archive",
+                        data=json.dumps({"task_id": workflow_id}).encode('utf-8'),
+                        headers={'Content-Type': 'application/json'},
+                        method='POST'
+                    )
+                    with urllib.request.urlopen(req, timeout=5) as resp:
+                        result = json.loads(resp.read().decode('utf-8'))
+                        if result.get('success'):
+                            logger.info(f"✅ 任务已归档：{workflow_id}")
+                        flag_file.unlink()  # 删除标记文件
+                except Exception as e:
+                    logger.warning(f"归档失败 {workflow_id}: {e}")
+        except Exception as e:
+            logger.debug(f"检查归档标记失败：{e}")
     
     def _update_task_status(self, completed_tasks: List, failed_tasks: List):
         """更新任务状态"""

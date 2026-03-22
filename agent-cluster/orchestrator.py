@@ -95,6 +95,9 @@ class WorkflowState:
             state["workflows"][workflow_id]["completed_at"] = datetime.now().isoformat()
             state["workflows"][workflow_id]["result"] = result
             self.save(state)
+        
+        # 触发归档（通过标记文件）
+        self._trigger_archive(workflow_id)
     
     def fail_workflow(self, workflow_id: str, error: str):
         """失败工作流"""
@@ -104,6 +107,17 @@ class WorkflowState:
             state["workflows"][workflow_id]["completed_at"] = datetime.now().isoformat()
             state["workflows"][workflow_id]["error"] = error
             self.save(state)
+        
+        # 触发归档（通过标记文件）
+        self._trigger_archive(workflow_id)
+    
+    def _trigger_archive(self, workflow_id: str):
+        """触发归档（通过标记文件，由 monitor.py 处理）"""
+        try:
+            archive_flag = Path(__file__).parent / "memory" / f"archive_{workflow_id}.flag"
+            archive_flag.touch()
+        except Exception as e:
+            pass  # 归档失败不影响主流程
     
     def update_workflow_project(self, workflow_id: str, project_id: str):
         """更新工作流的项目信息"""
