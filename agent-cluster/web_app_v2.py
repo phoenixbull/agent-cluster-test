@@ -300,6 +300,7 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         elif path == '/api/task/archive': self.send_json({"success": self._archive_completed_task(data.get('task_id', ''))})
         elif path == '/api/task/logs': self.send_json(self.get_task_logs(data))
         elif path == '/api/task/retry-history': self.send_json(self.get_task_retry_history(data))
+        elif path == '/api/system/load': self.send_json(self.get_system_load())
         elif path == '/api/deploy/execute': self.send_json(self.execute_deploy(data))
         elif path == '/api/deploy/stop': self.send_json(self.stop_deploy(data))
         elif path == '/api/deploy/status': self.send_json(self.get_deploy_status(data))
@@ -947,6 +948,62 @@ class WebUIHandler(SimpleHTTPRequestHandler):
             logger.error(f"归档任务失败：{e}")
             return False
     
+    def get_system_load(self) -> Dict:
+        """获取系统负载信息"""
+        try:
+            import subprocess
+            
+            # CPU 使用率
+            cpu_result = subprocess.run(['top', '-bn1'], capture_output=True, text=True, timeout=5)
+            cpu_line = [l for l in cpu_result.stdout.split('\n') if 'Cpu(s)' in l]
+            cpu_usage = 0
+            if cpu_line:
+                parts = cpu_line[0].split(',')
+                for p in parts:
+                    if 'us' in p.lower():
+                        try:
+                            cpu_usage = float(p.split()[0])
+                        except:
+                            pass
+            
+            # 内存使用率
+            mem_result = subprocess.run(['free', '-m'], capture_output=True, text=True, timeout=5)
+            mem_lines = mem_result.stdout.split('\n')
+            mem_usage = 0
+            if len(mem_lines) > 1:
+                parts = mem_lines[1].split()
+                if len(parts) >= 3:
+                    total = float(parts[1])
+                    used = float(parts[2])
+                    mem_usage = (used / total) * 100 if total > 0 else 0
+            
+            # 运行中任务数
+            tasks = self._load_task_state()
+            running_count = sum(1 for t in tasks.values() if t.get('status') == 'running')
+            
+            # 计算推荐并发数
+            # 规则：CPU<50% 且 内存<70% → max 5
+            #      CPU<70% 且 内存<80% → max 3
+            #      其他 → max 1
+            if cpu_usage < 50 and mem_usage < 70:
+                recommended = 5
+            elif cpu_usage < 70 and mem_usage < 80:
+                recommended = 3
+            else:
+                recommended = 1
+            
+            return {
+                "success": True,
+                "cpu_usage": round(cpu_usage, 1),
+                "memory_usage": round(mem_usage, 1),
+                "running_tasks": running_count,
+                "recommended_concurrency": recommended,
+                "current_max": 3  # 当前配置值
+            }
+        except Exception as e:
+            logger.error(f"获取系统负载失败：{e}")
+            return {"success": False, "error": str(e)}
+    
     def get_task_retry_history(self, data: Dict = None) -> Dict:
         """获取任务重试历史"""
         try:
@@ -1159,7 +1216,8 @@ class WebUIHandler(SimpleHTTPRequestHandler):
 <div class="status-bar"><div class="status-item"><span class="status-dot green" id="clusterStatusDot"></span><span class="status-label">集群状态:</span><span class="status-value" id="clusterStatus">-</span></div>
 <div class="status-item"><span class="status-dot green" id="deployStatusDot"></span><span class="status-label">部署监听:</span><span class="status-value" id="deployStatus">-</span></div>
 <div class="status-item"><span class="status-dot green" id="dingtalkStatusDot"></span><span class="status-label">钉钉通知:</span><span class="status-value" id="dingtalkStatus">-</span></div>
-<div class="status-item" style="margin-left:auto;color:#999;font-size:13px;" id="lastUpdate"></div></div>
+<div class="status-item" style="margin-left:auto;color:#999;font-size:13px;" id="lastUpdate"></div>
+<div class="status-item" style="color:#666;font-size:13px;" id="systemLoad">负载：-</div></div>
 <div class="status-cards"><div class="card"><div class="icon">🔄</div><h3>进行中的工作流</h3><div class="value" id="activeWorkflows">-</div><div class="sub">当前正在执行</div></div>
 <div class="card"><div class="icon">✅</div><h3>今日完成</h3><div class="value" id="completedToday">-</div><div class="sub">成功完成的工作流</div></div>
 <div class="card"><div class="icon">❌</div><h3>今日失败</h3><div class="value" id="failedToday">-</div><div class="sub">需要关注</div></div>
@@ -1176,7 +1234,7 @@ class WebUIHandler(SimpleHTTPRequestHandler):
 <div id="retryModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;"><div style="background:white;border-radius:12px;width:90%;max-width:800px;max-height:80vh;display:flex;flex-direction:column;"><div style="padding:20px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><h3 style="margin:0;" id="retryModalTitle">🔄 重试历史</h3><button onclick="closeRetryModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#666;">&times;</button></div><div style="flex:1;overflow:auto;padding:20px;" id="retryContent">加载中...</div><div style="padding:15px;border-top:1px solid #eee;display:flex;justify-content:flex-end;"><button onclick="closeRetryModal()" style="background:#e0e0e0;color:#333;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;">关闭</button></div></div></div>
 <div class="section"><h2>⚡ 快捷操作</h2><div class="quick-actions"><a href="/phases" class="quick-action"><div class="icon">🔄</div><div class="label">查看流程</div></a><a href="/agents" class="quick-action"><div class="icon">🤖</div><div class="label">Agent 状态</div></a><a href="/quality" class="quick-action"><div class="icon">🚦</div><div class="label">质量门禁</div></a><a href="/templates" class="quick-action"><div class="icon">📝</div><div class="label">模板库</div></a><a href="/costs" class="quick-action"><div class="icon">💰</div><div class="label">成本统计</div></a><a href="/bugs" class="quick-action"><div class="icon">🐛</div><div class="label">Bug 管理</div></a><a href="/deployments" class="quick-action"><div class="icon">🚀</div><div class="label">发布管理</div></a></div></div></div>
 <script>const phases=[{id:1,name:"Phase 1: 需求分析",agents:["Product Manager"],tags:["PRD 文档","用户故事"]},{id:2,name:"Phase 2: 技术设计",agents:["Tech Lead","Designer","DevOps"],tags:["架构设计","UI 设计","部署配置"]},{id:3,name:"Phase 3: 开发实现",agents:["Codex","Claude-Code"],tags:["后端代码","前端代码"]},{id:4,name:"Phase 4: 测试验证",agents:["Tester"],tags:["单元测试","集成测试"],qg:true},{id:5,name:"Phase 5: 代码审查",agents:["3 Reviewers"],tags:["逻辑审查","安全审查"],qg:true},{id:6,name:"Phase 6: 部署上线",agents:["DevOps"],tags:["Docker","CI/CD"]}];document.getElementById('phaseTimeline').innerHTML=phases.map(p=>`<div class="phase-card"><h4>${p.name}</h4><p>${p.agents.join('+')}</p><div class="agents">${p.tags.map(t=>`<span class="agent-tag">${t}</span>`).join('')}</div>${p.qg?'<span class="quality-gate">🚦 质量门禁</span>':''}</div>`).join('');
-async function loadStatus(){try{const res=await fetch('/api/status');const d=await res.json();document.getElementById('clusterStatus').textContent=d.status==='running'?'运行中':'已停止';document.getElementById('clusterStatusDot').className='status-dot '+(d.status==='running'?'green':'red');document.getElementById('deployStatus').textContent=d.deploy_listener==='running'?'监听中':'已停止';document.getElementById('deployStatusDot').className='status-dot '+(d.deploy_listener==='running'?'green':'yellow');document.getElementById('dingtalkStatus').textContent=d.dingtalk_enabled?'已启用':'未配置';document.getElementById('dingtalkStatusDot').className='status-dot '+(d.dingtalk_enabled?'green':'yellow');document.getElementById('activeWorkflows').textContent=d.active_workflows;document.getElementById('completedToday').textContent=d.completed_today;document.getElementById('failedToday').textContent=d.failed_today;document.getElementById('agentsReady').textContent=d.agents_ready;document.getElementById('lastUpdate').textContent='最后更新：'+new Date(d.timestamp).toLocaleString('zh-CN');}catch(e){console.error(e);}}
+async function loadStatus(){try{const res=await fetch('/api/status');const d=await res.json();document.getElementById('clusterStatus').textContent=d.status==='running'?'运行中':'已停止';document.getElementById('clusterStatusDot').className='status-dot '+(d.status==='running'?'green':'red');document.getElementById('deployStatus').textContent=d.deploy_listener==='running'?'监听中':'已停止';document.getElementById('deployStatusDot').className='status-dot '+(d.deploy_listener==='running'?'green':'yellow');document.getElementById('dingtalkStatus').textContent=d.dingtalk_enabled?'已启用':'未配置';document.getElementById('dingtalkStatusDot').className='status-dot '+(d.dingtalk_enabled?'green':'yellow');document.getElementById('activeWorkflows').textContent=d.active_workflows;document.getElementById('completedToday').textContent=d.completed_today;document.getElementById('failedToday').textContent=d.failed_today;document.getElementById('agentsReady').textContent=d.agents_ready;document.getElementById('lastUpdate').textContent='最后更新：'+new Date(d.timestamp).toLocaleString('zh-CN');const loadRes=await fetch('/api/system/load');const loadD=await loadRes.json();if(loadD.success){const icon=loadD.recommended_concurrency>=5?'🟢':loadD.recommended_concurrency>=3?'🟡':'🔴';document.getElementById('systemLoad').textContent=`负载：${icon} CPU${loadD.cpu_usage}% 内存${loadD.memory_usage}% 并发${loadD.recommended_concurrency}`;}}catch(e){console.error(e);}}
 async function loadAgents(){try{const res=await fetch('/api/agents');const d=await res.json();const all=[...d.executors,...d.reviewers];document.getElementById('agentGrid').innerHTML=all.map(a=>{const av=a.name.split(' ').map(w=>w[0]).join('').substring(0,2);return`<div class="agent-card"><div class="agent-avatar">${av}</div><div class="agent-info"><h4>${a.name}</h4><p>${a.role} · ${a.phase}</p><div class="model">${a.model}</div></div><span class="status-badge ready">就绪</span></div>`;}).join('');}catch(e){console.error(e);}}
 let currentLogTaskId='';async function loadWorkflows(){try{const res=await fetch('/api/workflows');const d=await res.json();const list=document.getElementById('workflowList');if(!d.workflows||d.workflows.length===0){list.innerHTML='<div style="color:#999;text-align:center;padding:40px;">暂无工作流记录</div>';return;}list.innerHTML=d.workflows.slice(0,10).map(wf=>{const sc=wf.status==='completed'?'completed':wf.status==='failed'?'failed':'running';const st=wf.status==='completed'?'✅ 完成':wf.status==='failed'?'❌ 失败':'🔄 进行中';const progress=wf.progress||0;const phaseName=wf.phase_name||wf.phase||'需求';const isRunning=wf.status==='running';return`<div class="workflow-item"><div class="info" style="flex:1;min-width:0;"><div class="title" style="margin-bottom:8px;">${wf.requirement||'未命名任务'}</div><div class="meta" style="margin-bottom:8px;">${wf.id||'-'} · ${wf.project||'默认'} · ${new Date(wf.created_at).toLocaleString('zh-CN')}</div><div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;"><span style="font-size:12px;color:#666;min-width:60px;">${phaseName}</span><div style="flex:1;height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden;"><div style="width:${progress}%;height:100%;background:linear-gradient(90deg,#667eea,#764ba2);transition:width 0.3s;"></div></div><span style="font-size:12px;color:#666;min-width:35px;text-align:right;">${progress}%</span></div></div><div style="display:flex;gap:8px;align-items:center;">${isRunning?`<button onclick="viewLogs('${wf.id}')" style="background:#667eea;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">📜 日志</button>`:''}${wf.retry_count>0?`<button onclick="viewRetryHistory('${wf.id}')" style="background:#f59e0b;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">🔄 重试${wf.retry_count}</button>`:''}<span class="status-badge ${sc}" style="align-self:flex-start;">${st}</span></div></div>`;}).join('');}catch(e){console.error('加载工作流失败:',e);}}
 async function viewLogs(taskId){currentLogTaskId=taskId;document.getElementById('logModalTitle').textContent='📜 任务日志 - '+taskId;document.getElementById('logModal').style.display='flex';refreshLogs();}
