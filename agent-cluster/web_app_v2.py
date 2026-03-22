@@ -295,6 +295,7 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         elif path == '/api/workflows': self.send_json(self.get_workflows(data))
         elif path == '/api/task/history': self.send_json(self.get_task_history(data))
         elif path == '/api/task/archive': self.send_json({"success": self._archive_completed_task(data.get('task_id', ''))})
+        elif path == '/api/task/logs': self.send_json(self.get_task_logs(data))
         elif path == '/api/deploy/execute': self.send_json(self.execute_deploy(data))
         elif path == '/api/deploy/stop': self.send_json(self.stop_deploy(data))
         elif path == '/api/deploy/status': self.send_json(self.get_deploy_status(data))
@@ -870,6 +871,35 @@ class WebUIHandler(SimpleHTTPRequestHandler):
             logger.error(f"归档任务失败：{e}")
             return False
     
+    def get_task_logs(self, data: Dict = None) -> Dict:
+        """获取任务日志"""
+        try:
+            task_id = data.get('task_id', '') if data else ''
+            if not task_id:
+                return {"success": False, "error": "缺少 task_id"}
+            
+            # 查找任务日志文件
+            log_file = LOGS_DIR / f"task_{task_id}.log"
+            
+            if not log_file.exists():
+                # 尝试从 orchestrator 日志中查找
+                orchestrator_log = LOGS_DIR / "orchestrator.log"
+                if orchestrator_log.exists():
+                    # 读取最近 100 行
+                    with open(orchestrator_log, 'r', encoding='utf-8') as f:
+                        lines = f.readlines()[-100:]
+                    return {"success": True, "logs": ''.join(lines), "source": "orchestrator"}
+                return {"success": True, "logs": "暂无日志记录", "source": "none"}
+            
+            # 读取日志文件（最近 200 行）
+            with open(log_file, 'r', encoding='utf-8') as f:
+                lines = f.readlines()[-200:]
+            
+            return {"success": True, "logs": ''.join(lines), "source": "task", "lines": len(lines)}
+        except Exception as e:
+            logger.error(f"获取任务日志失败：{e}")
+            return {"success": False, "error": str(e)}
+    
     def get_task_history(self, data: Dict = None) -> Dict:
         """获取历史任务列表"""
         try:
@@ -894,19 +924,54 @@ class WebUIHandler(SimpleHTTPRequestHandler):
             return {"success": False, "error": str(e)}
     
     def get_workflows(self, data: Dict = None) -> Dict:
-        """获取工作流列表"""
+        """获取工作流列表（增强版 - 含进度信息）"""
         try:
             tasks = self._load_task_state()
             workflow_list = []
             
+            # 定义阶段顺序和进度权重
+            phase_progress = {
+                "1_requirement": 10,
+                "2_design": 25,
+                "3_development": 50,
+                "4_testing": 70,
+                "5_review": 85,
+                "6_deploy": 95,
+                "completed": 100
+            }
+            
+            phase_names = {
+                "1_requirement": "需求分析",
+                "2_design": "技术设计",
+                "3_development": "开发实现",
+                "4_testing": "测试验证",
+                "5_review": "代码审查",
+                "6_deploy": "部署上线",
+                "completed": "已完成"
+            }
+            
             for task_id, task in tasks.items():
+                phase = task.get("phase", "1_requirement")
+                status = task.get("status", "unknown")
+                
+                # 计算进度百分比
+                if status == "completed":
+                    progress = 100
+                elif status == "failed":
+                    progress = phase_progress.get(phase, 0)
+                else:
+                    progress = phase_progress.get(phase, 0)
+                
                 workflow_list.append({
                     "id": task_id,
                     "requirement": task.get("requirement", "")[:100],
                     "project": task.get("project", "default"),
-                    "status": task.get("status", "unknown"),
+                    "status": status,
                     "created_at": task.get("created_at", ""),
-                    "phase": task.get("phase", "1_requirement")
+                    "phase": phase,
+                    "phase_name": phase_names.get(phase, phase),
+                    "progress": progress,
+                    "updated_at": task.get("updated_at", task.get("created_at", ""))
                 })
             
             # 按创建时间倒序
@@ -973,11 +1038,15 @@ class WebUIHandler(SimpleHTTPRequestHandler):
 <div class="section"><h2>🔄 完整开发流程（6 阶段）</h2><div class="phase-timeline" id="phaseTimeline"></div></div>
 <div class="section"><h2>🤖 Agent 阵容（10 个）</h2><div class="agent-grid" id="agentGrid"></div></div>
 <div class="section"><h2>📋 最近工作流</h2><div class="workflow-list" id="workflowList"></div></div>
+<div id="logModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;"><div style="background:white;border-radius:12px;width:90%;max-width:900px;max-height:80vh;display:flex;flex-direction:column;"><div style="padding:20px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><h3 style="margin:0;" id="logModalTitle">📜 任务日志</h3><button onclick="closeLogModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#666;">&times;</button></div><div style="flex:1;overflow:auto;padding:20px;background:#1e1e1e;color:#d4d4d4;font-family:'Consolas','Monaco',monospace;font-size:13px;white-space:pre-wrap;word-break:break-all;" id="logContent">加载中...</div><div style="padding:15px;border-top:1px solid #eee;display:flex;justify-content:flex-end;"><button onclick="refreshLogs()" style="background:#667eea;color:white;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;margin-right:10px;">🔄 刷新</button><button onclick="closeLogModal()" style="background:#e0e0e0;color:#333;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;">关闭</button></div></div></div>
 <div class="section"><h2>⚡ 快捷操作</h2><div class="quick-actions"><a href="/phases" class="quick-action"><div class="icon">🔄</div><div class="label">查看流程</div></a><a href="/agents" class="quick-action"><div class="icon">🤖</div><div class="label">Agent 状态</div></a><a href="/quality" class="quick-action"><div class="icon">🚦</div><div class="label">质量门禁</div></a><a href="/templates" class="quick-action"><div class="icon">📝</div><div class="label">模板库</div></a><a href="/costs" class="quick-action"><div class="icon">💰</div><div class="label">成本统计</div></a><a href="/bugs" class="quick-action"><div class="icon">🐛</div><div class="label">Bug 管理</div></a><a href="/deployments" class="quick-action"><div class="icon">🚀</div><div class="label">发布管理</div></a></div></div></div>
 <script>const phases=[{id:1,name:"Phase 1: 需求分析",agents:["Product Manager"],tags:["PRD 文档","用户故事"]},{id:2,name:"Phase 2: 技术设计",agents:["Tech Lead","Designer","DevOps"],tags:["架构设计","UI 设计","部署配置"]},{id:3,name:"Phase 3: 开发实现",agents:["Codex","Claude-Code"],tags:["后端代码","前端代码"]},{id:4,name:"Phase 4: 测试验证",agents:["Tester"],tags:["单元测试","集成测试"],qg:true},{id:5,name:"Phase 5: 代码审查",agents:["3 Reviewers"],tags:["逻辑审查","安全审查"],qg:true},{id:6,name:"Phase 6: 部署上线",agents:["DevOps"],tags:["Docker","CI/CD"]}];document.getElementById('phaseTimeline').innerHTML=phases.map(p=>`<div class="phase-card"><h4>${p.name}</h4><p>${p.agents.join('+')}</p><div class="agents">${p.tags.map(t=>`<span class="agent-tag">${t}</span>`).join('')}</div>${p.qg?'<span class="quality-gate">🚦 质量门禁</span>':''}</div>`).join('');
 async function loadStatus(){try{const res=await fetch('/api/status');const d=await res.json();document.getElementById('clusterStatus').textContent=d.status==='running'?'运行中':'已停止';document.getElementById('clusterStatusDot').className='status-dot '+(d.status==='running'?'green':'red');document.getElementById('deployStatus').textContent=d.deploy_listener==='running'?'监听中':'已停止';document.getElementById('deployStatusDot').className='status-dot '+(d.deploy_listener==='running'?'green':'yellow');document.getElementById('dingtalkStatus').textContent=d.dingtalk_enabled?'已启用':'未配置';document.getElementById('dingtalkStatusDot').className='status-dot '+(d.dingtalk_enabled?'green':'yellow');document.getElementById('activeWorkflows').textContent=d.active_workflows;document.getElementById('completedToday').textContent=d.completed_today;document.getElementById('failedToday').textContent=d.failed_today;document.getElementById('agentsReady').textContent=d.agents_ready;document.getElementById('lastUpdate').textContent='最后更新：'+new Date(d.timestamp).toLocaleString('zh-CN');}catch(e){console.error(e);}}
 async function loadAgents(){try{const res=await fetch('/api/agents');const d=await res.json();const all=[...d.executors,...d.reviewers];document.getElementById('agentGrid').innerHTML=all.map(a=>{const av=a.name.split(' ').map(w=>w[0]).join('').substring(0,2);return`<div class="agent-card"><div class="agent-avatar">${av}</div><div class="agent-info"><h4>${a.name}</h4><p>${a.role} · ${a.phase}</p><div class="model">${a.model}</div></div><span class="status-badge ready">就绪</span></div>`;}).join('');}catch(e){console.error(e);}}
-async function loadWorkflows(){try{const res=await fetch('/api/workflows');const d=await res.json();const list=document.getElementById('workflowList');if(!d.workflows||d.workflows.length===0){list.innerHTML='<div style="color:#999;text-align:center;padding:40px;">暂无工作流记录</div>';return;}list.innerHTML=d.workflows.slice(0,10).map(wf=>{const sc=wf.status==='completed'?'completed':wf.status==='failed'?'failed':'running';const st=wf.status==='completed'?'✅ 完成':wf.status==='failed'?'❌ 失败':'🔄 进行中';const phase=w.phase||'1_requirement';const phaseName=phase.split('_')[1]||'需求';return`<div class="workflow-item"><div class="info"><div class="title">${wf.requirement||'未命名任务'}</div><div class="meta">${wf.id||'-'} · ${wf.project||'默认项目'} · ${new Date(wf.created_at).toLocaleString('zh-CN')} · 阶段：${phaseName}</div></div><span class="status-badge ${sc}">${st}</span></div>`;}).join('');}catch(e){console.error('加载工作流失败:',e);}}
+let currentLogTaskId='';async function loadWorkflows(){try{const res=await fetch('/api/workflows');const d=await res.json();const list=document.getElementById('workflowList');if(!d.workflows||d.workflows.length===0){list.innerHTML='<div style="color:#999;text-align:center;padding:40px;">暂无工作流记录</div>';return;}list.innerHTML=d.workflows.slice(0,10).map(wf=>{const sc=wf.status==='completed'?'completed':wf.status==='failed'?'failed':'running';const st=wf.status==='completed'?'✅ 完成':wf.status==='failed'?'❌ 失败':'🔄 进行中';const progress=wf.progress||0;const phaseName=wf.phase_name||wf.phase||'需求';const isRunning=wf.status==='running';return`<div class="workflow-item"><div class="info" style="flex:1;min-width:0;"><div class="title" style="margin-bottom:8px;">${wf.requirement||'未命名任务'}</div><div class="meta" style="margin-bottom:8px;">${wf.id||'-'} · ${wf.project||'默认'} · ${new Date(wf.created_at).toLocaleString('zh-CN')}</div><div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;"><span style="font-size:12px;color:#666;min-width:60px;">${phaseName}</span><div style="flex:1;height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden;"><div style="width:${progress}%;height:100%;background:linear-gradient(90deg,#667eea,#764ba2);transition:width 0.3s;"></div></div><span style="font-size:12px;color:#666;min-width:35px;text-align:right;">${progress}%</span></div></div><div style="display:flex;gap:8px;align-items:center;">${isRunning?`<button onclick="viewLogs('${wf.id}')" style="background:#667eea;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">📜 日志</button>`:''}<span class="status-badge ${sc}" style="align-self:flex-start;">${st}</span></div></div>`;}).join('');}catch(e){console.error('加载工作流失败:',e);}}
+async function viewLogs(taskId){currentLogTaskId=taskId;document.getElementById('logModalTitle').textContent='📜 任务日志 - '+taskId;document.getElementById('logModal').style.display='flex';refreshLogs();}
+async function refreshLogs(){if(!currentLogTaskId)return;try{const res=await fetch('/api/task/logs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({task_id:currentLogTaskId})});const d=await res.json();document.getElementById('logContent').textContent=d.logs||'暂无日志';}catch(e){document.getElementById('logContent').textContent='加载失败：'+e.message;}}
+function closeLogModal(){document.getElementById('logModal').style.display='none';currentLogTaskId='';}
 async function loadTemplates(){try{const res=await fetch('/api/templates');const d=await res.json();const sel=document.getElementById('templateSelect');if(!d.templates||d.templates.length===0){sel.innerHTML='<option value="">-- 暂无模板 --</option>';return;}sel.innerHTML='<option value="">-- 选择预设模板 --</option>'+d.templates.map(t=>`<option value="${t.requirement.replace(/"/g,'&quot;')}" data-project="${t.project||'default'}">${t.name} - ${t.description||t.requirement.substring(0,30)}...</option>`).join('');}catch(e){console.error('加载模板失败:',e);}}
 function useTemplate(){const sel=document.getElementById('templateSelect');const req=document.getElementById('requirement');const proj=document.getElementById('project');if(sel.value){req.value=sel.value;if(sel.options[sel.selectedIndex].dataset.project){proj.value=sel.options[sel.selectedIndex].dataset.project;}}}
 async function submitTask(){const req=document.getElementById('requirement').value.trim();const proj=document.getElementById('project').value;if(!req){alert('请输入产品需求');return;}if(!confirm('确定要启动工作流吗？\\n\\n这将启动完整的 6 阶段开发流程。'))return;try{const res=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requirement:req,project:proj})});const d=await res.json();if(d.success){alert('✅ '+d.message);document.getElementById('requirement').value='';loadStatus();loadWorkflows();}else{alert('❌ '+d.error);}catch(e){alert('提交失败：'+e.message);}}
