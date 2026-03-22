@@ -288,8 +288,9 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         # 登录接口使用新的 JWT 认证
         if path == '/api/login': self.handle_login_jwt(data); return
         
-        # 需求检查不需要认证（提交前预检）
+        # 需求检查和成本估算不需要认证（提交前预检）
         if path == '/api/requirement/check': self.send_json(self.check_requirement(data)); return
+        if path == '/api/cost/estimate': self.send_json(self.estimate_cost(data)); return
         
         is_auth, token, _ = self._check_auth()
         if not is_auth: self.send_json({"error": "未授权"}, 401); return
@@ -777,6 +778,98 @@ class WebUIHandler(SimpleHTTPRequestHandler):
             except: pass
         return {"projects": []}
     
+    def estimate_cost(self, data: Dict) -> Dict:
+        """估算任务成本"""
+        try:
+            req = data.get("requirement", "")
+            if not req:
+                return {"success": False, "error": "需求不能为空"}
+            
+            # 基于需求长度和复杂度估算
+            char_count = len(req)
+            
+            # 基础 token 估算 (中文字符约 1.5 token/字)
+            estimated_tokens = int(char_count * 1.5)
+            
+            # 复杂度系数 (根据关键词判断)
+            complexity_keywords = {
+                "系统": 2.0, "平台": 2.0, "引擎": 1.8,
+                "管理": 1.5, "分析": 1.5, "报表": 1.5,
+                "用户": 1.3, "数据": 1.3, "接口": 1.3,
+                "功能": 1.2, "模块": 1.2
+            }
+            
+            complexity = 1.0
+            found_complexity = []
+            for kw, factor in complexity_keywords.items():
+                if kw in req:
+                    complexity = max(complexity, factor)
+                    found_complexity.append(kw)
+            
+            # 阶段估算 (6 个阶段)
+            phases = {
+                "1_requirement": {"tokens": 2000, "cost_per_1k": 0.02},
+                "2_design": {"tokens": 4000, "cost_per_1k": 0.02},
+                "3_development": {"tokens": 8000, "cost_per_1k": 0.02},
+                "4_testing": {"tokens": 3000, "cost_per_1k": 0.02},
+                "5_review": {"tokens": 5000, "cost_per_1k": 0.01},
+                "6_deploy": {"tokens": 1000, "cost_per_1k": 0.02}
+            }
+            
+            # 总估算
+            total_tokens = 0
+            total_cost = 0.0
+            
+            for phase, info in phases.items():
+                phase_tokens = int(info["tokens"] * complexity)
+                phase_cost = (phase_tokens / 1000) * info["cost_per_1k"]
+                total_tokens += phase_tokens
+                total_cost += phase_cost
+            
+            # 添加需求本身的 token
+            total_tokens += estimated_tokens
+            
+            # 按模型估算 (qwen-max)
+            model_estimates = {
+                "qwen-max": {"tokens": total_tokens, "cost": total_cost * 1.0},
+                "qwen-plus": {"tokens": total_tokens, "cost": total_cost * 0.5},
+                "qwen-coder-plus": {"tokens": total_tokens, "cost": total_cost * 0.8}
+            }
+            
+            # 确定复杂度等级
+            if complexity >= 1.8:
+                level = "high"
+                level_name = "高复杂度"
+            elif complexity >= 1.3:
+                level = "medium"
+                level_name = "中复杂度"
+            else:
+                level = "low"
+                level_name = "低复杂度"
+            
+            return {
+                "success": True,
+                "estimated_tokens": total_tokens,
+                "estimated_cost": round(total_cost, 2),
+                "complexity": complexity,
+                "complexity_level": level,
+                "complexity_name": level_name,
+                "found_keywords": found_complexity,
+                "char_count": char_count,
+                "models": model_estimates,
+                "phase_breakdown": {
+                    "1_requirement": {"name": "需求分析", "tokens": int(phases["1_requirement"]["tokens"] * complexity)},
+                    "2_design": {"name": "技术设计", "tokens": int(phases["2_design"]["tokens"] * complexity)},
+                    "3_development": {"name": "开发实现", "tokens": int(phases["3_development"]["tokens"] * complexity)},
+                    "4_testing": {"name": "测试验证", "tokens": int(phases["4_testing"]["tokens"] * complexity)},
+                    "5_review": {"name": "代码审查", "tokens": int(phases["5_review"]["tokens"] * complexity)},
+                    "6_deploy": {"name": "部署上线", "tokens": int(phases["6_deploy"]["tokens"] * complexity)}
+                }
+            }
+        except Exception as e:
+            logger.error(f"成本估算失败：{e}")
+            return {"success": False, "error": str(e)}
+    
     def check_requirement(self, data: Dict) -> Dict:
         """预检查需求完整性"""
         try:
@@ -1224,7 +1317,8 @@ class WebUIHandler(SimpleHTTPRequestHandler):
 <div class="card"><div class="icon">🤖</div><h3>就绪 Agent</h3><div class="value" id="agentsReady">-</div><div class="sub">共 10 个 Agent</div></div></div>
 <div class="submit-form"><h2>🚀 提交新任务</h2>
 <div class="form-group"><label>📝 选择模板（可选）</label><select id="templateSelect" onchange="useTemplate()"><option value="">-- 选择预设模板 --</option></select></div>
-<div class="form-group"><label>产品需求描述</label><textarea id="requirement" placeholder="详细描述你想要实现的功能... 也可以从上方模板快速选择"></textarea></div>
+<div class="form-group"><label>产品需求描述</label><textarea id="requirement" placeholder="详细描述你想要实现的功能... 也可以从上方模板快速选择" oninput="debounceEstimate()"></textarea></div>
+<div class="form-group" id="costEstimateBox" style="display:none;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:15px;margin-bottom:15px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h4 style="margin:0;color:#0369a1;">💰 成本估算</h4><span id="complexityBadge" style="padding:4px 12px;border-radius:20px;font-size:12px;background:#e0e7ff;color:#4f46e5;">中复杂度</span></div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-bottom:10px;"><div><div style="font-size:12px;color:#666;">预估 Token</div><div style="font-size:20px;font-weight:bold;color:#0369a1;" id="estTokens">-</div></div><div><div style="font-size:12px;color:#666;">预估成本</div><div style="font-size:20px;font-weight:bold;color:#059669;" id="estCost">¥-</div></div></div><div style="font-size:12px;color:#666;margin-bottom:8px;">分阶段估算:</div><div id="phaseBreakdown" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:11px;"></div></div>
 <div class="form-group"><label>选择项目</label><select id="project"><option value="default">默认项目</option><option value="ecommerce">电商项目</option><option value="blog">博客系统</option><option value="crm">CRM 系统</option></select></div>
 <button class="btn" onclick="submitTask()">🚀 启动工作流</button></div>
 <div class="section"><h2>🔄 完整开发流程（6 阶段）</h2><div class="phase-timeline" id="phaseTimeline"></div></div>
@@ -1244,10 +1338,12 @@ async function viewRetryHistory(taskId){document.getElementById('retryModalTitle
 function closeRetryModal(){document.getElementById('retryModal').style.display='none';}
 async function loadTemplates(){try{const res=await fetch('/api/templates');const d=await res.json();const sel=document.getElementById('templateSelect');if(!d.templates||d.templates.length===0){sel.innerHTML='<option value="">-- 暂无模板 --</option>';return;}sel.innerHTML='<option value="">-- 选择预设模板 --</option>'+d.templates.map(t=>`<option value="${t.requirement.replace(/"/g,'&quot;')}" data-project="${t.project||'default'}">${t.name} - ${t.description||t.requirement.substring(0,30)}...</option>`).join('');}catch(e){console.error('加载模板失败:',e);}}
 function useTemplate(){const sel=document.getElementById('templateSelect');const req=document.getElementById('requirement');const proj=document.getElementById('project');if(sel.value){req.value=sel.value;if(sel.options[sel.selectedIndex].dataset.project){proj.value=sel.options[sel.selectedIndex].dataset.project;}}}
+let estimateTimer=null;async function debounceEstimate(){clearTimeout(estimateTimer);const req=document.getElementById('requirement').value.trim();if(req.length<10){document.getElementById('costEstimateBox').style.display='none';return;}estimateTimer=setTimeout(estimateCost,500);}
+async function estimateCost(){try{const req=document.getElementById('requirement').value.trim();if(req.length<10)return;const res=await fetch('/api/cost/estimate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requirement:req})});const d=await res.json();if(d.success){document.getElementById('costEstimateBox').style.display='block';document.getElementById('estTokens').textContent=d.estimated_tokens.toLocaleString();document.getElementById('estCost').textContent='¥'+d.estimated_cost.toFixed(2);const badge=document.getElementById('complexityBadge');badge.textContent=d.complexity_name;badge.style.background=d.complexity_level==='high'?'#fee2e2':d.complexity_level==='medium'?'#fef3c7':'#d1fae5';badge.style.color=d.complexity_level==='high'?'#991b1b':d.complexity_level==='medium'?'#92400e':'#065f46';let phases='';for(let k in d.phase_breakdown){const p=d.phase_breakdown[k];phases+=`<div style="background:white;padding:8px;border-radius:4px;"><div style="color:#666;">${p.name}</div><div style="color:#0369a1;font-weight:bold;">${p.tokens.toLocaleString()}</div></div>`;}document.getElementById('phaseBreakdown').innerHTML=phases;}}catch(e){console.error('估算失败:',e);}}
 async function submitTask(){const req=document.getElementById('requirement').value.trim();const proj=document.getElementById('project').value;if(!req){alert('请输入产品需求');return;}
 // 预检查需求
 const checkRes=await fetch('/api/requirement/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requirement:req})});const checkData=await checkRes.json();if(checkData.level==='poor'){alert('⚠️ 需求检查未通过\\n\\n'+checkData.message+(checkData.suggestions.length?'\\n\\n建议：\\n'+checkData.suggestions.join('\\n'):''));return;}if(checkData.level==='warning'||checkData.level==='good'){if(!confirm('⚠️ 需求检查提示\\n\\n'+checkData.message+(checkData.suggestions.length?'\\n\\n建议：\\n'+checkData.suggestions.join('\\n'):'')+'\\n\\n仍要提交吗？'))return;}
-if(!confirm('确定要启动工作流吗？\\n\\n这将启动完整的 6 阶段开发流程。'))return;try{const res=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requirement:req,project:proj})});const d=await res.json();if(d.success){alert('✅ '+d.message);document.getElementById('requirement').value='';loadStatus();loadWorkflows();}else{alert('❌ '+d.error);}catch(e){alert('提交失败：'+e.message);}}
+if(!confirm('确定要启动工作流吗？\\n\\n这将启动完整的 6 阶段开发流程。'))return;try{const res=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requirement:req,project:proj})});const d=await res.json();if(d.success){alert('✅ '+d.message);document.getElementById('requirement').value='';document.getElementById('costEstimateBox').style.display='none';loadStatus();loadWorkflows();}else{alert('❌ '+d.error);}catch(e){alert('提交失败：'+e.message);}}
 async function logout(){if(!confirm('确定要登出吗？'))return;try{await fetch('/api/logout',{method:'POST'});document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}catch(err){alert('登出失败：'+err.message);}}
 loadStatus();loadAgents();loadWorkflows();loadTemplates();
 setInterval(loadStatus,30000);
