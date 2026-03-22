@@ -288,9 +288,10 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         # 登录接口使用新的 JWT 认证
         if path == '/api/login': self.handle_login_jwt(data); return
         
-        # 需求检查和成本估算不需要认证（提交前预检）
+        # 需求检查、成本估算和相似度检测不需要认证（提交前预检）
         if path == '/api/requirement/check': self.send_json(self.check_requirement(data)); return
         if path == '/api/cost/estimate': self.send_json(self.estimate_cost(data)); return
+        if path == '/api/requirement/similarity': self.send_json(self.check_similarity(data)); return
         
         is_auth, token, _ = self._check_auth()
         if not is_auth: self.send_json({"error": "未授权"}, 401); return
@@ -777,6 +778,88 @@ class WebUIHandler(SimpleHTTPRequestHandler):
                 with open(pf, 'r', encoding='utf-8') as f: return {"projects": json.load(f)}
             except: pass
         return {"projects": []}
+    
+    def check_similarity(self, data: Dict) -> Dict:
+        """检查需求相似度"""
+        try:
+            req = data.get("requirement", "").strip()
+            if not req:
+                return {"success": False, "error": "需求不能为空"}
+            
+            # 加载历史任务
+            history_file = MEMORY_DIR / "completed_tasks.json"
+            history = []
+            if history_file.exists():
+                with open(history_file, 'r', encoding='utf-8') as f:
+                    history = json.load(f)
+            
+            # 也检查 active tasks
+            active = self._load_task_state()
+            all_tasks = history + list(active.values())
+            
+            # 简单相似度算法：基于关键词重叠率
+            def extract_keywords(text):
+                # 提取 2-4 字的名词短语
+                import re
+                words = re.findall(r'[\u4e00-\u9fa5]{2,4}', text)
+                # 去重
+                return set(words)
+            
+            req_keywords = extract_keywords(req)
+            similar_tasks = []
+            
+            for task in all_tasks:
+                task_req = task.get("requirement", "")
+                if not task_req:
+                    continue
+                
+                task_keywords = extract_keywords(task_req)
+                
+                # Jaccard 相似度
+                if len(req_keywords) == 0 or len(task_keywords) == 0:
+                    continue
+                
+                intersection = len(req_keywords & task_keywords)
+                union = len(req_keywords | task_keywords)
+                similarity = intersection / union if union > 0 else 0
+                
+                if similarity >= 0.3:  # 阈值 30%
+                    similar_tasks.append({
+                        "task_id": task.get("id", ""),
+                        "requirement": task_req[:100],
+                        "similarity": round(similarity * 100, 1),
+                        "status": task.get("status", ""),
+                        "created_at": task.get("created_at", ""),
+                        "matched_keywords": list(req_keywords & task_keywords)[:5]
+                    })
+            
+            # 按相似度排序
+            similar_tasks.sort(key=lambda x: x["similarity"], reverse=True)
+            
+            # 判定结果
+            if len(similar_tasks) == 0:
+                level = "unique"
+                message = "✅ 未发现相似需求，可以提交"
+            elif similar_tasks[0]["similarity"] >= 80:
+                level = "duplicate"
+                message = "⚠️ 发现高度相似的需求，可能重复"
+            elif similar_tasks[0]["similarity"] >= 50:
+                level = "similar"
+                message = "⚠️ 发现相似需求，建议查看"
+            else:
+                level = "unique"
+                message = "✅ 未发现明显相似需求"
+            
+            return {
+                "success": True,
+                "level": level,
+                "message": message,
+                "similar_tasks": similar_tasks[:5],  # 最多返回 5 个
+                "total_checked": len(all_tasks)
+            }
+        except Exception as e:
+            logger.error(f"相似度检查失败：{e}")
+            return {"success": False, "error": str(e)}
     
     def estimate_cost(self, data: Dict) -> Dict:
         """估算任务成本"""
@@ -1319,6 +1402,7 @@ class WebUIHandler(SimpleHTTPRequestHandler):
 <div class="form-group"><label>📝 选择模板（可选）</label><select id="templateSelect" onchange="useTemplate()"><option value="">-- 选择预设模板 --</option></select></div>
 <div class="form-group"><label>产品需求描述</label><textarea id="requirement" placeholder="详细描述你想要实现的功能... 也可以从上方模板快速选择" oninput="debounceEstimate()"></textarea></div>
 <div class="form-group" id="costEstimateBox" style="display:none;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:15px;margin-bottom:15px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h4 style="margin:0;color:#0369a1;">💰 成本估算</h4><span id="complexityBadge" style="padding:4px 12px;border-radius:20px;font-size:12px;background:#e0e7ff;color:#4f46e5;">中复杂度</span></div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-bottom:10px;"><div><div style="font-size:12px;color:#666;">预估 Token</div><div style="font-size:20px;font-weight:bold;color:#0369a1;" id="estTokens">-</div></div><div><div style="font-size:12px;color:#666;">预估成本</div><div style="font-size:20px;font-weight:bold;color:#059669;" id="estCost">¥-</div></div></div><div style="font-size:12px;color:#666;margin-bottom:8px;">分阶段估算:</div><div id="phaseBreakdown" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:11px;"></div></div>
+<div class="form-group" id="similarityBox" style="display:none;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:15px;margin-bottom:15px;"><div style="margin-bottom:10px;"><h4 style="margin:0;color:#92400e;">🔍 相似度检测</h4><p id="similarityMessage" style="font-size:13px;color:#92400e;margin:5px 0 0 0;"></p></div><div id="similarTasksList" style="max-height:200px;overflow-y:auto;"></div></div>
 <div class="form-group"><label>选择项目</label><select id="project"><option value="default">默认项目</option><option value="ecommerce">电商项目</option><option value="blog">博客系统</option><option value="crm">CRM 系统</option></select></div>
 <button class="btn" onclick="submitTask()">🚀 启动工作流</button></div>
 <div class="section"><h2>🔄 完整开发流程（6 阶段）</h2><div class="phase-timeline" id="phaseTimeline"></div></div>
@@ -1338,8 +1422,9 @@ async function viewRetryHistory(taskId){document.getElementById('retryModalTitle
 function closeRetryModal(){document.getElementById('retryModal').style.display='none';}
 async function loadTemplates(){try{const res=await fetch('/api/templates');const d=await res.json();const sel=document.getElementById('templateSelect');if(!d.templates||d.templates.length===0){sel.innerHTML='<option value="">-- 暂无模板 --</option>';return;}sel.innerHTML='<option value="">-- 选择预设模板 --</option>'+d.templates.map(t=>`<option value="${t.requirement.replace(/"/g,'&quot;')}" data-project="${t.project||'default'}">${t.name} - ${t.description||t.requirement.substring(0,30)}...</option>`).join('');}catch(e){console.error('加载模板失败:',e);}}
 function useTemplate(){const sel=document.getElementById('templateSelect');const req=document.getElementById('requirement');const proj=document.getElementById('project');if(sel.value){req.value=sel.value;if(sel.options[sel.selectedIndex].dataset.project){proj.value=sel.options[sel.selectedIndex].dataset.project;}}}
-let estimateTimer=null;async function debounceEstimate(){clearTimeout(estimateTimer);const req=document.getElementById('requirement').value.trim();if(req.length<10){document.getElementById('costEstimateBox').style.display='none';return;}estimateTimer=setTimeout(estimateCost,500);}
+let estimateTimer=null,similarityTimer=null;async function debounceEstimate(){clearTimeout(estimateTimer);clearTimeout(similarityTimer);const req=document.getElementById('requirement').value.trim();if(req.length<10){document.getElementById('costEstimateBox').style.display='none';document.getElementById('similarityBox').style.display='none';return;}estimateTimer=setTimeout(estimateCost,500);similarityTimer=setTimeout(checkSimilarity,800);}
 async function estimateCost(){try{const req=document.getElementById('requirement').value.trim();if(req.length<10)return;const res=await fetch('/api/cost/estimate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requirement:req})});const d=await res.json();if(d.success){document.getElementById('costEstimateBox').style.display='block';document.getElementById('estTokens').textContent=d.estimated_tokens.toLocaleString();document.getElementById('estCost').textContent='¥'+d.estimated_cost.toFixed(2);const badge=document.getElementById('complexityBadge');badge.textContent=d.complexity_name;badge.style.background=d.complexity_level==='high'?'#fee2e2':d.complexity_level==='medium'?'#fef3c7':'#d1fae5';badge.style.color=d.complexity_level==='high'?'#991b1b':d.complexity_level==='medium'?'#92400e':'#065f46';let phases='';for(let k in d.phase_breakdown){const p=d.phase_breakdown[k];phases+=`<div style="background:white;padding:8px;border-radius:4px;"><div style="color:#666;">${p.name}</div><div style="color:#0369a1;font-weight:bold;">${p.tokens.toLocaleString()}</div></div>`;}document.getElementById('phaseBreakdown').innerHTML=phases;}}catch(e){console.error('估算失败:',e);}}
+async function checkSimilarity(){try{const req=document.getElementById('requirement').value.trim();if(req.length<10)return;const res=await fetch('/api/requirement/similarity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requirement:req})});const d=await res.json();if(d.success){const box=document.getElementById('similarityBox');const msg=document.getElementById('similarityMessage');const list=document.getElementById('similarTasksList');msg.textContent=d.message;box.style.background=d.level==='duplicate'?'#fee2e2':d.level==='similar'?'#fef3c7':'#d1fae5';box.style.borderColor=d.level==='duplicate'?'#fca5a5':d.level==='similar'?'#fcd34d':'#a7f3d0';box.style.display=d.similar_tasks.length>0?'block':'none';if(d.similar_tasks.length>0){let html='';d.similar_tasks.forEach(t=>{html+=`<div style="background:white;padding:10px;border-radius:6px;margin-bottom:8px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;"><span style="font-size:12px;color:#666;">${t.task_id||'-'}</span><span style="padding:2px 8px;border-radius:10px;font-size:11px;background:${t.similarity>=80?'#fee2e2':t.similarity>=50?'#fef3c7':'#d1fae5'};color:${t.similarity>=80?'#991b1b':t.similarity>=50?'#92400e':'#065f46'};">${t.similarity}%相似</span></div><div style="font-size:13px;color:#333;margin-bottom:5px;">${t.requirement}...</div><div style="font-size:11px;color:#999;">匹配词：${t.matched_keywords.join(', ')||'-'} · ${new Date(t.created_at).toLocaleDateString('zh-CN')}</div></div>`;});list.innerHTML=html;}else{list.innerHTML='<div style="text-align:center;color:#059669;padding:20px;">✅ 未发现相似需求</div>';}}}catch(e){console.error('相似度检查失败:',e);}}
 async function submitTask(){const req=document.getElementById('requirement').value.trim();const proj=document.getElementById('project').value;if(!req){alert('请输入产品需求');return;}
 // 预检查需求
 const checkRes=await fetch('/api/requirement/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requirement:req})});const checkData=await checkRes.json();if(checkData.level==='poor'){alert('⚠️ 需求检查未通过\\n\\n'+checkData.message+(checkData.suggestions.length?'\\n\\n建议：\\n'+checkData.suggestions.join('\\n'):''));return;}if(checkData.level==='warning'||checkData.level==='good'){if(!confirm('⚠️ 需求检查提示\\n\\n'+checkData.message+(checkData.suggestions.length?'\\n\\n建议：\\n'+checkData.suggestions.join('\\n'):'')+'\\n\\n仍要提交吗？'))return;}
