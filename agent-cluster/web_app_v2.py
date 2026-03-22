@@ -1,18 +1,38 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Agent 集群 Web 界面 V2.2.0
+Agent 集群 Web 界面 V2.3.0
 完整 6 阶段开发流程 | 10 个专业 Agent | 质量门禁 | 钉钉双向通知
 安全增强：JWT 认证 | Rate Limiting | 健康检查
 智能增强：智能重试 | 指标监控 | Dashboard 可视化
+修复：Python 3.6 兼容性 (subprocess.capture_output)
 """
 
-import json, os, sys, hashlib, time, secrets
+import json, os, sys, hashlib, time, secrets, logging
 from datetime import datetime
 from pathlib import Path
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import urllib.parse, subprocess
-from typing import Tuple
+from typing import Tuple, Dict, Optional, List, Any
+
+# ============== 统一日志配置 ==============
+LOGS_DIR = Path(__file__).parent / "logs"
+LOGS_DIR.mkdir(exist_ok=True)
+
+# 配置主日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.FileHandler(LOGS_DIR / "web_app_v2.log", encoding='utf-8'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
+logger.info("=" * 50)
+logger.info("Agent 集群 Web 服务启动 (V2.3.0)")
+logger.info("=" * 50)
 
 # 安全模块导入
 from utils.config_loader import config
@@ -271,6 +291,7 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         if not is_auth: self.send_json({"error": "未授权"}, 401); return
         
         if path == '/api/submit': self.send_json(self.submit_task(data))
+        elif path == '/api/workflows': self.send_json(self.get_workflows(data))
         elif path == '/api/deploy/execute': self.send_json(self.execute_deploy(data))
         elif path == '/api/deploy/stop': self.send_json(self.stop_deploy(data))
         elif path == '/api/deploy/status': self.send_json(self.get_deploy_status(data))
@@ -749,11 +770,82 @@ class WebUIHandler(SimpleHTTPRequestHandler):
     
     def submit_task(self, data):
         req = data.get("requirement", "")
+        project = data.get("project", "default")
         if not req: return {"success": False, "error": "需求不能为空"}
         try:
-            subprocess.Popen(f"cd {BASE_DIR} && python3 orchestrator.py \"{req}\"", shell=True, stdout=open(LOGS_DIR/"web.log",'a'), stderr=subprocess.STDOUT)
-            return {"success": True, "message": "任务已提交"}
-        except Exception as e: return {"success": False, "error": str(e)}
+            task_id = f"wf_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            log_file = LOGS_DIR / f"task_{task_id}.log"
+            
+            # 记录任务提交
+            logger.info(f"📥 收到新任务：{task_id}")
+            logger.info(f"   项目：{project}")
+            logger.info(f"   需求：{req[:100]}...")
+            
+            # 保存任务状态
+            self._save_task_state(task_id, {"requirement": req, "project": project, "status": "running", "created_at": datetime.now().isoformat()})
+            
+            # 启动 orchestrator (日志输出到独立文件)
+            subprocess.Popen(
+                f"cd {BASE_DIR} && python3 orchestrator.py \"{req}\" >> {log_file} 2>&1",
+                shell=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            
+            logger.info(f"✅ 任务已提交：{task_id}")
+            return {"success": True, "message": "任务已提交", "task_id": task_id}
+        except Exception as e:
+            logger.error(f"❌ 任务提交失败：{e}")
+            return {"success": False, "error": str(e)}
+    
+    def _save_task_state(self, task_id: str, state: Dict):
+        """保存任务状态"""
+        tasks_file = MEMORY_DIR / "active_tasks.json"
+        tasks = {}
+        if tasks_file.exists():
+            try:
+                with open(tasks_file, 'r', encoding='utf-8') as f:
+                    tasks = json.load(f)
+            except:
+                pass
+        tasks[task_id] = state
+        with open(tasks_file, 'w', encoding='utf-8') as f:
+            json.dump(tasks, f, ensure_ascii=False, indent=2)
+    
+    def _load_task_state(self) -> Dict:
+        """加载所有任务状态"""
+        tasks_file = MEMORY_DIR / "active_tasks.json"
+        if not tasks_file.exists():
+            return {}
+        try:
+            with open(tasks_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            return {}
+    
+    def get_workflows(self, data: Dict = None) -> Dict:
+        """获取工作流列表"""
+        try:
+            tasks = self._load_task_state()
+            workflow_list = []
+            
+            for task_id, task in tasks.items():
+                workflow_list.append({
+                    "id": task_id,
+                    "requirement": task.get("requirement", "")[:100],
+                    "project": task.get("project", "default"),
+                    "status": task.get("status", "unknown"),
+                    "created_at": task.get("created_at", ""),
+                    "phase": task.get("phase", "1_requirement")
+                })
+            
+            # 按创建时间倒序
+            workflow_list.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+            
+            return {"success": True, "workflows": workflow_list, "total": len(workflow_list)}
+        except Exception as e:
+            logger.error(f"获取工作流列表失败：{e}")
+            return {"success": False, "error": str(e)}
     
     def save_template(self, data):
         tf = MEMORY_DIR / "templates.json"
@@ -813,10 +905,12 @@ class WebUIHandler(SimpleHTTPRequestHandler):
 <script>const phases=[{id:1,name:"Phase 1: 需求分析",agents:["Product Manager"],tags:["PRD 文档","用户故事"]},{id:2,name:"Phase 2: 技术设计",agents:["Tech Lead","Designer","DevOps"],tags:["架构设计","UI 设计","部署配置"]},{id:3,name:"Phase 3: 开发实现",agents:["Codex","Claude-Code"],tags:["后端代码","前端代码"]},{id:4,name:"Phase 4: 测试验证",agents:["Tester"],tags:["单元测试","集成测试"],qg:true},{id:5,name:"Phase 5: 代码审查",agents:["3 Reviewers"],tags:["逻辑审查","安全审查"],qg:true},{id:6,name:"Phase 6: 部署上线",agents:["DevOps"],tags:["Docker","CI/CD"]}];document.getElementById('phaseTimeline').innerHTML=phases.map(p=>`<div class="phase-card"><h4>${p.name}</h4><p>${p.agents.join('+')}</p><div class="agents">${p.tags.map(t=>`<span class="agent-tag">${t}</span>`).join('')}</div>${p.qg?'<span class="quality-gate">🚦 质量门禁</span>':''}</div>`).join('');
 async function loadStatus(){try{const res=await fetch('/api/status');const d=await res.json();document.getElementById('clusterStatus').textContent=d.status==='running'?'运行中':'已停止';document.getElementById('clusterStatusDot').className='status-dot '+(d.status==='running'?'green':'red');document.getElementById('deployStatus').textContent=d.deploy_listener==='running'?'监听中':'已停止';document.getElementById('deployStatusDot').className='status-dot '+(d.deploy_listener==='running'?'green':'yellow');document.getElementById('dingtalkStatus').textContent=d.dingtalk_enabled?'已启用':'未配置';document.getElementById('dingtalkStatusDot').className='status-dot '+(d.dingtalk_enabled?'green':'yellow');document.getElementById('activeWorkflows').textContent=d.active_workflows;document.getElementById('completedToday').textContent=d.completed_today;document.getElementById('failedToday').textContent=d.failed_today;document.getElementById('agentsReady').textContent=d.agents_ready;document.getElementById('lastUpdate').textContent='最后更新：'+new Date(d.timestamp).toLocaleString('zh-CN');}catch(e){console.error(e);}}
 async function loadAgents(){try{const res=await fetch('/api/agents');const d=await res.json();const all=[...d.executors,...d.reviewers];document.getElementById('agentGrid').innerHTML=all.map(a=>{const av=a.name.split(' ').map(w=>w[0]).join('').substring(0,2);return`<div class="agent-card"><div class="agent-avatar">${av}</div><div class="agent-info"><h4>${a.name}</h4><p>${a.role} · ${a.phase}</p><div class="model">${a.model}</div></div><span class="status-badge ready">就绪</span></div>`;}).join('');}catch(e){console.error(e);}}
-async function loadWorkflows(){try{const res=await fetch('/api/workflows');const d=await res.json();const list=document.getElementById('workflowList');if(d.workflows.length===0){list.innerHTML='<div style="color:#999;text-align:center;padding:40px;">暂无工作流记录</div>';return;}list.innerHTML=d.workflows.slice(0,10).map(wf=>{const sc=wf.status==='completed'?'completed':wf.status==='failed'?'failed':'running';const st=wf.status==='completed'?'✅ 完成':wf.status==='failed'?'❌ 失败':'🔄 进行中';return`<div class="workflow-item"><div class="info"><div class="title">${wf.requirement||'未命名任务'}</div><div class="meta">${wf.workflow_id||'-'} · ${wf.project||'默认项目'} · ${new Date(wf.created_at).toLocaleString('zh-CN')}</div></div><span class="status-badge ${sc}">${st}</span></div>`;}).join('');}catch(e){console.error(e);}}
+async function loadWorkflows(){try{const res=await fetch('/api/workflows');const d=await res.json();const list=document.getElementById('workflowList');if(!d.workflows||d.workflows.length===0){list.innerHTML='<div style="color:#999;text-align:center;padding:40px;">暂无工作流记录</div>';return;}list.innerHTML=d.workflows.slice(0,10).map(wf=>{const sc=wf.status==='completed'?'completed':wf.status==='failed'?'failed':'running';const st=wf.status==='completed'?'✅ 完成':wf.status==='failed'?'❌ 失败':'🔄 进行中';const phase=w.phase||'1_requirement';const phaseName=phase.split('_')[1]||'需求';return`<div class="workflow-item"><div class="info"><div class="title">${wf.requirement||'未命名任务'}</div><div class="meta">${wf.id||'-'} · ${wf.project||'默认项目'} · ${new Date(wf.created_at).toLocaleString('zh-CN')} · 阶段：${phaseName}</div></div><span class="status-badge ${sc}">${st}</span></div>`;}).join('');}catch(e){console.error('加载工作流失败:',e);}}
 async function submitTask(){const req=document.getElementById('requirement').value.trim();const proj=document.getElementById('project').value;if(!req){alert('请输入产品需求');return;}if(!confirm('确定要启动工作流吗？\\n\\n这将启动完整的 6 阶段开发流程。'))return;try{const res=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requirement:req,project:proj})});const d=await res.json();if(d.success){alert('✅ '+d.message);document.getElementById('requirement').value='';loadStatus();loadWorkflows();}else{alert('❌ '+d.error);}catch(e){alert('提交失败：'+e.message);}}
 async function logout(){if(!confirm('确定要登出吗？'))return;try{await fetch('/api/logout',{method:'POST'});document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}catch(err){alert('登出失败：'+err.message);}}
-loadStatus();loadAgents();loadWorkflows();setInterval(loadStatus,30000);</script></body></html>"""
+loadStatus();loadAgents();loadWorkflows();
+setInterval(loadStatus,30000);
+setInterval(loadWorkflows,10000);</script></body></html>"""
 
     def get_workflows_page(self): return self._list_page("工作流", "/api/workflows", ["workflow_id", "requirement", "project", "status", "created_at"])
     def get_agents_page(self): return self._agents_page()
@@ -1141,11 +1235,12 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--host', default='127.0.0.1')
-    parser.add_argument('--port', type=int, default=8889)
+    parser.add_argument('--port', type=int, default=8890)
     args = parser.parse_args()
     server = HTTPServer((args.host, args.port), WebUIHandler)
-    print(f"🌐 Agent 集群 Web V2.1 已启动！")
-    print(f"   本地访问：http://localhost:{args.port}")
-    print(f"   外网访问：http://39.107.101.25")
-    print(f"   默认账号：admin / admin123")
+    logger.info(f"🌐 Agent 集群 Web V2.3.0 已启动！")
+    logger.info(f"   本地访问：http://localhost:{args.port}")
+    logger.info(f"   外网访问：http://39.107.101.25")
+    logger.info(f"   默认账号：admin / admin123")
+    logger.info("=" * 50)
     server.serve_forever()

@@ -8,9 +8,25 @@ import json
 import asyncio
 import subprocess
 import sys
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
+
+# ============== 统一日志配置 ==============
+LOGS_DIR = Path(__file__).parent / "logs"
+LOGS_DIR.mkdir(exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.FileHandler(LOGS_DIR / "monitor.log", encoding='utf-8'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # 添加 notifiers 和 utils 目录到路径
 sys.path.insert(0, str(Path(__file__).parent))
@@ -45,18 +61,18 @@ class ClusterMonitor:
         
         if dingtalk_config.get("enabled"):
             self.notifier = ClusterNotifier(dingtalk_config)
-            print("✅ 钉钉通知器已初始化")
+            logger.info("✅ 钉钉通知器已初始化")
         else:
             self.notifier = None
-            print("⚠️ 钉钉通知未启用")
+            logger.warning("⚠️ 钉钉通知未启用")
         
         # 初始化智能重试管理器
         self.retry_manager = get_retry_manager(str(self.config_path))
-        print("✅ 智能重试管理器已初始化")
+        logger.info("✅ 智能重试管理器已初始化")
         
         # 初始化告警管理器
         self.alert_manager = get_alert_manager(str(self.config_path))
-        print("✅ 告警管理器已初始化")
+        logger.info("✅ 告警管理器已初始化")
     
     def _load_config(self) -> Dict:
         """加载配置"""
@@ -270,7 +286,7 @@ class ClusterMonitor:
     async def monitor_all(self):
         """监控所有运行中的任务"""
         running_tasks = self.tasks.get('running', []) if isinstance(self.tasks, dict) else []
-        print(f"\n📊 开始监控 {len(running_tasks)} 个任务...")
+        logger.info(f"📊 开始监控 {len(running_tasks)} 个任务...")
         
         completed_tasks = []
         failed_tasks = []
@@ -306,10 +322,10 @@ class ClusterMonitor:
         self._update_task_status(completed_tasks, failed_tasks)
         
         # 摘要
-        print(f"\n📊 监控摘要:")
-        print(f"  完成：{len(completed_tasks)}")
-        print(f"  失败：{len(failed_tasks)}")
-        print(f"  准备合并：{len(ready_tasks)}")
+        logger.info(f"📊 监控摘要:")
+        logger.info(f"  完成：{len(completed_tasks)}")
+        logger.info(f"  失败：{len(failed_tasks)}")
+        logger.info(f"  准备合并：{len(ready_tasks)}")
         
         # 检查告警
         if hasattr(self, 'alert_manager'):

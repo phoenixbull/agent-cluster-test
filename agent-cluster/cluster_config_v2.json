@@ -1,9 +1,9 @@
 {
   "cluster": {
     "name": "openclaw-codex-cluster",
-    "version": "2.2.0",
-    "release_date": "2026-03-19",
-    "codename": "智能增强版",
+    "version": "2.3.0",
+    "release_date": "2026-03-22",
+    "codename": "Python3.6 兼容修复版",
     "mode": "orchestrator",
     "max_parallel_agents": 3,
     "timeout_seconds": 300,

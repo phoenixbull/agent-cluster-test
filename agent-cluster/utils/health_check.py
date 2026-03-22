@@ -19,19 +19,7 @@ class HealthChecker:
     
     def __init__(self):
         self.start_time = time.time()
-        self.version = '2.3'
-    
-    def check_service(self):
-        # type: () -> Dict[str, Any]
-        """检查服务状态"""
-
-
-class HealthChecker:
-    """健康检查器"""
-    
-    def __init__(self):
-        self.start_time = time.time()
-        self.version = '2.3'
+        self.version = '2.3.0'
     
     def check_service(self) -> Dict[str, Any]:
         """检查服务状态"""
@@ -80,11 +68,12 @@ class HealthChecker:
                     'message': 'GitHub Token 未配置'
                 }
             
-            # 简单的网络检查
+            # 简单的网络检查 (Python 3.6 兼容)
             result = subprocess.run(
                 ['curl', '-s', '-o', '/dev/null', '-w', '%{http_code}', 
                  'https://api.github.com'],
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 timeout=5
             )
             
