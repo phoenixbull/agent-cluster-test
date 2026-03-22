@@ -299,6 +299,7 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         elif path == '/api/task/history': self.send_json(self.get_task_history(data))
         elif path == '/api/task/archive': self.send_json({"success": self._archive_completed_task(data.get('task_id', ''))})
         elif path == '/api/task/logs': self.send_json(self.get_task_logs(data))
+        elif path == '/api/task/retry-history': self.send_json(self.get_task_retry_history(data))
         elif path == '/api/deploy/execute': self.send_json(self.execute_deploy(data))
         elif path == '/api/deploy/stop': self.send_json(self.stop_deploy(data))
         elif path == '/api/deploy/status': self.send_json(self.get_deploy_status(data))
@@ -946,6 +947,64 @@ class WebUIHandler(SimpleHTTPRequestHandler):
             logger.error(f"归档任务失败：{e}")
             return False
     
+    def get_task_retry_history(self, data: Dict = None) -> Dict:
+        """获取任务重试历史"""
+        try:
+            task_id = data.get('task_id', '') if data else ''
+            if not task_id:
+                return {"success": False, "error": "缺少 task_id"}
+            
+            tasks = self._load_task_state()
+            if task_id not in tasks:
+                # 尝试从历史记录中查找
+                history_file = MEMORY_DIR / "completed_tasks.json"
+                if history_file.exists():
+                    with open(history_file, 'r', encoding='utf-8') as f:
+                        history = json.load(f)
+                    for task in history:
+                        if task.get('id') == task_id:
+                            tasks[task_id] = task
+                            break
+            
+            if task_id not in tasks:
+                return {"success": False, "error": "任务不存在"}
+            
+            task = tasks[task_id]
+            retry_history = []
+            
+            # 提取重试相关信息
+            attempts = task.get('attempts', [])
+            for i, attempt in enumerate(attempts):
+                retry_history.append({
+                    "attempt": i + 1,
+                    "timestamp": attempt.get('timestamp', ''),
+                    "agent": attempt.get('agent', ''),
+                    "status": attempt.get('status', 'unknown'),
+                    "failure_reason": attempt.get('failure_reason', ''),
+                    "retry_strategy": attempt.get('retry_strategy', ''),
+                    "next_action": attempt.get('next_action', '')
+                })
+            
+            # 当前状态
+            current_info = {
+                "retry_count": task.get('retry_count', 0),
+                "last_failure_reason": task.get('last_failure_reason', ''),
+                "retry_strategy": task.get('retry_strategy', ''),
+                "target_agent": task.get('target_agent', ''),
+                "status": task.get('status', '')
+            }
+            
+            return {
+                "success": True,
+                "task_id": task_id,
+                "current": current_info,
+                "history": retry_history,
+                "total_attempts": len(retry_history)
+            }
+        except Exception as e:
+            logger.error(f"获取重试历史失败：{e}")
+            return {"success": False, "error": str(e)}
+    
     def get_task_logs(self, data: Dict = None) -> Dict:
         """获取任务日志"""
         try:
@@ -1114,14 +1173,17 @@ class WebUIHandler(SimpleHTTPRequestHandler):
 <div class="section"><h2>🤖 Agent 阵容（10 个）</h2><div class="agent-grid" id="agentGrid"></div></div>
 <div class="section"><h2>📋 最近工作流</h2><div class="workflow-list" id="workflowList"></div></div>
 <div id="logModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;"><div style="background:white;border-radius:12px;width:90%;max-width:900px;max-height:80vh;display:flex;flex-direction:column;"><div style="padding:20px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><h3 style="margin:0;" id="logModalTitle">📜 任务日志</h3><button onclick="closeLogModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#666;">&times;</button></div><div style="flex:1;overflow:auto;padding:20px;background:#1e1e1e;color:#d4d4d4;font-family:'Consolas','Monaco',monospace;font-size:13px;white-space:pre-wrap;word-break:break-all;" id="logContent">加载中...</div><div style="padding:15px;border-top:1px solid #eee;display:flex;justify-content:flex-end;"><button onclick="refreshLogs()" style="background:#667eea;color:white;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;margin-right:10px;">🔄 刷新</button><button onclick="closeLogModal()" style="background:#e0e0e0;color:#333;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;">关闭</button></div></div></div>
+<div id="retryModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;"><div style="background:white;border-radius:12px;width:90%;max-width:800px;max-height:80vh;display:flex;flex-direction:column;"><div style="padding:20px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><h3 style="margin:0;" id="retryModalTitle">🔄 重试历史</h3><button onclick="closeRetryModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#666;">&times;</button></div><div style="flex:1;overflow:auto;padding:20px;" id="retryContent">加载中...</div><div style="padding:15px;border-top:1px solid #eee;display:flex;justify-content:flex-end;"><button onclick="closeRetryModal()" style="background:#e0e0e0;color:#333;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;">关闭</button></div></div></div>
 <div class="section"><h2>⚡ 快捷操作</h2><div class="quick-actions"><a href="/phases" class="quick-action"><div class="icon">🔄</div><div class="label">查看流程</div></a><a href="/agents" class="quick-action"><div class="icon">🤖</div><div class="label">Agent 状态</div></a><a href="/quality" class="quick-action"><div class="icon">🚦</div><div class="label">质量门禁</div></a><a href="/templates" class="quick-action"><div class="icon">📝</div><div class="label">模板库</div></a><a href="/costs" class="quick-action"><div class="icon">💰</div><div class="label">成本统计</div></a><a href="/bugs" class="quick-action"><div class="icon">🐛</div><div class="label">Bug 管理</div></a><a href="/deployments" class="quick-action"><div class="icon">🚀</div><div class="label">发布管理</div></a></div></div></div>
 <script>const phases=[{id:1,name:"Phase 1: 需求分析",agents:["Product Manager"],tags:["PRD 文档","用户故事"]},{id:2,name:"Phase 2: 技术设计",agents:["Tech Lead","Designer","DevOps"],tags:["架构设计","UI 设计","部署配置"]},{id:3,name:"Phase 3: 开发实现",agents:["Codex","Claude-Code"],tags:["后端代码","前端代码"]},{id:4,name:"Phase 4: 测试验证",agents:["Tester"],tags:["单元测试","集成测试"],qg:true},{id:5,name:"Phase 5: 代码审查",agents:["3 Reviewers"],tags:["逻辑审查","安全审查"],qg:true},{id:6,name:"Phase 6: 部署上线",agents:["DevOps"],tags:["Docker","CI/CD"]}];document.getElementById('phaseTimeline').innerHTML=phases.map(p=>`<div class="phase-card"><h4>${p.name}</h4><p>${p.agents.join('+')}</p><div class="agents">${p.tags.map(t=>`<span class="agent-tag">${t}</span>`).join('')}</div>${p.qg?'<span class="quality-gate">🚦 质量门禁</span>':''}</div>`).join('');
 async function loadStatus(){try{const res=await fetch('/api/status');const d=await res.json();document.getElementById('clusterStatus').textContent=d.status==='running'?'运行中':'已停止';document.getElementById('clusterStatusDot').className='status-dot '+(d.status==='running'?'green':'red');document.getElementById('deployStatus').textContent=d.deploy_listener==='running'?'监听中':'已停止';document.getElementById('deployStatusDot').className='status-dot '+(d.deploy_listener==='running'?'green':'yellow');document.getElementById('dingtalkStatus').textContent=d.dingtalk_enabled?'已启用':'未配置';document.getElementById('dingtalkStatusDot').className='status-dot '+(d.dingtalk_enabled?'green':'yellow');document.getElementById('activeWorkflows').textContent=d.active_workflows;document.getElementById('completedToday').textContent=d.completed_today;document.getElementById('failedToday').textContent=d.failed_today;document.getElementById('agentsReady').textContent=d.agents_ready;document.getElementById('lastUpdate').textContent='最后更新：'+new Date(d.timestamp).toLocaleString('zh-CN');}catch(e){console.error(e);}}
 async function loadAgents(){try{const res=await fetch('/api/agents');const d=await res.json();const all=[...d.executors,...d.reviewers];document.getElementById('agentGrid').innerHTML=all.map(a=>{const av=a.name.split(' ').map(w=>w[0]).join('').substring(0,2);return`<div class="agent-card"><div class="agent-avatar">${av}</div><div class="agent-info"><h4>${a.name}</h4><p>${a.role} · ${a.phase}</p><div class="model">${a.model}</div></div><span class="status-badge ready">就绪</span></div>`;}).join('');}catch(e){console.error(e);}}
-let currentLogTaskId='';async function loadWorkflows(){try{const res=await fetch('/api/workflows');const d=await res.json();const list=document.getElementById('workflowList');if(!d.workflows||d.workflows.length===0){list.innerHTML='<div style="color:#999;text-align:center;padding:40px;">暂无工作流记录</div>';return;}list.innerHTML=d.workflows.slice(0,10).map(wf=>{const sc=wf.status==='completed'?'completed':wf.status==='failed'?'failed':'running';const st=wf.status==='completed'?'✅ 完成':wf.status==='failed'?'❌ 失败':'🔄 进行中';const progress=wf.progress||0;const phaseName=wf.phase_name||wf.phase||'需求';const isRunning=wf.status==='running';return`<div class="workflow-item"><div class="info" style="flex:1;min-width:0;"><div class="title" style="margin-bottom:8px;">${wf.requirement||'未命名任务'}</div><div class="meta" style="margin-bottom:8px;">${wf.id||'-'} · ${wf.project||'默认'} · ${new Date(wf.created_at).toLocaleString('zh-CN')}</div><div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;"><span style="font-size:12px;color:#666;min-width:60px;">${phaseName}</span><div style="flex:1;height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden;"><div style="width:${progress}%;height:100%;background:linear-gradient(90deg,#667eea,#764ba2);transition:width 0.3s;"></div></div><span style="font-size:12px;color:#666;min-width:35px;text-align:right;">${progress}%</span></div></div><div style="display:flex;gap:8px;align-items:center;">${isRunning?`<button onclick="viewLogs('${wf.id}')" style="background:#667eea;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">📜 日志</button>`:''}<span class="status-badge ${sc}" style="align-self:flex-start;">${st}</span></div></div>`;}).join('');}catch(e){console.error('加载工作流失败:',e);}}
+let currentLogTaskId='';async function loadWorkflows(){try{const res=await fetch('/api/workflows');const d=await res.json();const list=document.getElementById('workflowList');if(!d.workflows||d.workflows.length===0){list.innerHTML='<div style="color:#999;text-align:center;padding:40px;">暂无工作流记录</div>';return;}list.innerHTML=d.workflows.slice(0,10).map(wf=>{const sc=wf.status==='completed'?'completed':wf.status==='failed'?'failed':'running';const st=wf.status==='completed'?'✅ 完成':wf.status==='failed'?'❌ 失败':'🔄 进行中';const progress=wf.progress||0;const phaseName=wf.phase_name||wf.phase||'需求';const isRunning=wf.status==='running';return`<div class="workflow-item"><div class="info" style="flex:1;min-width:0;"><div class="title" style="margin-bottom:8px;">${wf.requirement||'未命名任务'}</div><div class="meta" style="margin-bottom:8px;">${wf.id||'-'} · ${wf.project||'默认'} · ${new Date(wf.created_at).toLocaleString('zh-CN')}</div><div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;"><span style="font-size:12px;color:#666;min-width:60px;">${phaseName}</span><div style="flex:1;height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden;"><div style="width:${progress}%;height:100%;background:linear-gradient(90deg,#667eea,#764ba2);transition:width 0.3s;"></div></div><span style="font-size:12px;color:#666;min-width:35px;text-align:right;">${progress}%</span></div></div><div style="display:flex;gap:8px;align-items:center;">${isRunning?`<button onclick="viewLogs('${wf.id}')" style="background:#667eea;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">📜 日志</button>`:''}${wf.retry_count>0?`<button onclick="viewRetryHistory('${wf.id}')" style="background:#f59e0b;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">🔄 重试${wf.retry_count}</button>`:''}<span class="status-badge ${sc}" style="align-self:flex-start;">${st}</span></div></div>`;}).join('');}catch(e){console.error('加载工作流失败:',e);}}
 async function viewLogs(taskId){currentLogTaskId=taskId;document.getElementById('logModalTitle').textContent='📜 任务日志 - '+taskId;document.getElementById('logModal').style.display='flex';refreshLogs();}
 async function refreshLogs(){if(!currentLogTaskId)return;try{const res=await fetch('/api/task/logs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({task_id:currentLogTaskId})});const d=await res.json();document.getElementById('logContent').textContent=d.logs||'暂无日志';}catch(e){document.getElementById('logContent').textContent='加载失败：'+e.message;}}
 function closeLogModal(){document.getElementById('logModal').style.display='none';currentLogTaskId='';}
+async function viewRetryHistory(taskId){document.getElementById('retryModalTitle').textContent='🔄 重试历史 - '+taskId;document.getElementById('retryModal').style.display='flex';try{const res=await fetch('/api/task/retry-history?task_id='+taskId);const d=await res.json();if(d.success){const c=d.current;const h=d.history||[];let html=`<div style="margin-bottom:20px;padding:15px;background:#f8f9fa;border-radius:8px;"><h4 style="margin:0 0 10px 0;">当前状态</h4><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-size:14px;">`;html+=`<div><strong>重试次数:</strong> ${c.retry_count||0}</div>`;html+=`<div><strong>状态:</strong> ${c.status||'unknown'}</div>`;html+=`<div><strong>失败原因:</strong> ${c.last_failure_reason||'-'}</div>`;html+=`<div><strong>策略:</strong> ${c.retry_strategy||'-'}</div>`;if(c.target_agent)html+=`<div><strong>目标 Agent:</strong> ${c.target_agent}</div>`;html+=`</div></div>`;if(h.length>0){html+=`<h4 style="margin:0 0 15px 0;">重试记录</h4>`;h.forEach((att,i)=>{html+=`<div style="padding:12px;border:1px solid #e0e0e0;border-radius:6px;margin-bottom:10px;background:${i===h.length-1?'#fff3cd':'#fff'};">`;html+=`<div style="display:flex;justify-content:space-between;margin-bottom:8px;"><strong>第${att.attempt}次尝试</strong><span style="color:#666;font-size:12px;">${new Date(att.timestamp).toLocaleString('zh-CN')}</span></div>`;if(att.agent)html+=`<div style="font-size:13px;margin-bottom:5px;"><strong>Agent:</strong> ${att.agent}</div>`;if(att.failure_reason)html+=`<div style="font-size:13px;margin-bottom:5px;color:#c33;"><strong>失败:</strong> ${att.failure_reason}</div>`;if(att.retry_strategy)html+=`<div style="font-size:13px;margin-bottom:5px;color:#667eea;"><strong>策略:</strong> ${att.retry_strategy}</div>`;if(att.next_action)html+=`<div style="font-size:13px;color:#666;"><strong>下一步:</strong> ${att.next_action}</div>`;html+=`</div>`;});}else{html+=`<div style="text-align:center;color:#999;padding:40px;">暂无重试记录</div>`;}document.getElementById('retryContent').innerHTML=html;}else{document.getElementById('retryContent').textContent='加载失败：'+(d.error||'未知错误');}}catch(e){document.getElementById('retryContent').textContent='加载失败：'+e.message;}}
+function closeRetryModal(){document.getElementById('retryModal').style.display='none';}
 async function loadTemplates(){try{const res=await fetch('/api/templates');const d=await res.json();const sel=document.getElementById('templateSelect');if(!d.templates||d.templates.length===0){sel.innerHTML='<option value="">-- 暂无模板 --</option>';return;}sel.innerHTML='<option value="">-- 选择预设模板 --</option>'+d.templates.map(t=>`<option value="${t.requirement.replace(/"/g,'&quot;')}" data-project="${t.project||'default'}">${t.name} - ${t.description||t.requirement.substring(0,30)}...</option>`).join('');}catch(e){console.error('加载模板失败:',e);}}
 function useTemplate(){const sel=document.getElementById('templateSelect');const req=document.getElementById('requirement');const proj=document.getElementById('project');if(sel.value){req.value=sel.value;if(sel.options[sel.selectedIndex].dataset.project){proj.value=sel.options[sel.selectedIndex].dataset.project;}}}
 async function submitTask(){const req=document.getElementById('requirement').value.trim();const proj=document.getElementById('project').value;if(!req){alert('请输入产品需求');return;}
