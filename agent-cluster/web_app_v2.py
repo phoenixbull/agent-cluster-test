@@ -288,6 +288,9 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         # 登录接口使用新的 JWT 认证
         if path == '/api/login': self.handle_login_jwt(data); return
         
+        # 需求检查不需要认证（提交前预检）
+        if path == '/api/requirement/check': self.send_json(self.check_requirement(data)); return
+        
         is_auth, token, _ = self._check_auth()
         if not is_auth: self.send_json({"error": "未授权"}, 401); return
         
@@ -772,6 +775,78 @@ class WebUIHandler(SimpleHTTPRequestHandler):
             except: pass
         return {"projects": []}
     
+    def check_requirement(self, data: Dict) -> Dict:
+        """预检查需求完整性"""
+        try:
+            req = data.get("requirement", "")
+            if not req:
+                return {"success": False, "error": "需求不能为空"}
+            
+            # 基础检查
+            issues = []
+            suggestions = []
+            score = 100
+            
+            # 检查长度
+            if len(req) < 20:
+                issues.append("需求描述过短")
+                suggestions.append("请详细描述功能需求，建议至少 50 字")
+                score -= 30
+            elif len(req) < 50:
+                suggestions.append("建议补充更多细节，如用户场景、功能列表等")
+                score -= 10
+            
+            # 检查是否有关键词
+            keywords = ["功能", "需要", "实现", "支持", "用户", "系统", "数据", "界面"]
+            found_keywords = [kw for kw in keywords if kw in req]
+            if len(found_keywords) < 2:
+                issues.append("缺少关键功能描述词")
+                suggestions.append("请明确说明需要实现什么功能")
+                score -= 20
+            
+            # 检查是否有明确的目标
+            if not any(c in req for c in ['。', '！', '!', '?', '\n']):
+                suggestions.append("建议使用分点描述，使需求更清晰")
+                score -= 10
+            
+            # 检查是否过于模糊
+            vague_words = ["大概", "可能", "也许", "随便", "看着办"]
+            if any(vw in req for vw in vague_words):
+                issues.append("需求描述过于模糊")
+                suggestions.append("请给出明确的功能要求和边界")
+                score -= 25
+            
+            # 确保分数不低于 0
+            score = max(0, score)
+            
+            # 判定结果
+            if score >= 80:
+                level = "excellent"
+                message = "✅ 需求描述清晰，可以提交"
+            elif score >= 60:
+                level = "good"
+                message = "⚠️ 需求基本清晰，建议补充细节"
+            elif score >= 40:
+                level = "warning"
+                message = "⚠️ 需求描述不够清晰，建议完善后再提交"
+            else:
+                level = "poor"
+                message = "❌ 需求描述过于模糊，请重新整理后提交"
+            
+            return {
+                "success": True,
+                "score": score,
+                "level": level,
+                "message": message,
+                "issues": issues,
+                "suggestions": suggestions,
+                "char_count": len(req),
+                "keywords_found": found_keywords
+            }
+        except Exception as e:
+            logger.error(f"需求检查失败：{e}")
+            return {"success": False, "error": str(e)}
+    
     def submit_task(self, data):
         req = data.get("requirement", "")
         project = data.get("project", "default")
@@ -1049,7 +1124,10 @@ async function refreshLogs(){if(!currentLogTaskId)return;try{const res=await fet
 function closeLogModal(){document.getElementById('logModal').style.display='none';currentLogTaskId='';}
 async function loadTemplates(){try{const res=await fetch('/api/templates');const d=await res.json();const sel=document.getElementById('templateSelect');if(!d.templates||d.templates.length===0){sel.innerHTML='<option value="">-- 暂无模板 --</option>';return;}sel.innerHTML='<option value="">-- 选择预设模板 --</option>'+d.templates.map(t=>`<option value="${t.requirement.replace(/"/g,'&quot;')}" data-project="${t.project||'default'}">${t.name} - ${t.description||t.requirement.substring(0,30)}...</option>`).join('');}catch(e){console.error('加载模板失败:',e);}}
 function useTemplate(){const sel=document.getElementById('templateSelect');const req=document.getElementById('requirement');const proj=document.getElementById('project');if(sel.value){req.value=sel.value;if(sel.options[sel.selectedIndex].dataset.project){proj.value=sel.options[sel.selectedIndex].dataset.project;}}}
-async function submitTask(){const req=document.getElementById('requirement').value.trim();const proj=document.getElementById('project').value;if(!req){alert('请输入产品需求');return;}if(!confirm('确定要启动工作流吗？\\n\\n这将启动完整的 6 阶段开发流程。'))return;try{const res=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requirement:req,project:proj})});const d=await res.json();if(d.success){alert('✅ '+d.message);document.getElementById('requirement').value='';loadStatus();loadWorkflows();}else{alert('❌ '+d.error);}catch(e){alert('提交失败：'+e.message);}}
+async function submitTask(){const req=document.getElementById('requirement').value.trim();const proj=document.getElementById('project').value;if(!req){alert('请输入产品需求');return;}
+// 预检查需求
+const checkRes=await fetch('/api/requirement/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requirement:req})});const checkData=await checkRes.json();if(checkData.level==='poor'){alert('⚠️ 需求检查未通过\\n\\n'+checkData.message+(checkData.suggestions.length?'\\n\\n建议：\\n'+checkData.suggestions.join('\\n'):''));return;}if(checkData.level==='warning'||checkData.level==='good'){if(!confirm('⚠️ 需求检查提示\\n\\n'+checkData.message+(checkData.suggestions.length?'\\n\\n建议：\\n'+checkData.suggestions.join('\\n'):'')+'\\n\\n仍要提交吗？'))return;}
+if(!confirm('确定要启动工作流吗？\\n\\n这将启动完整的 6 阶段开发流程。'))return;try{const res=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requirement:req,project:proj})});const d=await res.json();if(d.success){alert('✅ '+d.message);document.getElementById('requirement').value='';loadStatus();loadWorkflows();}else{alert('❌ '+d.error);}catch(e){alert('提交失败：'+e.message);}}
 async function logout(){if(!confirm('确定要登出吗？'))return;try{await fetch('/api/logout',{method:'POST'});document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}catch(err){alert('登出失败：'+err.message);}}
 loadStatus();loadAgents();loadWorkflows();loadTemplates();
 setInterval(loadStatus,30000);
