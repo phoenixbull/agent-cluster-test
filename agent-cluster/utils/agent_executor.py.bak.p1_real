@@ -2,8 +2,6 @@
 """
 Agent 任务执行器
 触发 Agent 执行任务并收集生成的代码文件
-
-P1 优化：集成真实 OpenClaw sessions_spawn 调用
 """
 
 import json
@@ -12,19 +10,13 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from datetime import datetime
 
-# P1 新增：导入 OpenClaw API
-try:
-    from .openclaw_api import OpenClawAPI
-except ImportError:
-    from openclaw_api import OpenClawAPI
-
 
 class AgentTaskExecutor:
     """
     Agent 任务执行器
     
     功能:
-    - 触发 Agent 执行任务 (支持真实 OpenClaw sessions_spawn)
+    - 触发 Agent 执行任务
     - 等待执行完成
     - 收集生成的代码
     - 保存为工程文件
@@ -34,9 +26,6 @@ class AgentTaskExecutor:
         self.workspace = Path(workspace).expanduser()
         self.agents_dir = self.workspace / "agents"
         self.current_project = "default"
-        
-        # P1 新增：OpenClaw API 客户端
-        self.openclaw = OpenClawAPI(str(self.workspace))
     
     def set_project(self, project_id: str, project_config: Dict):
         """
@@ -58,7 +47,7 @@ class AgentTaskExecutor:
         
         print(f"   📁 设置项目工作区：{self.workspace}")
     
-    def execute_task(self, agent_id: str, task: str, output_dir: Path, timeout_seconds: int = 3600, use_real_agent: bool = True) -> Dict:
+    def execute_task(self, agent_id: str, task: str, output_dir: Path, timeout_seconds: int = 3600) -> Dict:
         """
         执行任务并收集代码
         
@@ -67,27 +56,20 @@ class AgentTaskExecutor:
             task: 任务描述
             output_dir: 输出目录
             timeout_seconds: 超时时间
-            use_real_agent: 是否使用真实 Agent (默认 True)
         
         Returns:
             执行结果
         """
         print(f"\n🚀 执行任务：{agent_id}")
         print(f"   任务：{task[:100]}...")
-        print(f"   模式：{'真实 Agent 调用' if use_real_agent else '模拟执行'}")
         
         # 1. 创建会话
         session_id = self._create_session(agent_id, task)
         print(f"   ✅ 会话已创建：{session_id}")
         
-        # 2. 执行任务 (真实 Agent 或模拟)
+        # 2. 等待执行完成 (模拟真实 Agent 执行)
         print(f"   ⏳ 等待 Agent 执行...")
-        if use_real_agent:
-            # P1 新增：真实 OpenClaw Agent 调用
-            execution_result = self._execute_real_agent(agent_id, task, session_id, timeout_seconds)
-        else:
-            # 回退到模拟执行
-            execution_result = self._simulate_agent_execution(agent_id, task, session_id)
+        execution_result = self._simulate_agent_execution(agent_id, task, session_id)
         
         # 3. 收集代码文件
         print(f"\n   📦 收集代码文件...")
@@ -119,112 +101,13 @@ class AgentTaskExecutor:
             "created_at": datetime.now().isoformat(),
             "task": task,
             "messages": [],
-            "status": "active",
-            "mode": "real" if hasattr(self, 'openclaw') else "mock"
+            "status": "active"
         }
         
         with open(session_file, "w", encoding="utf-8") as f:
             json.dump(session_data, f, indent=2, ensure_ascii=False)
         
         return session_id
-    
-    def _execute_real_agent(self, agent_id: str, task: str, session_id: str, timeout_seconds: int) -> Dict:
-        """
-        P1 新增：真实 OpenClaw Agent 调用
-        
-        使用 OpenClaw sessions_spawn 触发真实 Agent 执行
-        
-        Args:
-            agent_id: Agent ID
-            task: 任务描述
-            session_id: 会话 ID
-            timeout_seconds: 超时时间
-        
-        Returns:
-            执行结果
-        """
-        try:
-            print(f"   🚀 调用 OpenClaw sessions_spawn...")
-            
-            # 使用 OpenClaw API 触发 Agent
-            result = self.openclaw.spawn_agent(
-                agent_id=agent_id,
-                task=task,
-                timeout_seconds=timeout_seconds
-            )
-            
-            # 更新会话状态为执行中
-            self._update_session_status(session_id, "executing")
-            
-            print(f"   ✅ Agent 已触发：{result.get('session_key', 'N/A')}")
-            
-            # 等待执行完成 (轮询或回调)
-            print(f"   ⏳ 等待执行完成 (超时：{timeout_seconds}秒)...")
-            execution_status = self._wait_for_completion(session_id, timeout_seconds)
-            
-            if execution_status.get('status') == 'completed':
-                print(f"   ✅ Agent 执行完成")
-                # 从结果中提取代码文件
-                return self._extract_code_from_result(result, execution_status)
-            else:
-                print(f"   ⚠️ Agent 执行超时或失败，回退到模拟执行")
-                return self._simulate_agent_execution(agent_id, task, session_id)
-                
-        except Exception as e:
-            print(f"   ❌ 真实 Agent 调用失败：{e}")
-            print(f"   ⚠️ 回退到模拟执行")
-            return self._simulate_agent_execution(agent_id, task, session_id)
-    
-    def _wait_for_completion(self, session_id: str, timeout_seconds: int) -> Dict:
-        """
-        等待 Agent 执行完成
-        
-        TODO: 实现真实的轮询逻辑
-        当前为简化实现
-        """
-        import time
-        start_time = time.time()
-        
-        # 简化实现：等待固定时间后返回
-        # 真实实现应该轮询 OpenClaw 会话状态
-        wait_time = min(30, timeout_seconds)  # 最多等待 30 秒
-        time.sleep(wait_time)
-        
-        return {
-            "status": "completed",
-            "elapsed_time": time.time() - start_time
-        }
-    
-    def _extract_code_from_result(self, api_result: Dict, execution_status: Dict) -> Dict:
-        """
-        从 API 结果中提取代码
-        
-        TODO: 根据实际 API 返回格式解析
-        当前为占位实现
-        """
-        # 占位实现：返回空结果，由后续模拟执行补充
-        return {
-            "files": [],
-            "source": "real_agent",
-            "session_key": api_result.get('session_key', ''),
-            "messages": api_result.get('messages', [])
-        }
-    
-    def _update_session_status(self, session_id: str, status: str):
-        """更新会话状态"""
-        # 找到会话文件并更新
-        for agent_dir in self.agents_dir.iterdir():
-            if agent_dir.is_dir():
-                sessions_dir = agent_dir / "sessions"
-                session_file = sessions_dir / f"{session_id}.json"
-                if session_file.exists():
-                    with open(session_file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                    data['status'] = status
-                    data['updated_at'] = datetime.now().isoformat()
-                    with open(session_file, 'w', encoding='utf-8') as f:
-                        json.dump(data, f, indent=2, ensure_ascii=False)
-                    break
     
     def _simulate_agent_execution(self, agent_id: str, task: str, session_id: str) -> Dict:
         """

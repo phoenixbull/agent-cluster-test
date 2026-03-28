@@ -1,0 +1,27 @@
+{
+  "workflow_id": "wf-test-001",
+  "reviewer_id": "codex-reviewer",
+  "timestamp": "2026-03-28T15:40:54.590957",
+  "status": "approved",
+  "score": 85,
+  "issues": [
+    {
+      "type": "security",
+      "severity": "critical",
+      "description": "SQL 注入风险",
+      "file": "backend/api.py"
+    },
+    {
+      "type": "style",
+      "severity": "style",
+      "description": "命名不规范",
+      "file": "backend/models.py"
+    }
+  ],
+  "comments": [
+    "代码整体质量不错",
+    "注意安全性"
+  ],
+  "approved_files": [],
+  "rejected_files": []
+}
