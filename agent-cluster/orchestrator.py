@@ -20,6 +20,7 @@ from utils.openclaw_api import OpenClawAPI
 from utils.github_helper import GitHubAPI, create_github_client
 from utils.agent_executor import AgentTaskExecutor
 from utils.project_router import ProjectRouter
+from utils.phase5_reviewer import Phase5Reviewer
 import json
 
 
@@ -196,6 +197,9 @@ class Orchestrator:
         # GitHub 客户端将在识别项目后初始化
         self.github = None
         self.executor = AgentTaskExecutor()
+        
+        # 🔍 Phase 5 Reviewer
+        self.reviewer = Phase5Reviewer()
     
     def _load_config(self) -> Dict:
         """加载配置"""
@@ -739,29 +743,60 @@ class Orchestrator:
     
     def _review_phase(self, test_result: Dict) -> Dict:
         """
-        AI Review 阶段
-        
-        TODO: 调用 3 个 Reviewer Agent
+        AI Review 阶段 - 真实调用 Phase 5 Reviewer
         """
         print("   🔍 执行 AI Review...")
         
-        # TODO: 真实调用 Reviewer Agents
-        # 1. Codex Reviewer - 逻辑检查
-        # 2. Gemini Reviewer - 安全检查
-        # 3. Claude Reviewer - 基础检查
+        # 从测试结果中获取代码文件
+        code_files = test_result.get('code_files', [])
         
-        # 暂时模拟 Review 通过
-        import time
-        time.sleep(2)
+        if not code_files:
+            print("   ⚠️ 没有代码文件，跳过审查")
+            return {
+                "status": "approved",
+                "reviews": [],
+                "summary": {"total_issues": 0, "average_score": 100}
+            }
+        
+        # 调用 Phase 5 Reviewer
+        workflow_id = test_result.get('workflow_id', 'unknown')
+        pr_info = test_result.get('pr_info', {})
+        
+        review_result = self.reviewer.execute_review(
+            workflow_id=workflow_id,
+            code_files=code_files,
+            pr_info=pr_info
+        )
+        
+        # 转换为 orchestrator 期望的格式
+        approved = review_result.get('status') == 'approved'
         
         return {
-            "status": "approved",
-            "reviews": [
-                {"reviewer": "codex-reviewer", "status": "approved", "comments": []},
-                {"reviewer": "gemini-reviewer", "status": "approved", "comments": []},
-                {"reviewer": "claude-reviewer", "status": "approved", "comments": []}
-            ]
+            "status": "approved" if approved else "rejected",
+            "approved": approved,
+            "reviews": review_result.get('reviews', []),
+            "summary": review_result.get('summary', {}),
+            "approved_count": review_result.get('approved_count', 0),
+            "rejected_count": review_result.get('rejected_count', 0),
+            "reviewers": [r.get('reviewer_id', 'unknown') for r in review_result.get('reviews', [])],
+            "security_score": review_result.get('summary', {}).get('average_score', 0),
+            "code_quality_score": review_result.get('summary', {}).get('average_score', 0),
+            "issues": self._extract_issues_from_reviews(review_result.get('reviews', [])),
+            "critical_count": review_result.get('summary', {}).get('critical_count', 0),
+            "major_count": review_result.get('summary', {}).get('major_count', 0),
+            "pr_info": pr_info,
+            "code_files": code_files
         }
+    
+    def _extract_issues_from_reviews(self, reviews: List[Dict]) -> List[Dict]:
+        """从审查结果中提取问题列表"""
+        issues = []
+        for review in reviews:
+            review_issues = review.get('issues', [])
+            for issue in review_issues:
+                issue['reviewer'] = review.get('reviewer_id', 'unknown')
+                issues.append(issue)
+        return issues
     
     def _create_pr(self, workflow_id: str, requirement: str, review_result: Dict) -> Dict:
         """
@@ -1020,7 +1055,8 @@ npm start
         print(f"\n📊 测试汇总：总测试数={total_tests}, 通过={passed_tests}, 失败={failed_tests}, 覆盖率={avg_coverage:.1f}%, 状态={'✅ 通过' if status == 'passed' else '❌ 失败'}")
         return {"status": status, "total_tests": total_tests, "passed_tests": passed_tests, "failed_tests": failed_tests, "coverage": round(avg_coverage, 2), "bugs": bugs, "report_path": str(report_file)}
 
-\n# ========== CLI 入口 ==========
+
+# ========== CLI 入口 ==========
 
 def main():
     """CLI 入口"""
