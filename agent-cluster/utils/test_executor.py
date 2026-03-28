@@ -625,7 +625,7 @@ class ExampleInstrumentedTest {
         return report
 
 
-    def aggregate_results(self, backend_result=None, frontend_result=None, ios_result=None, android_result=None):
+    def aggregate_results(self, backend_result=None, frontend_result=None, ios_result=None, android_result=None, rn_result=None, flutter_result=None):
         """汇总测试结果"""
         total_tests, passed_tests, failed_tests = 0, 0, 0
         coverage_sum, coverage_count = 0, 0
@@ -678,6 +678,30 @@ class ExampleInstrumentedTest {
                 coverage_count += 1
             if a.get("status") == "failed":
                 bugs.append({"id": f"BUG-{datetime.now().strftime('%Y%m%d-%H%M%S')}-Android", "severity": "critical", "module": "android", "title": "Android 测试失败", "description": a.get("error", ""), "reporter": "Tester"})
+        
+        # P4 阶段 4: React Native 测试
+        if rn_result:
+            rn = rn_result
+            total_tests += rn.get("tests_run", 0)
+            passed_tests += rn.get("tests_passed", 0)
+            failed_tests += rn.get("tests_failed", 0)
+            if rn.get("coverage", 0) > 0:
+                coverage_sum += rn["coverage"]
+                coverage_count += 1
+            if rn.get("status") == "failed":
+                bugs.append({"id": f"BUG-{datetime.now().strftime('%Y%m%d-%H%M%S')}-RN", "severity": "critical", "module": "react-native", "title": "React Native 测试失败", "description": rn.get("error", ""), "reporter": "Tester"})
+        
+        # P4 阶段 4: Flutter 测试
+        if flutter_result:
+            fl = flutter_result
+            total_tests += fl.get("tests_run", 0)
+            passed_tests += fl.get("tests_passed", 0)
+            failed_tests += fl.get("tests_failed", 0)
+            if fl.get("coverage", 0) > 0:
+                coverage_sum += fl["coverage"]
+                coverage_count += 1
+            if fl.get("status") == "failed":
+                bugs.append({"id": f"BUG-{datetime.now().strftime('%Y%m%d-%H%M%S')}-Flutter", "severity": "critical", "module": "flutter", "title": "Flutter 测试失败", "description": fl.get("error", ""), "reporter": "Tester"})
         
         avg_coverage = coverage_sum / coverage_count if coverage_count > 0 else 0
         status = "passed" if failed_tests == 0 else "failed"
