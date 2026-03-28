@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-03-28T12:25:31.525150",
+  "status": "passed",
+  "summary": {
+    "total_tests": 2,
+    "passed_tests": 2,
+    "failed_tests": 0,
+    "coverage": 80.0
+  },
+  "bugs": [
+    {
+      "id": "BUG-20260328-122531-BE",
+      "severity": "critical",
+      "module": "backend",
+      "title": "后端测试失败",
+      "description": "[Errno 2] No such file or directory: 'pytest': 'pytest'",
+      "reporter": "Tester"
+    }
+  ]
+}
