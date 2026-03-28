@@ -1,0 +1,4 @@
+# Fastlane Android Appfile
+
+json_key_file("../google-play-api-key.json")
+package_name("com.example.app")

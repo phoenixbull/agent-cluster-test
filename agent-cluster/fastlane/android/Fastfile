@@ -1,0 +1,54 @@
+# Android Fastlane 配置
+
+default_platform(:android)
+
+platform :android do
+  desc "运行测试"
+  lane :test do
+    gradle(task: "test")
+  end
+
+  desc "构建 Beta 版本并上传到 Google Play 内部测试"
+  lane :beta do
+    # 构建 Release APK
+    gradle(
+      task: "clean",
+      build_type: "Release",
+      project_dir: ".",
+      properties: {
+        "android.injected.signing.store.file" => ENV["ANDROID_KEYSTORE_PATH"] || "../keystore.jks",
+        "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
+        "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
+        "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"]
+      }
+    )
+    
+    # 上传到 Google Play 内部测试轨道
+    upload_to_play_store(
+      track: "internal",
+      json_key_data: ENV["GOOGLE_PLAY_CREDENTIALS"],
+      skip_upload_metadata: true,
+      skip_upload_changelog: true,
+      skip_upload_screenshots: true,
+      version_name: ENV["VERSION_NAME"],
+      version_code: ENV["VERSION_CODE"]
+    )
+  end
+
+  desc "发布到 Google Play 生产轨道"
+  lane :release do
+    gradle(
+      task: "clean",
+      build_type: "Release",
+      project_dir: "."
+    )
+    
+    upload_to_play_store(
+      track: "production",
+      json_key_data: ENV["GOOGLE_PLAY_CREDENTIALS"],
+      skip_upload_metadata: false,
+      skip_upload_changelog: false,
+      skip_upload_screenshots: false
+    )
+  end
+end

@@ -46,6 +46,7 @@ from utils.deploy_executor import get_deploy_executor
 from utils.k8s_deploy import get_k8s_deploy_executor
 from utils.metrics import get_prometheus_metrics
 from utils.metrics_collector import get_metrics_collector
+from utils.settings_manager import get_settings_manager
 
 # 钉钉消息接收模块（可选）
 try:
@@ -263,6 +264,7 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         elif path == '/monitoring' and is_auth: self.send_html(self.get_monitoring_page())
         elif path == '/metrics' and is_auth: self.send_html(self.get_metrics_dashboard())
         elif path == '/metrics.html' and is_auth: self.send_html(self.get_metrics_dashboard())
+        elif is_auth and path == '/api/settings': self.send_json(self.get_settings())
         elif path == '/settings' and is_auth: self.send_html(self.get_settings_page())
         else: super().do_GET()
     
@@ -318,6 +320,12 @@ class WebUIHandler(SimpleHTTPRequestHandler):
         elif path == '/api/metrics/tasks': self.send_json(self.get_metrics_tasks())
         elif path == '/api/metrics/failures': self.send_json(self.get_metrics_failures())
         elif path == '/api/metrics/report': self.send_json(self.get_metrics_report())
+        # 设置 API
+        elif path == '/api/settings': self.send_json(self.get_settings())
+        elif path == '/api/settings/save': self.send_json(self.save_settings(data))
+        elif path == '/api/settings/test/github': self.send_json(self.test_github())
+        elif path == '/api/settings/test/appstore': self.send_json(self.test_appstore())
+        elif path == '/api/settings/test/googleplay': self.send_json(self.test_googleplay())
         else: self.send_error(404)
     
     def send_json(self, data, status=200):
@@ -1707,7 +1715,15 @@ Phase 6: 部署并创建 PR
             return {"success": False, "error": str(e)}
     
     def _settings_page(self):
-        """设置页面"""
+        """设置页面 - 使用模板文件"""
+        template_path = BASE_DIR / "templates" / "settings.html"
+        if template_path.exists():
+            try:
+                with open(template_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            except:
+                pass
+        # 如果模板文件不存在，返回简单版本
         return """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>设置 - Agent 集群</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7fa}.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px}.nav{display:flex;gap:15px;margin-top:15px}.nav a{color:rgba(255,255,255,0.9);text-decoration:none;padding:8px 16px;border-radius:6px}.container{max-width:800px;margin:0 auto;padding:30px}.card{background:white;border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.card h2{margin-bottom:20px}.form-group{margin-bottom:15px}.form-group label{display:block;margin-bottom:5px;color:#555}.form-group input{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px}.btn{background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer}.info{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:15px;margin-bottom:20px}.info p{color:#0369a1;font-size:14px}</style></head><body>
 <div class="header"><h1>⚙️ 设置</h1><div class="nav"><a href="/">📊 概览</a><a href="/workflows">📋 工作流</a><a href="/agents">🤖 Agent</a><a href="/phases">🔄 流程</a><a href="/quality">🚦 质量门禁</a><a href="/bugs">🐛 Bug 管理</a><a href="/deployments">🚀 发布管理</a><a href="/templates">📝 模板库</a><a href="/costs">💰 成本统计</a><a href="/monitoring">📈 监控日志</a><a href="/settings" style="margin-left:auto;">⚙️ 设置</a><a href="#" onclick="logout()">🚪 登出</a></div></div>
@@ -1716,6 +1732,48 @@ Phase 6: 部署并创建 PR
 <div class="card"><h2>🔐 修改密码</h2><div class="form-group"><label>原密码</label><input type="password" id="oldPwd" placeholder="请输入原密码"></div><div class="form-group"><label>新密码</label><input type="password" id="newPwd" placeholder="请输入新密码（至少 6 位）"></div><div class="form-group"><label>确认新密码</label><input type="password" id="confirmPwd" placeholder="请再次输入新密码"></div><button class="btn" onclick="changePwd()">修改密码</button></div>
 <div class="card"><h2>ℹ️ 系统信息</h2><div class="form-group"><label>版本</label><input type="text" value="V2.7.1" readonly></div><div class="form-group"><label>工作目录</label><input type="text" value="/home/admin/.openclaw/workspace/agent-cluster" readonly></div><div class="form-group"><label>后端端口</label><input type="text" value="8890" readonly></div></div></div>
 <script>async function changePwd(){const old=document.getElementById('oldPwd').value;const new1=document.getElementById('newPwd').value;const new2=document.getElementById('confirmPwd').value;if(!old||!new1||!new2){alert('请填写所有字段');return;}if(new1!==new2){alert('两次输入的新密码不一致');return;}if(new1.length<6){alert('密码长度至少 6 位');return;}try{const res=await fetch('/api/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({old_password:old,new_password:new1})});const d=await res.json();if(d.success){alert('✅ '+d.message);document.getElementById('oldPwd').value='';document.getElementById('newPwd').value='';document.getElementById('confirmPwd').value='';setTimeout(()=>{window.location.href='/login';},1500);}else{alert('❌ '+d.error);}}catch(e){alert('请求失败：'+e.message);}}async function logout(){if(!confirm('确定登出？'))return;await fetch('/api/logout',{method:'POST'});document.cookie='auth_token=;Path=/;Max-Age=0';window.location.href='/login';}</script></body></html>"""
+    
+    def get_settings(self) -> Dict:
+        """获取设置"""
+        try:
+            manager = get_settings_manager()
+            return {
+                "success": True,
+                "config": manager.get_settings(),
+                "status": manager.get_status()
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def save_settings(self, data: Dict) -> Dict:
+        """保存设置"""
+        try:
+            manager = get_settings_manager()
+            success = manager.save_settings(data)
+            if success:
+                return {"success": True, "message": "设置已保存"}
+            else:
+                return {"success": False, "error": "保存失败"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def test_github(self) -> Dict:
+        """测试 GitHub 连接"""
+        try:
+            manager = get_settings_manager()
+            return manager.test_github_connection()
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def test_appstore(self) -> Dict:
+        """测试 App Store 连接"""
+        # TODO: 实现 App Store 连接测试
+        return {"success": True, "message": "App Store 连接测试成功 (模拟)"}
+    
+    def test_googleplay(self) -> Dict:
+        """测试 Google Play 连接"""
+        # TODO: 实现 Google Play 连接测试
+        return {"success": True, "message": "Google Play 连接测试成功 (模拟)"}
     
     def get_metrics_dashboard(self):
         """指标 Dashboard 页面"""

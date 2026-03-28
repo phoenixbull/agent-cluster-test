@@ -1,0 +1,51 @@
+{
+  "github": {
+    "token": "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",
+    "user": "",
+    "repo": "",
+    "branch_prefix": "agent/"
+  },
+  "appstore": {
+    "key_id": "573782USW8",
+    "issuer_id": "69a6de71-33c6-47e3-e053-5b8c7c11a4d1",
+    "key_content": "-----BEGIN PRIVATE KEY-----\nMIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQga2WTbtc9gf77tC8T\ny3ihUDzd/TpsLAkpVvFFodRHE42gCgYIKoZIzj0DAQehRANCAARrI9aGddpdTUK3\njFr88QqZO8fL9seRqjHaTlVFpkXT2Ud6SPuGwAxx1DzjeBbhQLDDdQbh1+7tKYAP\nJR8YHEJ8\n-----END PRIVATE KEY-----",
+    "username": "513642773@qq.com"
+  },
+  "googleplay": {
+    "credentials": "",
+    "package": "",
+    "keystore": "",
+    "keystore_password": "",
+    "key_alias": "",
+    "key_password": ""
+  },
+  "certificates": {
+    "match_git_url": "",
+    "match_password": ""
+  },
+  "dingtalk": {
+    "corp_id": "",
+    "agent_id": "",
+    "client_id": "",
+    "client_secret": "",
+    "callback_token": "openclaw_callback_token_2026",
+    "events": {
+      "task_complete": true,
+      "task_failed": true,
+      "pr_ready": true,
+      "deploy": true
+    }
+  },
+  "cluster": {
+    "max_parallel_agents": 3,
+    "timeout_seconds": 300,
+    "quality_gate": {
+      "min_test_coverage": 80,
+      "max_critical_bugs": 0
+    },
+    "retry": {
+      "max_retries": 3,
+      "retry_delay": 30
+    }
+  }
+}

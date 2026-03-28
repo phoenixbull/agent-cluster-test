@@ -1,0 +1,221 @@
+# Mobile Build CI/CD
+# Builds iOS, Android, React Native, and Flutter apps
+
+name: Mobile Build
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # iOS Build
+  ios-build:
+    runs-on: macos-latest
+    if: contains(github.event.head_commit.message, '[iOS]') || contains(github.event.head_commit.message, '[Mobile]')
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.0.app/Contents/Developer
+      
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: true
+          working-directory: ios
+      
+      - name: Install Pods
+        run: |
+          cd ios
+          pod install
+      
+      - name: Build iOS
+        run: |
+          cd ios
+          xcodebuild -workspace App.xcworkspace \
+                     -scheme App \
+                     -configuration Release \
+                     -sdk iphonesimulator \
+                     -destination 'platform=iOS Simulator,name=iPhone 15' \
+                     clean build
+      
+      - name: Run Tests
+        run: |
+          cd ios
+          xcodebuild test -workspace App.xcworkspace \
+                          -scheme App \
+                          -destination 'platform=iOS Simulator,name=iPhone 15'
+      
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app
+          path: ios/build/Release-iphonesimulator/App.app
+
+  # Android Build
+  android-build:
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '[Android]') || contains(github.event.head_commit.message, '[Mobile]')
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+      
+      - name: Build Android
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+      
+      - name: Run Tests
+        run: |
+          cd android
+          ./gradlew test
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-app
+          path: android/app/build/outputs/apk/release/app-release.apk
+
+  # React Native Build
+  react-native-build:
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '[React Native]') || contains(github.event.head_commit.message, '[Mobile]')
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install Dependencies
+        run: npm ci
+      
+      - name: Lint
+        run: npm run lint
+      
+      - name: Type Check
+        run: npm run type-check
+      
+      - name: Build Android
+        run: |
+          cd android
+          ./gradlew assembleRelease
+      
+      - name: Build iOS (requires macOS)
+        run: echo "iOS build skipped on Ubuntu - runs on ios-build job"
+      
+      - name: Run Tests
+        run: npm test -- --coverage
+      
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+
+  # Flutter Build
+  flutter-build:
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '[Flutter]') || contains(github.event.head_commit.message, '[Mobile]')
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+      
+      - name: Get Dependencies
+        run: flutter pub get
+      
+      - name: Analyze
+        run: flutter analyze
+      
+      - name: Build APK
+        run: flutter build apk --release
+      
+      - name: Build iOS (requires macOS)
+        run: |
+          echo "iOS build skipped on Ubuntu - runs on macOS runner"
+          # flutter build ios --release --no-codesign
+      
+      - name: Run Tests
+        run: flutter test --coverage
+      
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+
+  # Deploy to TestFlight (iOS)
+  deploy-testflight:
+    needs: ios-build
+    runs-on: macos-latest
+    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[Deploy]')
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Fastlane
+        run: gem install fastlane
+      
+      - name: Setup Keychain
+        run: |
+          fastlane match nuke development -force
+          fastlane match development
+      
+      - name: Build and Upload to TestFlight
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+        run: |
+          cd ios
+          fastlane beta
+
+  # Deploy to Google Play Internal Testing (Android)
+  deploy-play-internal:
+    needs: android-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[Deploy]')
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      
+      - name: Install Fastlane
+        run: gem install fastlane
+      
+      - name: Build and Upload to Play Store
+        env:
+          GOOGLE_PLAY_CREDENTIALS: ${{ secrets.GOOGLE_PLAY_CREDENTIALS }}
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd android
+          fastlane beta

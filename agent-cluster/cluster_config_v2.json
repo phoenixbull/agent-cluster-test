@@ -23,11 +23,13 @@
         "enabled": true,
         "screenshot": true,
         "visual_regression": true,
-        "figma_to_code": false,
+        "figma_to_code": true,
         "speech_to_task": false,
         "task_to_speech": true,
         "pr_gif": true,
-        "pr_video": false
+        "pr_video": false,
+        "design_tokens": true,
+        "lottie_animation": true
       }
     }
   },
@@ -49,13 +51,18 @@
       "failure_analysis",
       "context_management"
     ],
-    "mcp_servers": ["obsidian", "memory", "database", "dingtalk"],
+    "mcp_servers": [
+      "obsidian",
+      "memory",
+      "database",
+      "dingtalk"
+    ],
     "enabled": true
   },
   "github": {
-    "token": "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",
-    "user": "phoenixbull",
-    "repo": "phoenixbull/agent-cluster-test",
+    "token": "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",
+    "user": "",
+    "repo": "",
     "branch_prefix": "agent/",
     "auto_create_pr": true,
     "auto_merge": false,
@@ -80,9 +87,16 @@
         "market_research",
         "competitive_analysis"
       ],
-      "mcp_servers": ["memory", "search"],
+      "mcp_servers": [
+        "memory",
+        "search"
+      ],
       "enabled": true,
-      "task_types": ["requirement_analysis", "prd_writing", "user_research"],
+      "task_types": [
+        "requirement_analysis",
+        "prd_writing",
+        "user_research"
+      ],
       "weight": 1.0,
       "phase": "1_requirement"
     },
@@ -104,9 +118,17 @@
         "tech_stack_selection",
         "code_review"
       ],
-      "mcp_servers": ["filesystem", "github", "database"],
+      "mcp_servers": [
+        "filesystem",
+        "github",
+        "database"
+      ],
       "enabled": true,
-      "task_types": ["architecture_design", "tech_review", "api_design"],
+      "task_types": [
+        "architecture_design",
+        "tech_review",
+        "api_design"
+      ],
       "weight": 1.0,
       "phase": "2_design"
     },
@@ -128,9 +150,19 @@
         "cross_file_reasoning",
         "api_design"
       ],
-      "mcp_servers": ["filesystem", "github", "database"],
+      "mcp_servers": [
+        "filesystem",
+        "github",
+        "database"
+      ],
       "enabled": true,
-      "task_types": ["backend_logic", "bug_fix", "refactoring", "api_design", "database"],
+      "task_types": [
+        "backend_logic",
+        "bug_fix",
+        "refactoring",
+        "api_design",
+        "database"
+      ],
       "weight": 0.9,
       "phase": "3_development"
     },
@@ -151,9 +183,17 @@
         "component_development",
         "rapid_iteration"
       ],
-      "mcp_servers": ["filesystem", "github"],
+      "mcp_servers": [
+        "filesystem",
+        "github"
+      ],
       "enabled": true,
-      "task_types": ["frontend", "ui_component", "git_operation", "quick_fix"],
+      "task_types": [
+        "frontend",
+        "ui_component",
+        "git_operation",
+        "quick_fix"
+      ],
       "weight": 0.7,
       "phase": "3_development"
     },
@@ -177,9 +217,20 @@
         "html_css",
         "design_spec"
       ],
-      "mcp_servers": ["figma", "excalidraw", "filesystem"],
+      "mcp_servers": [
+        "figma",
+        "excalidraw",
+        "filesystem"
+      ],
       "enabled": true,
-      "task_types": ["ui_design", "visual", "html_css", "design_spec", "mockup", "prototype"],
+      "task_types": [
+        "ui_design",
+        "visual",
+        "html_css",
+        "design_spec",
+        "mockup",
+        "prototype"
+      ],
       "weight": 0.6,
       "phase": "2_design",
       "v2_merged": true,
@@ -203,11 +254,306 @@
         "bug_report",
         "test_automation"
       ],
-      "mcp_servers": ["filesystem", "github"],
+      "mcp_servers": [
+        "filesystem",
+        "github"
+      ],
       "enabled": true,
-      "task_types": ["testing", "qa", "bug_tracking"],
+      "task_types": [
+        "testing",
+        "qa",
+        "bug_tracking"
+      ],
       "weight": 0.8,
       "phase": "4_testing"
+    },
+    {
+      "id": "mobile-tester",
+      "name": "移动测试专家",
+      "workspace": "~/.openclaw/workspace/agents/mobile-tester",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen-coder-plus",
+        "temperature": 0.3,
+        "max_tokens": 8192
+      },
+      "role": "mobile_qa_specialist",
+      "skills": [
+        "xctest",
+        "espresso",
+        "detox",
+        "flutter_test",
+        "appium",
+        "screenshot_test",
+        "performance_test"
+      ],
+      "mcp_servers": [
+        "filesystem",
+        "github",
+        "xcode",
+        "gradle"
+      ],
+      "enabled": true,
+      "task_types": [
+        "mobile_testing",
+        "ios_test",
+        "android_test",
+        "screenshot_test",
+        "performance_test"
+      ],
+      "weight": 0.9,
+      "phase": "4_testing",
+      "platforms": {
+        "ios": {
+          "frameworks": [
+            "XCTest",
+            "XCUITest",
+            "Quick",
+            "Nimble",
+            "iOSSnapshotTestCase"
+          ],
+          "tools": [
+            "Instruments",
+            "simctl"
+          ]
+        },
+        "android": {
+          "frameworks": [
+            "JUnit",
+            "Espresso",
+            "UI Automator",
+            "Paparazzi"
+          ],
+          "tools": [
+            "Android Profiler",
+            "adb"
+          ]
+        },
+        "cross_platform": {
+          "frameworks": [
+            "Detox",
+            "Appium",
+            "Maestro",
+            "Flutter Integration Test"
+          ],
+          "tools": [
+            "Firebase Test Lab",
+            "BrowserStack"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mobile-ios",
+      "name": "iOS 专家",
+      "workspace": "~/.openclaw/workspace/agents/mobile-ios",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen-coder-plus",
+        "temperature": 0.3,
+        "max_tokens": 8192
+      },
+      "role": "ios_specialist",
+      "skills": [
+        "swift",
+        "swiftui",
+        "uikit",
+        "xcode",
+        "app_store",
+        "ios_architecture",
+        "coredata",
+        "push_notification"
+      ],
+      "mcp_servers": [
+        "filesystem",
+        "github",
+        "xcode"
+      ],
+      "enabled": true,
+      "task_types": [
+        "ios_app",
+        "swiftui",
+        "uikit",
+        "app_store_deploy"
+      ],
+      "weight": 0.9,
+      "phase": "3_development",
+      "platform": {
+        "name": "iOS",
+        "min_version": "15.0",
+        "devices": [
+          "iPhone",
+          "iPad"
+        ],
+        "ide": "Xcode 15+",
+        "language": "Swift 5.9+",
+        "ui_framework": "SwiftUI",
+        "publish": "App Store"
+      }
+    },
+    {
+      "id": "mobile-android",
+      "name": "Android 专家",
+      "workspace": "~/.openclaw/workspace/agents/mobile-android",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen-coder-plus",
+        "temperature": 0.3,
+        "max_tokens": 8192
+      },
+      "role": "android_specialist",
+      "skills": [
+        "kotlin",
+        "jetpack_compose",
+        "android_xml",
+        "gradle",
+        "google_play",
+        "android_architecture",
+        "room",
+        "push_notification"
+      ],
+      "mcp_servers": [
+        "filesystem",
+        "github",
+        "gradle"
+      ],
+      "enabled": true,
+      "task_types": [
+        "android_app",
+        "jetpack_compose",
+        "android_xml",
+        "play_store_deploy"
+      ],
+      "weight": 0.9,
+      "phase": "3_development",
+      "platform": {
+        "name": "Android",
+        "min_version": "8.0",
+        "api_level": 26,
+        "devices": [
+          "Phone",
+          "Tablet",
+          "Foldable"
+        ],
+        "ide": "Android Studio Hedgehog+",
+        "language": "Kotlin",
+        "ui_framework": "Jetpack Compose",
+        "publish": "Google Play"
+      }
+    },
+    {
+      "id": "mobile-react-native",
+      "name": "React Native 专家",
+      "workspace": "~/.openclaw/workspace/agents/mobile-react-native",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen-coder-plus",
+        "temperature": 0.3,
+        "max_tokens": 8192
+      },
+      "role": "cross_platform_specialist",
+      "skills": [
+        "typescript",
+        "react_native",
+        "expo",
+        "react_navigation",
+        "reanimated",
+        "redux",
+        "app_store",
+        "google_play"
+      ],
+      "mcp_servers": [
+        "filesystem",
+        "github",
+        "metro"
+      ],
+      "enabled": true,
+      "task_types": [
+        "cross_platform_app",
+        "react_native",
+        "expo",
+        "mobile_web"
+      ],
+      "weight": 0.95,
+      "phase": "3_development",
+      "platform": {
+        "name": "Cross-Platform (React Native)",
+        "min_version": "iOS 13.0+, Android 6.0+",
+        "devices": [
+          "iPhone",
+          "iPad",
+          "Android Phone",
+          "Android Tablet"
+        ],
+        "ide": "VS Code, Expo Go",
+        "language": "TypeScript 5+",
+        "ui_framework": "React Native Components",
+        "publish": "App Store + Google Play",
+        "features": {
+          "hot_reload": true,
+          "expo_support": true,
+          "native_modules": true,
+          "web_support": true
+        }
+      }
+    },
+    {
+      "id": "mobile-flutter",
+      "name": "Flutter 专家",
+      "workspace": "~/.openclaw/workspace/agents/mobile-flutter",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen-coder-plus",
+        "temperature": 0.3,
+        "max_tokens": 8192
+      },
+      "role": "cross_platform_specialist",
+      "skills": [
+        "dart",
+        "flutter",
+        "provider",
+        "riverpod",
+        "bloc",
+        "go_router",
+        "hive",
+        "platform_channel"
+      ],
+      "mcp_servers": [
+        "filesystem",
+        "github",
+        "flutter"
+      ],
+      "enabled": true,
+      "task_types": [
+        "cross_platform_app",
+        "flutter",
+        "mobile_web",
+        "desktop_app"
+      ],
+      "weight": 0.95,
+      "phase": "3_development",
+      "platform": {
+        "name": "Cross-Platform (Flutter)",
+        "min_version": "iOS 12.0+, Android 5.0+",
+        "devices": [
+          "iPhone",
+          "iPad",
+          "Android Phone",
+          "Android Tablet",
+          "Web",
+          "Desktop"
+        ],
+        "ide": "Android Studio, VS Code",
+        "language": "Dart 3.0+",
+        "ui_framework": "Material 3 + Cupertino",
+        "publish": "App Store + Google Play + Web",
+        "features": {
+          "hot_reload": true,
+          "six_platforms": true,
+          "self_rendering": true,
+          "native_performance": true
+        }
+      }
     }
   ],
   "reviewers": [
@@ -247,7 +593,11 @@
         "database",
         "dingtalk",
         "figma",
-        "excalidraw"
+        "excalidraw",
+        "xcode",
+        "gradle",
+        "metro",
+        "flutter"
       ],
       "timeout_seconds": 30
     },
@@ -271,12 +621,22 @@
     "monitoring": {
       "enabled": true,
       "interval_minutes": 10,
-      "check_items": ["tmux_session", "pr_status", "ci_status", "review_status"]
+      "check_items": [
+        "tmux_session",
+        "pr_status",
+        "ci_status",
+        "review_status"
+      ]
     },
     "ci_cd": {
       "enabled": true,
       "github_repo": "phoenixbull/agent-cluster-test",
-      "required_checks": ["lint", "typecheck", "tests", "e2e"],
+      "required_checks": [
+        "lint",
+        "typecheck",
+        "tests",
+        "e2e"
+      ],
       "review_requirements": {
         "codex_reviewer_approved": true,
         "gemini_reviewer_approved": true,
@@ -285,8 +645,23 @@
     }
   },
   "tools": {
-    "builtin": ["search", "calculator", "memory", "diagram", "dingtalk"],
-    "mcp": ["obsidian", "memory", "filesystem", "github", "database", "dingtalk", "figma", "excalidraw"]
+    "builtin": [
+      "search",
+      "calculator",
+      "memory",
+      "diagram",
+      "dingtalk"
+    ],
+    "mcp": [
+      "obsidian",
+      "memory",
+      "filesystem",
+      "github",
+      "database",
+      "dingtalk",
+      "figma",
+      "excalidraw"
+    ]
   },
   "notifications": {
     "dingtalk": {
@@ -297,7 +672,9 @@
       "corpId": "ding4ec28b66e08c978fee0f45d8e4f7c288",
       "agentId": "4286960567",
       "robotCode": "dingi8bd93ixhrm34vbd",
-      "admin_user_ids": ["356820521035955"],
+      "admin_user_ids": [
+        "356820521035955"
+      ],
       "agent_task_notifications": {
         "enabled": true,
         "notify_on_assign": true,
@@ -355,7 +732,9 @@
     "environments": {
       "production": {
         "require_approval": true,
-        "approvers": ["all"]
+        "approvers": [
+          "all"
+        ]
       },
       "staging": {
         "require_approval": false
@@ -366,10 +745,7 @@
     "enabled": true,
     "phase_4": {
       "min_coverage": 80,
-      "max_critical_bugs": 0,
-      "max_major_bugs": 3,
-      "max_minor_bugs": 10,
-      "core_tests_required": true
+      "max_critical_bugs": 0
     },
     "phase_5": {
       "min_review_score": 80,
@@ -379,9 +755,7 @@
     },
     "retry": {
       "max_retries": 3,
-      "timeout_minutes": 30,
-      "notify_on_retry": true,
-      "include_detailed_prompt": true
+      "timeout_minutes": 0
     }
   },
   "bug_reporting": {

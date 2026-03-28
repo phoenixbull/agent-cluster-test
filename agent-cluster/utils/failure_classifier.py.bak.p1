@@ -22,7 +22,6 @@ class FailureCategory(Enum):
     TEST = "test"               # 测试相关
     REVIEW = "review"           # 审查相关
     ENV = "env"                 # 环境相关
-    MOBILE = "mobile"           # P3 新增：移动端特定
 
 
 class FailureReason(Enum):
@@ -55,21 +54,6 @@ class FailureReason(Enum):
     # ========== 环境相关 (2 种) ==========
     ENV_GIT_ERROR = "env_git_error"               # Git 操作失败
     ENV_TIMEOUT = "env_timeout"                   # 环境超时
-    
-    # ========== P3 新增：Native 移动端特定失败模式 ==========
-    # iOS 相关
-    IOS_BUILD_ERROR = "ios_build_error"           # Xcode 构建失败
-    IOS_SIMULATOR_ERROR = "ios_simulator_error"   # 模拟器启动失败
-    IOS_CERTIFICATE_ERROR = "ios_certificate_error" # 证书/签名问题
-    
-    # Android 相关
-    ANDROID_BUILD_ERROR = "android_build_error"   # Gradle 构建失败
-    ANDROID_EMULATOR_ERROR = "android_emulator_error" # 模拟器启动失败
-    ANDROID_SDK_ERROR = "android_sdk_error"       # SDK 配置问题
-    
-    # 跨平台相关
-    NATIVE_MODULE_ERROR = "native_module_error"   # 原生模块链接失败
-    PLATFORM_SPECIFIC_BUG = "platform_specific_bug" # 平台特定 Bug
 
 
 @dataclass
@@ -169,45 +153,6 @@ class FailureClassifier:
             FailureReason.ENV_TIMEOUT: [
                 "环境超时", "environment timeout",
                 "执行超时", "execution timeout"
-            ],
-            
-            # ========== P3 新增：Native 移动端失败模式关键词 ==========
-            # iOS 相关
-            FailureReason.IOS_BUILD_ERROR: [
-                "xcodebuild", "build failed", "compilation error",
-                "Xcode 构建", " linker error", "bitcode"
-            ],
-            FailureReason.IOS_SIMULATOR_ERROR: [
-                "simulator", "无法启动", "failed to launch",
-                "device not found", "no such device"
-            ],
-            FailureReason.IOS_CERTIFICATE_ERROR: [
-                "certificate", "provisioning", "signature",
-                "签名", "证书", "code signing"
-            ],
-            
-            # Android 相关
-            FailureReason.ANDROID_BUILD_ERROR: [
-                "gradle", "build failed", "compileSdkVersion",
-                "SDK 未找到", "android studio", "R8"
-            ],
-            FailureReason.ANDROID_EMULATOR_ERROR: [
-                "emulator", "adb", "device offline",
-                "无法连接", "unauthorized device"
-            ],
-            FailureReason.ANDROID_SDK_ERROR: [
-                "SDK not found", "ANDROID_HOME", "sdkmanager",
-                "platform-tools", "build-tools"
-            ],
-            
-            # 跨平台相关
-            FailureReason.NATIVE_MODULE_ERROR: [
-                "native module", "bridge", "RN 链接",
-                "pod install", "cocoapods", "react-native link"
-            ],
-            FailureReason.PLATFORM_SPECIFIC_BUG: [
-                "仅 iOS", "仅 Android", "platform specific",
-                "平台差异", "兼容性", "compatibility"
             ],
         }
     

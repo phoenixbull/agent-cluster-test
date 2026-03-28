@@ -512,69 +512,9 @@ class Orchestrator:
         # 现在基于关键词简单分解
         
         tasks = []
-        req_lower = requirement.lower()
-        
-        # ========== P2 新增：Native 移动端需求识别 ==========
-        
-        # 检测 iOS 需求
-        if any(kw in req_lower for kw in ['ios', 'iphone', 'ipad', 'swift', 'swiftui', 'app store', 'xcode']):
-            tasks.append({
-                "id": "task-ios-001",
-                "type": "ios_native",
-                "agent": "mobile-ios",
-                "description": "iOS 原生开发",
-                "requirements": ["SwiftUI", "iOS 15+", "App Store 规范"],
-                "prompt": f"为 iOS 实现以下功能：{requirement}"
-            })
-        
-        # 检测 Android 需求
-        if any(kw in req_lower for kw in ['android', 'kotlin', 'jetpack', 'compose', 'play store', 'gradle']):
-            tasks.append({
-                "id": "task-android-001",
-                "type": "android_native",
-                "agent": "mobile-android",
-                "description": "Android 原生开发",
-                "requirements": ["Jetpack Compose", "Android 10+", "Play Store 规范"],
-                "prompt": f"为 Android 实现以下功能：{requirement}"
-            })
-        
-        # 检测 React Native 需求
-        if any(kw in req_lower for kw in ['react native', 'react-native', 'expo', 'react_native']):
-            tasks.append({
-                "id": "task-rn-001",
-                "type": "react_native",
-                "agent": "mobile-react-native",
-                "description": "React Native 跨平台开发",
-                "requirements": ["TypeScript", "iOS + Android"],
-                "prompt": f"使用 React Native 实现：{requirement}"
-            })
-        
-        # 检测 Flutter 需求
-        if any(kw in req_lower for kw in ['flutter', 'dart']):
-            tasks.append({
-                "id": "task-flutter-001",
-                "type": "flutter",
-                "agent": "mobile-flutter",
-                "description": "Flutter 跨平台开发",
-                "requirements": ["Dart", "iOS + Android"],
-                "prompt": f"使用 Flutter 实现：{requirement}"
-            })
-        
-        # 检测移动端测试需求
-        if any(kw in req_lower for kw in ['移动测试', 'mobile test', 'xctest', 'espresso', 'appium']):
-            tasks.append({
-                "id": "task-mobile-test-001",
-                "type": "mobile_testing",
-                "agent": "mobile-tester",
-                "description": "移动端测试",
-                "requirements": ["XCTest", "Espresso", "覆盖率报告"],
-                "prompt": f"为以下功能编写移动端测试：{requirement}"
-            })
-        
-        # ========== 现有 Web/后端需求识别 (保持不变) ==========
         
         # 检测是否需要 UI 设计
-        if any(kw in req_lower for kw in ['界面', 'ui', '设计', '页面', '组件']):
+        if any(kw in requirement.lower() for kw in ['界面', 'ui', '设计', '页面', '组件']):
             tasks.append({
                 "id": "task-design-001",
                 "type": "design",
@@ -585,7 +525,7 @@ class Orchestrator:
             })
         
         # 检测是否需要后端
-        if any(kw in req_lower for kw in ['api', '数据库', '后端', '服务器', '存储']):
+        if any(kw in requirement.lower() for kw in ['api', '数据库', '后端', '服务器', '存储']):
             tasks.append({
                 "id": "task-backend-001",
                 "type": "backend",
@@ -596,7 +536,7 @@ class Orchestrator:
             })
         
         # 检测是否需要前端
-        if any(kw in req_lower for kw in ['前端', '页面', '组件', '交互', 'html', 'css']):
+        if any(kw in requirement.lower() for kw in ['前端', '页面', '组件', '交互', 'html', 'css']):
             tasks.append({
                 "id": "task-frontend-001",
                 "type": "frontend",
