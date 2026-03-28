@@ -15,8 +15,12 @@ from datetime import datetime
 # P1 新增：导入 OpenClaw API
 try:
     from .openclaw_api import OpenClawAPI
+    from .review_collector import CodeReviewIntegration
+    from .incremental_generator import IncrementalCodeGenerator
 except ImportError:
     from openclaw_api import OpenClawAPI
+    from review_collector import CodeReviewIntegration
+    from incremental_generator import IncrementalCodeGenerator
 
 
 class AgentTaskExecutor:
@@ -37,6 +41,12 @@ class AgentTaskExecutor:
         
         # P1 新增：OpenClaw API 客户端
         self.openclaw = OpenClawAPI(str(self.workspace))
+        
+        # P2 新增：代码审查集成
+        self.review_collector = CodeReviewIntegration(str(self.workspace))
+        
+        # P3 新增：增量代码生成器
+        self.incremental_generator = IncrementalCodeGenerator(str(self.workspace))
     
     def set_project(self, project_id: str, project_config: Dict):
         """
@@ -58,7 +68,8 @@ class AgentTaskExecutor:
         
         print(f"   📁 设置项目工作区：{self.workspace}")
     
-    def execute_task(self, agent_id: str, task: str, output_dir: Path, timeout_seconds: int = 3600, use_real_agent: bool = True) -> Dict:
+    def execute_task(self, agent_id: str, task: str, output_dir: Path, timeout_seconds: int = 3600, 
+                     use_real_agent: bool = True, workflow_id: str = None, use_incremental: bool = False) -> Dict:
         """
         执行任务并收集代码
         
@@ -68,6 +79,8 @@ class AgentTaskExecutor:
             output_dir: 输出目录
             timeout_seconds: 超时时间
             use_real_agent: 是否使用真实 Agent (默认 True)
+            workflow_id: 工作流 ID (用于审查反馈)
+            use_incremental: 是否使用增量修改 (默认 False)
         
         Returns:
             执行结果
@@ -75,6 +88,12 @@ class AgentTaskExecutor:
         print(f"\n🚀 执行任务：{agent_id}")
         print(f"   任务：{task[:100]}...")
         print(f"   模式：{'真实 Agent 调用' if use_real_agent else '模拟执行'}")
+        print(f"   增量修改：{'启用' if use_incremental else '禁用'}")
+        
+        # P3: 如果有审查反馈且启用增量修改，生成增量变更
+        if use_incremental and workflow_id:
+            print(f"\n📝 应用增量代码生成 (工作流：{workflow_id})")
+            return self._execute_incremental_task(agent_id, task, output_dir, workflow_id, timeout_seconds)
         
         # 1. 创建会话
         session_id = self._create_session(agent_id, task)
@@ -225,6 +244,120 @@ class AgentTaskExecutor:
                     with open(session_file, 'w', encoding='utf-8') as f:
                         json.dump(data, f, indent=2, ensure_ascii=False)
                     break
+    
+    def _execute_incremental_task(self, agent_id: str, task: str, output_dir: Path, 
+                                  workflow_id: str, timeout_seconds: int) -> Dict:
+        """
+        P3: 执行增量任务 (基于审查反馈)
+        
+        Args:
+            agent_id: Agent ID
+            task: 任务描述
+            output_dir: 输出目录
+            workflow_id: 工作流 ID
+            timeout_seconds: 超时时间
+        
+        Returns:
+            执行结果
+        """
+        print(f"\n🔄 执行增量任务...")
+        
+        # 1. 获取审查反馈
+        print(f"   📋 获取审查反馈...")
+        feedback = self.review_collector.get_code_feedback(workflow_id)
+        
+        if feedback['review_approved']:
+            print(f"   ✅ 审查已通过，无需增量修改")
+            # 返回空结果
+            return {
+                "status": "skipped",
+                "reason": "审查已通过",
+                "changes": []
+            }
+        
+        print(f"   关键问题：{len(feedback['critical_issues'])}")
+        print(f"   建议：{len(feedback['suggestions'])}")
+        
+        # 2. 加载现有代码文件 (从工作流或缓存)
+        print(f"   📂 加载现有代码文件...")
+        existing_files = self._load_existing_files(workflow_id)
+        
+        # 3. 生成增量变更
+        print(f"   🔧 生成增量变更...")
+        changes = self.incremental_generator.generate_incremental_changes(
+            workflow_id, task, existing_files, feedback
+        )
+        
+        # 4. 应用变更
+        print(f"   📝 应用变更...")
+        code_files = []
+        for change in changes:
+            file_path = output_dir / change['file_path']
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(change['new_content'])
+            
+            # 保存变更历史
+            self.incremental_generator.save_code_history(
+                workflow_id, change['file_path'],
+                change['old_content'], change['new_content'],
+                self.incremental_generator.analyze_code_diff(
+                    change['old_content'], change['new_content'], change['file_path']
+                )
+            )
+            
+            code_files.append({
+                "filename": Path(change['file_path']).name,
+                "path": str(file_path),
+                "language": self._detect_language(change['file_path']),
+                "size": len(change['new_content']),
+                "action": change['action']
+            })
+        
+        # 5. 生成变更摘要
+        summary = self.incremental_generator.generate_change_summary(changes)
+        print(f"   📊 变更摘要:")
+        print(f"      修改文件：{summary['modified_files']}")
+        print(f"      新增行数：{summary['total_added_lines']}")
+        print(f"      删除行数：{summary['total_removed_lines']}")
+        
+        return {
+            "status": "completed",
+            "reason": "增量修改完成",
+            "changes": changes,
+            "summary": summary,
+            "code_files": code_files
+        }
+    
+    def _load_existing_files(self, workflow_id: str) -> List[Dict]:
+        """
+        加载工作流的现有代码文件
+        
+        TODO: 从代码历史或缓存加载
+        当前为占位实现
+        """
+        # 占位实现：返回空列表
+        # 真实实现应该从 code_history_dir 加载
+        return []
+    
+    def _detect_language(self, file_path: str) -> str:
+        """检测文件语言"""
+        ext_map = {
+            '.py': 'python',
+            '.js': 'javascript',
+            '.ts': 'typescript',
+            '.jsx': 'javascript',
+            '.tsx': 'typescript',
+            '.swift': 'swift',
+            '.kt': 'kotlin',
+            '.dart': 'dart',
+            '.java': 'java',
+            '.go': 'go',
+            '.rs': 'rust'
+        }
+        ext = Path(file_path).suffix.lower()
+        return ext_map.get(ext, 'unknown')
     
     def _simulate_agent_execution(self, agent_id: str, task: str, session_id: str) -> Dict:
         """
