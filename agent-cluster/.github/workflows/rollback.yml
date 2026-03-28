@@ -1,0 +1,79 @@
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_version:
+        description: 'Target version to rollback to (e.g., v1.2.3)'
+        required: true
+      environment:
+        description: 'Environment to rollback (staging/production)'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - staging
+        - production
+
+jobs:
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+      
+      - name: Configure kubectl
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > kubeconfig
+          else
+            echo "${{ secrets.STAGING_KUBECONFIG }}" | base64 -d > kubeconfig
+          fi
+          export KUBECONFIG=kubeconfig
+      
+      - name: Rollback Deployment
+        run: |
+          IMAGE="${{ github.repository }}:${{ github.event.inputs.target_version }}"
+          kubectl set image deployment/app app=$IMAGE
+          kubectl rollout status deployment/app --timeout=300s
+      
+      - name: Health Check
+        run: |
+          for i in {1..60}; do
+            if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+              ENDPOINT="https://api.example.com/health"
+            else
+              ENDPOINT="https://staging.example.com/health"
+            fi
+            
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" $ENDPOINT)
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Health check passed"
+              exit 0
+            fi
+            echo "Waiting for health check... ($i/60)"
+            sleep 10
+          done
+          echo "❌ Health check failed"
+          exit 1
+      
+      - name: Notify Rollback Result
+        if: always()
+        uses: zcong1993/actions-ding@master
+        with:
+          dingToken: ${{ secrets.DINGTALK_WEBHOOK }}
+          secret: ${{ secrets.DINGTALK_SECRET }}
+          body: |
+            {
+              "msgtype": "markdown",
+              "markdown": {
+                "title": "Rollback Result",
+                "text": "## Rollback Result\n\n**Status**: ${{ job.status }}\n**Target Version**: ${{ github.event.inputs.target_version }}\n**Environment**: ${{ github.event.inputs.environment }}\n**Time**: ${{ github.event.head_commit.timestamp }}"
+              }
+            }

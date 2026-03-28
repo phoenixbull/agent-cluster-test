@@ -1,0 +1,58 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+      
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.STAGING_KUBECONFIG }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+      
+      - name: Deploy to Staging
+        run: |
+          kubectl set image deployment/app app=${{ github.repository }}:${{ github.sha }}
+          kubectl rollout status deployment/app
+      
+      - name: Health Check
+        run: |
+          for i in {1..30}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://staging.example.com/health)
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Health check passed"
+              exit 0
+            fi
+            echo "Waiting for health check... ($i/30)"
+            sleep 10
+          done
+          echo "❌ Health check failed"
+          exit 1
+      
+      - name: Notify Deployment Result
+        if: always()
+        uses: zcong1993/actions-ding@master
+        with:
+          dingToken: ${{ secrets.DINGTALK_WEBHOOK }}
+          secret: ${{ secrets.DINGTALK_SECRET }}
+          body: |
+            {
+              "msgtype": "markdown",
+              "markdown": {
+                "title": "Staging Deployment Result",
+                "text": "## Staging Deployment Result\n\n**Status**: ${{ job.status }}\n**Commit**: ${{ github.sha }}\n**Environment**: Staging\n**Time**: ${{ github.event.head_commit.timestamp }}"
+              }
+            }

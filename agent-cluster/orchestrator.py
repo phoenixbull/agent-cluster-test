@@ -21,6 +21,7 @@ from utils.github_helper import GitHubAPI, create_github_client
 from utils.agent_executor import AgentTaskExecutor
 from utils.project_router import ProjectRouter
 from utils.phase5_reviewer import Phase5Reviewer
+from utils.cicd_integration import CICDIntegration
 import json
 
 
@@ -200,6 +201,9 @@ class Orchestrator:
         
         # 🔍 Phase 5 Reviewer
         self.reviewer = Phase5Reviewer()
+        
+        # 🚀 CI/CD Integration
+        self.cicd = CICDIntegration(str(self.config_path))
     
     def _load_config(self) -> Dict:
         """加载配置"""
@@ -453,42 +457,84 @@ class Orchestrator:
             # 确保 pr_info 已定义（从 review_result 获取）
             pr_info = review_result.get('pr_info', {}) if review_result else {}
             
-            # 阶段 6: 部署确认
-            print("\n🚀 阶段 6/6: 部署确认")
+            # 阶段 6: 部署确认和 CI/CD
+            print("\n🚀 阶段 6/6: 部署确认和 CI/CD")
             self.state.update_phase(workflow_id, "deployment", "pending_confirmation")
+            
+            # 检查质量门禁
+            print("\n🚪 检查质量门禁...")
+            quality_result = self.cicd.check_quality_gate(test_result, review_result)
+            
+            if not quality_result['passed']:
+                print(f"\n❌ 质量门禁未通过:")
+                for issue in quality_result['issues']:
+                    print(f"   - {issue}")
+                
+                # 发送质量门禁失败通知
+                if self.notifier:
+                    self.notifier.notify_phase5_review_issues(
+                        {"id": workflow_id},
+                        {"issues": quality_result['issues']}
+                    )
+                
+                # 质量门禁失败，不继续部署
+                self.state.fail_workflow(workflow_id, f"质量门禁未通过：{', '.join(quality_result['issues'])}")
+                return
+            
+            print(f"   ✅ 质量门禁通过")
+            
+            # 触发 CI/CD 流程
+            print("\n🔧 触发 CI/CD 流程...")
+            cicd_result = self.cicd.setup_github_actions()
+            print(f"   ✅ CI/CD 工作流已创建：{', '.join(cicd_result['workflows_created'])}")
+            
+            # 检查 CI 状态
+            print("\n📊 检查 CI 状态...")
+            ci_status = self.cicd.check_ci_status()
+            print(f"   CI 状态：{ci_status['status']}")
+            print(f"   覆盖率：{ci_status['coverage']}%")
             
             # 发送部署确认通知（钉钉，@所有人）
             if self.notifier:
                 print(f"\n📱 发送部署确认通知...")
-                # 即使没有 pr_info 也发送通知
                 deploy_pr_info = pr_info if pr_info else {}
+                deploy_pr_info['ci_status'] = ci_status
+                deploy_pr_info['quality_gate'] = quality_result
+                
                 self.notifier.send_deploy_confirmation(
                     {"id": workflow_id, "description": requirement[:50], "agent": "cluster"},
                     deploy_pr_info
                 )
                 print(f"   ✅ 部署确认通知已发送（钉钉）")
-            else:
-                print(f"   ⚠️ 通知器未初始化，跳过发送")
             
             # 等待人工确认（简化版：标记为待确认状态）
             print(f"\n⏳ 等待部署确认（30 分钟超时）...")
             print(f"   PR: {pr_info.get('pr_url', 'N/A')}")
-            print(f"   请在钉钉确认或访问管理后台确认部署")
+            print(f"   CI 状态：{ci_status['status']}")
+            print(f"   请在钉钉确认或访问 GitHub Actions 触发部署")
             
             self.state.update_phase(workflow_id, "deployment", "waiting_confirmation", {
                 "pr_info": pr_info,
+                "ci_status": ci_status,
+                "quality_gate": quality_result,
                 "confirmation_timeout": 30 * 60,
                 "notified_at": datetime.now().isoformat()
             })
             
-            # 暂时完成工作流（实际应在确认后完成）
+            # 完成工作流
             self.state.complete_workflow(workflow_id, {
                 "pr_info": pr_info,
                 "tasks": tasks,
+                "ci_status": ci_status,
+                "quality_gate": quality_result,
                 "deployment_status": "waiting_confirmation"
             })
             
             print(f"\n✅ 工作流 {workflow_id} 完成！等待部署确认...")
+            print(f"   📋 下一步:")
+            print(f"      1. 在 GitHub 查看 PR: {pr_info.get('pr_url', 'N/A')}")
+            print(f"      2. 确认 CI 状态：{ci_status['status']}")
+            print(f"      3. 在 GitHub Actions 触发部署到 Staging/Production")
             
         except Exception as e:
             print(f"\n❌ 工作流执行失败：{e}")

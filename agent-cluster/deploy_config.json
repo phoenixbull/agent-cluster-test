@@ -1,0 +1,39 @@
+{
+  "environments": {
+    "staging": {
+      "name": "Staging",
+      "url": "https://staging.example.com",
+      "health_endpoint": "/health",
+      "auto_deploy": true,
+      "require_approval": false,
+      "rollback_enabled": true,
+      "notification_enabled": true
+    },
+    "production": {
+      "name": "Production",
+      "url": "https://api.example.com",
+      "health_endpoint": "/health",
+      "auto_deploy": false,
+      "require_approval": true,
+      "approvers": [
+        "admin"
+      ],
+      "rollback_enabled": true,
+      "notification_enabled": true
+    }
+  },
+  "health_check": {
+    "timeout_seconds": 300,
+    "interval_seconds": 10,
+    "max_retries": 3,
+    "endpoints": [
+      "/health",
+      "/api/status"
+    ]
+  },
+  "rollback": {
+    "auto_rollback_on_failure": true,
+    "keep_backup_versions": 5,
+    "rollback_timeout_seconds": 600
+  }
+}
