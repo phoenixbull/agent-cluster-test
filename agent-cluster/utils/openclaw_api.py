@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-OpenClaw API 集成模块 - 简化版本
-直接通过 subprocess 调用 openclaw agent 命令
+OpenClaw API 集成模块 - sessions_spawn 版本
+使用 sessions_spawn 直接调用，绕过 bootstrap
 """
 
 import json
@@ -42,48 +42,85 @@ class OpenClawAPI:
         """
         触发 Agent 执行任务
         
-        使用 openclaw agent 命令，异步执行不等待结果
+        🆕 使用 openclaw agent 命令，传递明确的任务上下文
         """
-        print(f"\n🚀 触发 Agent: {agent_id}")
+        print(f"\n🚀 触发 Agent: {agent_id} (直接任务模式)")
         print(f"   任务：{task[:80]}...")
         
         if not self.openclaw_cli:
             return self._mock_result(agent_id, task)
         
-        # 异步执行，不等待结果
-        session_key = f"session-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        # 创建新会话，传递明确的任务
+        session_key = f"task-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         
         try:
-            # 后台执行命令
+            # 使用 agent 命令，传递明确的任务描述
             cmd = [
                 self.openclaw_cli,
                 "agent",
                 "--agent", agent_id,
-                "--message", task
+                "--message", f"任务：{task}. 请直接执行这个任务，不需要检查上下文。",
+                "--session-id", session_key,
+                "--json"
             ]
             
-            # 使用 Popen 异步执行
-            process = subprocess.Popen(
+            print(f"   ⏳ 执行中...")
+            
+            result = subprocess.run(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
+                timeout=timeout_seconds,
                 cwd=str(self.workspace)
             )
             
-            print(f"   ✅ Agent 已触发 (PID: {process.pid})")
-            print(f"   ⏳ 执行中... (后台运行)")
+            if result.returncode == 0:
+                output = result.stdout.strip()
+                print(f"   ✅ 执行完成")
+                
+                # 解析 JSON 结果
+                try:
+                    json_result = json.loads(output)
+                    return {
+                        "success": True,
+                        "session_key": json_result.get('sessionKey', session_key),
+                        "output": json_result.get('result', output),
+                        "messages": json_result.get('messages', []),
+                        "agent_id": agent_id,
+                        "task": task,
+                        "timestamp": datetime.now().isoformat(),
+                        "async": False
+                    }
+                except:
+                    return {
+                        "success": True,
+                        "session_key": session_key,
+                        "output": output,
+                        "agent_id": agent_id,
+                        "task": task,
+                        "timestamp": datetime.now().isoformat(),
+                        "async": False
+                    }
+            else:
+                print(f"   ❌ 执行失败：{result.stderr}")
+                return {
+                    "success": False,
+                    "error": result.stderr,
+                    "agent_id": agent_id,
+                    "task": task,
+                    "timestamp": datetime.now().isoformat()
+                }
             
+        except subprocess.TimeoutExpired:
+            print(f"   ⚠️ 执行超时")
             return {
-                "success": True,
-                "session_key": session_key,
-                "pid": process.pid,
+                "success": False,
+                "error": "timeout",
                 "agent_id": agent_id,
                 "task": task,
-                "timestamp": datetime.now().isoformat(),
-                "async": True
+                "timestamp": datetime.now().isoformat()
             }
-            
         except Exception as e:
             print(f"   ❌ 触发失败：{e}")
             return {
@@ -97,8 +134,10 @@ class OpenClawAPI:
     def spawn_agent_sync(self, agent_id: str, task: str, timeout_seconds: int = 120) -> Dict:
         """
         同步触发 Agent 并等待结果 (短时间任务)
+        
+        🆕 使用 sessions_spawn 直接调用
         """
-        print(f"\n🚀 触发 Agent: {agent_id} (同步模式)")
+        print(f"\n🚀 触发 Agent: {agent_id} (sessions_spawn 同步模式)")
         print(f"   任务：{task[:80]}...")
         
         if not self.openclaw_cli:
@@ -107,9 +146,10 @@ class OpenClawAPI:
         try:
             cmd = [
                 self.openclaw_cli,
-                "agent",
+                "sessions", "spawn",
                 "--agent", agent_id,
-                "--message", task,
+                "--task", task,
+                "--mode", "run",
                 "--json"
             ]
             
