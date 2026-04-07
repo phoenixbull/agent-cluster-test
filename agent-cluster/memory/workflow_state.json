@@ -7503,6 +7503,143 @@
       "result": null,
       "project_id": "ecommerce",
       "error": "质量门禁未通过：覆盖率 0% < 80%"
+    },
+    "wf-20260407-191719-80c1": {
+      "id": "wf-20260407-191719-80c1",
+      "status": "failed",
+      "requirement": "[电商] 添加购物车功能",
+      "phases": {
+        "analysis": {
+          "status": "completed",
+          "result": {
+            "tasks": [
+              {
+                "id": "task-backend-001",
+                "type": "backend",
+                "agent": "codex",
+                "description": "后端开发",
+                "requirements": [
+                  "API 设计",
+                  "业务逻辑"
+                ],
+                "prompt": "实现以下功能：[电商] 添加购物车功能"
+              },
+              {
+                "id": "task-frontend-001",
+                "type": "frontend",
+                "agent": "claude-code",
+                "description": "前端开发",
+                "requirements": [
+                  "UI 组件",
+                  "交互逻辑"
+                ],
+                "prompt": "实现以下功能的前端：[电商] 添加购物车功能"
+              }
+            ]
+          }
+        },
+        "design": {
+          "status": "completed",
+          "result": {
+            "status": "skipped",
+            "design_files": []
+          }
+        },
+        "coding": {
+          "status": "completed",
+          "result": {
+            "status": "completed",
+            "results": [
+              {
+                "task": {
+                  "id": "task-backend-001",
+                  "type": "backend",
+                  "agent": "codex",
+                  "description": "后端开发",
+                  "requirements": [
+                    "API 设计",
+                    "业务逻辑"
+                  ],
+                  "prompt": "实现以下功能：[电商] 添加购物车功能"
+                },
+                "result": {
+                  "session_id": "906ab3cf",
+                  "agent_id": "codex",
+                  "status": "completed",
+                  "code_files": [],
+                  "execution_result": {
+                    "files": [],
+                    "source": "real_agent",
+                    "session_key": "session-20260407-191719",
+                    "messages": []
+                  }
+                }
+              },
+              {
+                "task": {
+                  "id": "task-frontend-001",
+                  "type": "frontend",
+                  "agent": "claude-code",
+                  "description": "前端开发",
+                  "requirements": [
+                    "UI 组件",
+                    "交互逻辑"
+                  ],
+                  "prompt": "实现以下功能的前端：[电商] 添加购物车功能"
+                },
+                "result": {
+                  "session_id": "89ae0ed2",
+                  "agent_id": "claude-code",
+                  "status": "completed",
+                  "code_files": [],
+                  "execution_result": {
+                    "files": [],
+                    "source": "real_agent",
+                    "session_key": "session-20260407-191749",
+                    "messages": []
+                  }
+                }
+              }
+            ],
+            "code_files": []
+          }
+        },
+        "testing": {
+          "status": "completed",
+          "result": {
+            "status": "passed",
+            "total_tests": 0,
+            "passed_tests": 0,
+            "failed_tests": 0,
+            "coverage": 0,
+            "bugs": [],
+            "report_path": "/home/admin/.openclaw/workspace/agent-cluster/memory/metrics/test_report_20260407-191819.json"
+          }
+        },
+        "review": {
+          "status": "completed",
+          "result": {
+            "status": "approved",
+            "reviews": [],
+            "summary": {
+              "total_issues": 0,
+              "average_score": 100
+            }
+          }
+        },
+        "pr": {
+          "status": "pending"
+        },
+        "deployment": {
+          "status": "pending_confirmation",
+          "result": {}
+        }
+      },
+      "started_at": "2026-04-07T19:17:19.696347",
+      "completed_at": "2026-04-07T19:18:20.069323",
+      "result": null,
+      "project_id": "ecommerce",
+      "error": "质量门禁未通过：覆盖率 0% < 80%"
     }
   }
 }
