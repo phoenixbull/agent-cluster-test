@@ -185,24 +185,87 @@ def _collect_code_files(self, session_id: str, output_dir: Path, execution_resul
 
 ## 📋 实施计划
 
-### 第一阶段：清理会话（立即执行）
+### 第一阶段：清理会话（✅ 已完成）
 
-- [ ] 备份旧会话记录
-- [ ] 清理 sessions 目录
+- [x] 备份旧会话记录 (`/tmp/old-sessions-backup/`)
+- [x] 清理 sessions 目录
+- [x] 重新测试电商项目
+- [x] 验证 output_dir 修复
+
+**测试结果**:
+- ✅ 项目识别：电商项目 (关键词匹配)
+- ✅ 工作区设置：`/home/admin/.openclaw/workspace/ecommerce-platform`
+- ✅ output_dir 选择：使用 GitHub 仓库目录
+- ✅ 新会话创建：`906ab3cf` (codex), `89ae0ed2` (claude-code)
+- ❌ 代码生成：0 个代码文件
+- ❌ 测试执行：跳过 (无代码)
+- ❌ Review: 跳过 (无代码)
+
+---
+
+### 第二阶段：Gateway 诊断（✅ 已完成）
+
+**诊断结果**:
+
+| 检查项 | 状态 | 说明 |
+|--------|------|------|
+| Gateway 进程 | ✅ 正常 | PID 609337 |
+| Gateway 端口 | ✅ 正常 | 14065 |
+| RPC probe | ✅ 正常 | ok |
+| 日志文件 | ✅ 正常 | `/tmp/openclaw/openclaw-2026-04-07.log` |
+
+**发现的问题**:
+
+| 问题 | 优先级 | 说明 |
+|------|--------|------|
+| Agent 收到错误消息 | 🔴 高 | 收到默认提示而非任务描述 |
+| sessions.json 覆盖 | 🟡 中 | 清理时会话状态丢失 |
+| 模型配置问题 | 🟡 中 | `bailian/glm-5` 不可用 |
+
+**根因分析**:
+
+1. `openclaw agent --message` 命令格式可能不正确
+2. Gateway 可能使用了缓存的默认消息
+3. sessions.json 状态不正确
+
+---
+
+### 第三阶段：修复 Agent 消息传递（⏳ 待执行）
+
+**建议方案**:
+
+1. **测试直接调用 openclaw CLI** (15 分钟)
+   ```bash
+   openclaw agent --agent codex --message "测试任务"
+   ```
+
+2. **检查 agent_executor 调用方式** (20 分钟)
+   - 验证 `spawn_agent` 的参数传递
+   - 或尝试使用 `sessions_spawn` 直接调用
+
+3. **清理 Gateway 缓存** (5 分钟)
+   ```bash
+   systemctl --user restart openclaw-gateway
+   ```
+
+4. **配置 GitHub user/repo** (5 分钟)
+   ```bash
+   # 更新 cluster_config_v2.json
+   # user: phoenixbull
+   # repo: agent-cluster-test
+   ```
+
+---
+
+### 第四阶段：重新测试验证（⏳ 待执行）
+
+- [ ] 修复 Agent 消息传递
+- [ ] 配置 GitHub user/repo
 - [ ] 重新测试电商项目
-- [ ] 验证生成的代码
-
-### 第二阶段：配置 GitHub（可选）
-
-- [ ] 更新 cluster_config_v2.json
-- [ ] 重启服务
-- [ ] 验证 repo_dir 路径
-
-### 第三阶段：代码逻辑修复（如需要）
-
-- [ ] 修改 _collect_code_files 逻辑
-- [ ] 添加会话验证
-- [ ] 测试验证
+- [ ] 验证代码生成
+- [ ] 验证测试执行
+- [ ] 验证 Review
+- [ ] 验证质量门禁
 
 ---
 
