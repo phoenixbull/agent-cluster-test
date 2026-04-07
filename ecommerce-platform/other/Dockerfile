@@ -1,18 +1,16 @@
-FROM node:20-alpine
+FROM python:3.9-slim
 
 WORKDIR /app
 
-# 复制 package 文件
-COPY package*.json ./
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 安装依赖
-RUN npm install
+# Copy application
+COPY *.py .
 
-# 复制代码
-COPY . .
+# Expose port
+EXPOSE 8000
 
-# 暴露端口
-EXPOSE 5173
-
-# 启动开发服务器
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Run with uvicorn
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
