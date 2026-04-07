@@ -7640,6 +7640,773 @@
       "result": null,
       "project_id": "ecommerce",
       "error": "质量门禁未通过：覆盖率 0% < 80%"
+    },
+    "wf-20260407-195314-4507": {
+      "id": "wf-20260407-195314-4507",
+      "status": "failed",
+      "requirement": "[电商] 添加一个简单的商品列表 API，支持获取所有商品和商品详情",
+      "phases": {
+        "analysis": {
+          "status": "completed",
+          "result": {
+            "tasks": [
+              {
+                "id": "task-backend-001",
+                "type": "backend",
+                "agent": "codex",
+                "description": "后端 API 开发",
+                "requirements": [
+                  "数据库设计",
+                  "API 接口",
+                  "业务逻辑"
+                ],
+                "prompt": "为以下需求实现后端 API: [电商] 添加一个简单的商品列表 API，支持获取所有商品和商品详情"
+              }
+            ]
+          }
+        },
+        "design": {
+          "status": "completed",
+          "result": {
+            "status": "skipped",
+            "design_files": []
+          }
+        },
+        "coding": {
+          "status": "completed",
+          "result": {
+            "status": "completed",
+            "results": [
+              {
+                "task": {
+                  "id": "task-backend-001",
+                  "type": "backend",
+                  "agent": "codex",
+                  "description": "后端 API 开发",
+                  "requirements": [
+                    "数据库设计",
+                    "API 接口",
+                    "业务逻辑"
+                  ],
+                  "prompt": "为以下需求实现后端 API: [电商] 添加一个简单的商品列表 API，支持获取所有商品和商品详情"
+                },
+                "result": {
+                  "session_id": "7c43db15",
+                  "agent_id": "codex",
+                  "status": "completed",
+                  "code_files": [
+                    {
+                      "filename": "2026-04-07.md",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/2026-04-07.md",
+                      "language": "md",
+                      "size": 2584,
+                      "subdir": "docs",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/memory/2026-04-07.md"
+                    },
+                    {
+                      "filename": "WORKSPACE_SUMMARY.md",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/WORKSPACE_SUMMARY.md",
+                      "language": "md",
+                      "size": 2379,
+                      "subdir": "docs",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/WORKSPACE_SUMMARY.md"
+                    },
+                    {
+                      "filename": "api.py",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/backend/api.py",
+                      "language": "py",
+                      "size": 8181,
+                      "subdir": "backend",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/api.py"
+                    },
+                    {
+                      "filename": "requirements.txt",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/requirements.txt",
+                      "language": "txt",
+                      "size": 49,
+                      "subdir": "docs",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/requirements.txt"
+                    },
+                    {
+                      "filename": "test_api.py",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/backend/test_api.py",
+                      "language": "py",
+                      "size": 8445,
+                      "subdir": "backend",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/test_api.py"
+                    },
+                    {
+                      "filename": "2026-04-07.md",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/2026-04-07.md",
+                      "language": "md",
+                      "size": 2584,
+                      "subdir": "docs",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/memory/2026-04-07.md"
+                    },
+                    {
+                      "filename": "Dockerfile",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/other/Dockerfile",
+                      "language": "text",
+                      "size": 279,
+                      "subdir": "other",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/Dockerfile"
+                    },
+                    {
+                      "filename": "docker-compose.yml",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/config/docker-compose.yml",
+                      "language": "yml",
+                      "size": 288,
+                      "subdir": "config",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/docker-compose.yml"
+                    },
+                    {
+                      "filename": ".dockerignore",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/other/.dockerignore",
+                      "language": "text",
+                      "size": 147,
+                      "subdir": "other",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/.dockerignore"
+                    },
+                    {
+                      "filename": "demo.html",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/frontend/demo.html",
+                      "language": "html",
+                      "size": 10489,
+                      "subdir": "frontend",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/demo.html"
+                    },
+                    {
+                      "filename": "2026-04-07.md",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/2026-04-07.md",
+                      "language": "md",
+                      "size": 2584,
+                      "subdir": "docs",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/memory/2026-04-07.md"
+                    }
+                  ],
+                  "execution_result": {
+                    "files": [
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/memory/2026-04-07.md",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/WORKSPACE_SUMMARY.md",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/api.py",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/requirements.txt",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/test_api.py",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/memory/2026-04-07.md",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/Dockerfile",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/docker-compose.yml",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/.dockerignore",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/demo.html",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/memory/2026-04-07.md",
+                        "source": "agent_session"
+                      }
+                    ],
+                    "source": "real_agent",
+                    "session_key": "task-20260407-195314",
+                    "messages": []
+                  }
+                }
+              }
+            ],
+            "code_files": [
+              {
+                "filename": "2026-04-07.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/2026-04-07.md",
+                "language": "md",
+                "size": 2584,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/memory/2026-04-07.md"
+              },
+              {
+                "filename": "WORKSPACE_SUMMARY.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/WORKSPACE_SUMMARY.md",
+                "language": "md",
+                "size": 2379,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/WORKSPACE_SUMMARY.md"
+              },
+              {
+                "filename": "api.py",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/backend/api.py",
+                "language": "py",
+                "size": 8181,
+                "subdir": "backend",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/api.py"
+              },
+              {
+                "filename": "requirements.txt",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/requirements.txt",
+                "language": "txt",
+                "size": 49,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/requirements.txt"
+              },
+              {
+                "filename": "test_api.py",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/backend/test_api.py",
+                "language": "py",
+                "size": 8445,
+                "subdir": "backend",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/test_api.py"
+              },
+              {
+                "filename": "2026-04-07.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/2026-04-07.md",
+                "language": "md",
+                "size": 2584,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/memory/2026-04-07.md"
+              },
+              {
+                "filename": "Dockerfile",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/other/Dockerfile",
+                "language": "text",
+                "size": 279,
+                "subdir": "other",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/Dockerfile"
+              },
+              {
+                "filename": "docker-compose.yml",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/config/docker-compose.yml",
+                "language": "yml",
+                "size": 288,
+                "subdir": "config",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/docker-compose.yml"
+              },
+              {
+                "filename": ".dockerignore",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/other/.dockerignore",
+                "language": "text",
+                "size": 147,
+                "subdir": "other",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/.dockerignore"
+              },
+              {
+                "filename": "demo.html",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/frontend/demo.html",
+                "language": "html",
+                "size": 10489,
+                "subdir": "frontend",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/workflows/wf-20260331-144618-3c5e/code/demo.html"
+              },
+              {
+                "filename": "2026-04-07.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/2026-04-07.md",
+                "language": "md",
+                "size": 2584,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/memory/2026-04-07.md"
+              }
+            ]
+          }
+        },
+        "testing": {
+          "status": "completed",
+          "result": {
+            "status": "passed",
+            "total_tests": 0,
+            "passed_tests": 0,
+            "failed_tests": 0,
+            "coverage": 0,
+            "bugs": [],
+            "report_path": "/home/admin/.openclaw/workspace/agent-cluster/memory/metrics/test_report_20260407-195503.json"
+          }
+        },
+        "review": {
+          "status": "completed",
+          "result": {
+            "status": "approved",
+            "reviews": [],
+            "summary": {
+              "total_issues": 0,
+              "average_score": 100
+            }
+          }
+        },
+        "pr": {
+          "status": "pending"
+        },
+        "deployment": {
+          "status": "pending_confirmation",
+          "result": {}
+        }
+      },
+      "started_at": "2026-04-07T19:53:14.718938",
+      "completed_at": "2026-04-07T19:55:03.714678",
+      "result": null,
+      "project_id": "ecommerce",
+      "error": "质量门禁未通过：覆盖率 0% < 80%"
+    },
+    "wf-20260407-201019-fc3a": {
+      "id": "wf-20260407-201019-fc3a",
+      "status": "failed",
+      "requirement": "[电商] 添加用户认证 API，支持注册和登录功能",
+      "phases": {
+        "analysis": {
+          "status": "completed",
+          "result": {
+            "tasks": [
+              {
+                "id": "task-backend-001",
+                "type": "backend",
+                "agent": "codex",
+                "description": "后端 API 开发",
+                "requirements": [
+                  "数据库设计",
+                  "API 接口",
+                  "业务逻辑"
+                ],
+                "prompt": "为以下需求实现后端 API: [电商] 添加用户认证 API，支持注册和登录功能"
+              }
+            ]
+          }
+        },
+        "design": {
+          "status": "completed",
+          "result": {
+            "status": "skipped",
+            "design_files": []
+          }
+        },
+        "coding": {
+          "status": "completed",
+          "result": {
+            "status": "completed",
+            "results": [
+              {
+                "task": {
+                  "id": "task-backend-001",
+                  "type": "backend",
+                  "agent": "codex",
+                  "description": "后端 API 开发",
+                  "requirements": [
+                    "数据库设计",
+                    "API 接口",
+                    "业务逻辑"
+                  ],
+                  "prompt": "为以下需求实现后端 API: [电商] 添加用户认证 API，支持注册和登录功能"
+                },
+                "result": {
+                  "session_id": "a2f59ab0",
+                  "agent_id": "codex",
+                  "status": "completed",
+                  "code_files": [
+                    {
+                      "filename": ".gitignore",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/other/.gitignore",
+                      "language": "text",
+                      "size": 590,
+                      "subdir": "other",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/.gitignore"
+                    },
+                    {
+                      "filename": "notifier_sender.py",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/backend/notifier_sender.py",
+                      "language": "py",
+                      "size": 3711,
+                      "subdir": "backend",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/notifier_sender.py"
+                    },
+                    {
+                      "filename": "notifier_sender.py",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/backend/notifier_sender.py",
+                      "language": "py",
+                      "size": 3711,
+                      "subdir": "backend",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/notifier_sender.py"
+                    },
+                    {
+                      "filename": "PROJECT_ISOLATION_FIX_PLAN.md",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/PROJECT_ISOLATION_FIX_PLAN.md",
+                      "language": "md",
+                      "size": 6626,
+                      "subdir": "docs",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/PROJECT_ISOLATION_FIX_PLAN.md"
+                    },
+                    {
+                      "filename": "IDENTITY.md",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/IDENTITY.md",
+                      "language": "md",
+                      "size": 448,
+                      "subdir": "docs",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/IDENTITY.md"
+                    },
+                    {
+                      "filename": "USER.md",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/USER.md",
+                      "language": "md",
+                      "size": 615,
+                      "subdir": "docs",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/USER.md"
+                    },
+                    {
+                      "filename": "PROJECT_ISOLATION_FIX_PLAN_FINAL.md",
+                      "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/PROJECT_ISOLATION_FIX_PLAN_FINAL.md",
+                      "language": "md",
+                      "size": 1911,
+                      "subdir": "docs",
+                      "source": "/home/admin/.openclaw/workspace/agent-cluster/PROJECT_ISOLATION_FIX_PLAN_FINAL.md"
+                    }
+                  ],
+                  "execution_result": {
+                    "files": [
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/.github/workflows/ci-simple.yml",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/.github/workflows/deploy-server.yml",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/docker-compose.yml",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/DEPLOYMENT_GUIDE.md",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/test-github-secrets.sh",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/.gitignore",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/notifier_sender.py",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/notifier_sender.py",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/PROJECT_ISOLATION_FIX_PLAN.md",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/IDENTITY.md",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/USER.md",
+                        "source": "agent_session"
+                      },
+                      {
+                        "path": "/home/admin/.openclaw/workspace/agent-cluster/PROJECT_ISOLATION_FIX_PLAN_FINAL.md",
+                        "source": "agent_session"
+                      }
+                    ],
+                    "source": "real_agent",
+                    "session_key": "task-20260407-201019",
+                    "messages": []
+                  }
+                }
+              }
+            ],
+            "code_files": [
+              {
+                "filename": ".gitignore",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/other/.gitignore",
+                "language": "text",
+                "size": 590,
+                "subdir": "other",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/.gitignore"
+              },
+              {
+                "filename": "notifier_sender.py",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/backend/notifier_sender.py",
+                "language": "py",
+                "size": 3711,
+                "subdir": "backend",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/notifier_sender.py"
+              },
+              {
+                "filename": "notifier_sender.py",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/backend/notifier_sender.py",
+                "language": "py",
+                "size": 3711,
+                "subdir": "backend",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/notifier_sender.py"
+              },
+              {
+                "filename": "PROJECT_ISOLATION_FIX_PLAN.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/PROJECT_ISOLATION_FIX_PLAN.md",
+                "language": "md",
+                "size": 6626,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/PROJECT_ISOLATION_FIX_PLAN.md"
+              },
+              {
+                "filename": "IDENTITY.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/IDENTITY.md",
+                "language": "md",
+                "size": 448,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/IDENTITY.md"
+              },
+              {
+                "filename": "USER.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/USER.md",
+                "language": "md",
+                "size": 615,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/USER.md"
+              },
+              {
+                "filename": "PROJECT_ISOLATION_FIX_PLAN_FINAL.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/PROJECT_ISOLATION_FIX_PLAN_FINAL.md",
+                "language": "md",
+                "size": 1911,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/PROJECT_ISOLATION_FIX_PLAN_FINAL.md"
+              }
+            ]
+          }
+        },
+        "testing": {
+          "status": "completed",
+          "result": {
+            "status": "passed",
+            "total_tests": 0,
+            "passed_tests": 0,
+            "failed_tests": 0,
+            "coverage": 0,
+            "bugs": [],
+            "report_path": "/home/admin/.openclaw/workspace/agent-cluster/memory/metrics/test_report_20260407-201317.json",
+            "code_files": [
+              {
+                "filename": ".gitignore",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/other/.gitignore",
+                "language": "text",
+                "size": 590,
+                "subdir": "other",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/.gitignore"
+              },
+              {
+                "filename": "notifier_sender.py",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/backend/notifier_sender.py",
+                "language": "py",
+                "size": 3711,
+                "subdir": "backend",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/notifier_sender.py"
+              },
+              {
+                "filename": "notifier_sender.py",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/backend/notifier_sender.py",
+                "language": "py",
+                "size": 3711,
+                "subdir": "backend",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/notifier_sender.py"
+              },
+              {
+                "filename": "PROJECT_ISOLATION_FIX_PLAN.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/PROJECT_ISOLATION_FIX_PLAN.md",
+                "language": "md",
+                "size": 6626,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/PROJECT_ISOLATION_FIX_PLAN.md"
+              },
+              {
+                "filename": "IDENTITY.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/IDENTITY.md",
+                "language": "md",
+                "size": 448,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/IDENTITY.md"
+              },
+              {
+                "filename": "USER.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/USER.md",
+                "language": "md",
+                "size": 615,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/USER.md"
+              },
+              {
+                "filename": "PROJECT_ISOLATION_FIX_PLAN_FINAL.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/PROJECT_ISOLATION_FIX_PLAN_FINAL.md",
+                "language": "md",
+                "size": 1911,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/PROJECT_ISOLATION_FIX_PLAN_FINAL.md"
+              }
+            ]
+          }
+        },
+        "review": {
+          "status": "completed",
+          "result": {
+            "status": "approved",
+            "approved": true,
+            "reviews": [
+              {
+                "reviewer_id": "codex-reviewer",
+                "model": "glm-4.7",
+                "focus": "边界情况、逻辑错误、竞态条件",
+                "status": "approved",
+                "score": 85,
+                "issues": [],
+                "comments": [
+                  "[模拟审查] codex-reviewer 审查通过"
+                ],
+                "timestamp": "2026-04-07T20:13:38.981187",
+                "mock": true
+              },
+              {
+                "reviewer_id": "gemini-reviewer",
+                "model": "qwen-plus",
+                "focus": "安全问题、扩展性、代码质量",
+                "status": "approved",
+                "score": 85,
+                "issues": [],
+                "comments": [
+                  "[模拟审查] gemini-reviewer 审查通过"
+                ],
+                "timestamp": "2026-04-07T20:13:55.046330",
+                "mock": true
+              },
+              {
+                "reviewer_id": "claude-reviewer",
+                "model": "MiniMax-M2.5",
+                "focus": "基础检查（仅 critical 问题）",
+                "status": "approved",
+                "score": 85,
+                "issues": [],
+                "comments": [
+                  "[模拟审查] claude-reviewer 审查通过"
+                ],
+                "timestamp": "2026-04-07T20:14:22.067050",
+                "mock": true
+              }
+            ],
+            "summary": {
+              "average_score": 85.0,
+              "total_issues": 0,
+              "critical_count": 0,
+              "major_count": 0,
+              "minor_count": 0,
+              "style_count": 0,
+              "reviewers_count": 3
+            },
+            "approved_count": 3,
+            "rejected_count": 0,
+            "reviewers": [
+              "codex-reviewer",
+              "gemini-reviewer",
+              "claude-reviewer"
+            ],
+            "security_score": 85.0,
+            "code_quality_score": 85.0,
+            "issues": [],
+            "critical_count": 0,
+            "major_count": 0,
+            "pr_info": {},
+            "code_files": [
+              {
+                "filename": ".gitignore",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/other/.gitignore",
+                "language": "text",
+                "size": 590,
+                "subdir": "other",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/.gitignore"
+              },
+              {
+                "filename": "notifier_sender.py",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/backend/notifier_sender.py",
+                "language": "py",
+                "size": 3711,
+                "subdir": "backend",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/notifier_sender.py"
+              },
+              {
+                "filename": "notifier_sender.py",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/backend/notifier_sender.py",
+                "language": "py",
+                "size": 3711,
+                "subdir": "backend",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/notifier_sender.py"
+              },
+              {
+                "filename": "PROJECT_ISOLATION_FIX_PLAN.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/PROJECT_ISOLATION_FIX_PLAN.md",
+                "language": "md",
+                "size": 6626,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/PROJECT_ISOLATION_FIX_PLAN.md"
+              },
+              {
+                "filename": "IDENTITY.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/IDENTITY.md",
+                "language": "md",
+                "size": 448,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/IDENTITY.md"
+              },
+              {
+                "filename": "USER.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/USER.md",
+                "language": "md",
+                "size": 615,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex/USER.md"
+              },
+              {
+                "filename": "PROJECT_ISOLATION_FIX_PLAN_FINAL.md",
+                "path": "/home/admin/.openclaw/workspace/ecommerce-platform/docs/PROJECT_ISOLATION_FIX_PLAN_FINAL.md",
+                "language": "md",
+                "size": 1911,
+                "subdir": "docs",
+                "source": "/home/admin/.openclaw/workspace/agent-cluster/PROJECT_ISOLATION_FIX_PLAN_FINAL.md"
+              }
+            ]
+          }
+        },
+        "pr": {
+          "status": "pending"
+        },
+        "deployment": {
+          "status": "pending_confirmation",
+          "result": {}
+        }
+      },
+      "started_at": "2026-04-07T20:10:19.223423",
+      "completed_at": "2026-04-07T20:14:22.122944",
+      "result": null,
+      "project_id": "ecommerce",
+      "error": "质量门禁未通过：覆盖率 0% < 80%"
     }
   }
 }
