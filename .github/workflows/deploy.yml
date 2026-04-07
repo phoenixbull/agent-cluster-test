@@ -17,6 +17,11 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/admin/.openclaw/workspace/agent-cluster
-            git pull
+            git fetch origin main
+            git checkout main
+            git pull origin main
             pkill -f web_app_v2.py || true
-            nohup python3 web_app_v2.py --port 8890 &       
+            sleep 2
+            nohup python3 web_app_v2.py --port 8890 > /dev/null 2>&1 &
+            sleep 3
+            curl -f http://localhost:8890 || exit 1            
