@@ -27,25 +27,14 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             
-            echo "🔄 重启服务..."
-            # 使用 bash -c 在子 shell 中启动，避免影响 SSH
-            bash -c '
-              pkill -f "web_app_v2.py" 2>/dev/null || true
-              sleep 2
-              cd /home/admin/.openclaw/workspace/agent-cluster
-              nohup python3 web_app_v2.py --port 8890 > /dev/null 2>&1 &
-            '
+            echo ""
+            echo "✅ 代码已更新到最新版本"
+            echo ""
+            echo "📝 下一步：手动重启服务"
+            echo "   sudo systemctl restart agent-cluster"
+            echo ""
+            echo "🔍 或者检查服务状态："
+            echo "   sudo systemctl status agent-cluster"
+            echo ""
             
-            echo "⏳ 等待服务启动..."
-            sleep 5
-            
-            echo "🔍 健康检查..."
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8890 || echo "000")
-            
-            if [ "$HTTP_CODE" = "302" ] || [ "$HTTP_CODE" = "200" ]; then
-              echo "✅ 部署成功！HTTP $HTTP_CODE"
-              exit 0
-            else
-              echo "❌ 部署失败！HTTP $HTTP_CODE"
-              exit 1
-            fi            
+            exit 0            
