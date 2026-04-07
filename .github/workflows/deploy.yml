@@ -19,7 +19,6 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 5m
-          script_stop: false
           script: |
             echo "🚀 开始部署..."
             cd /home/admin/.openclaw/workspace/agent-cluster
@@ -28,14 +27,14 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             
-            echo "🔄 停止旧服务..."
-            kill $(pgrep -f "web_app_v2.py") 2>/dev/null || true
-            sleep 2
-            
-            echo "▶️ 启动 Web 服务..."
-            cd /home/admin/.openclaw/workspace/agent-cluster
-            python3 web_app_v2.py --port 8890 > /dev/null 2>&1 &
-            disown
+            echo "🔄 重启服务..."
+            # 使用 bash -c 在子 shell 中启动，避免影响 SSH
+            bash -c '
+              pkill -f "web_app_v2.py" 2>/dev/null || true
+              sleep 2
+              cd /home/admin/.openclaw/workspace/agent-cluster
+              nohup python3 web_app_v2.py --port 8890 > /dev/null 2>&1 &
+            '
             
             echo "⏳ 等待服务启动..."
             sleep 5
@@ -45,6 +44,7 @@ jobs:
             
             if [ "$HTTP_CODE" = "302" ] || [ "$HTTP_CODE" = "200" ]; then
               echo "✅ 部署成功！HTTP $HTTP_CODE"
+              exit 0
             else
               echo "❌ 部署失败！HTTP $HTTP_CODE"
               exit 1
