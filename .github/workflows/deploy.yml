@@ -18,8 +18,8 @@ jobs:
           script: |
             cd /home/admin/.openclaw/workspace/agent-cluster
             git fetch origin main
-            git checkout main
-            git pull origin main
+            git checkout -f main
+            git reset --hard origin/main
             pkill -f web_app_v2.py || true
             sleep 2
             nohup python3 web_app_v2.py --port 8890 > /dev/null 2>&1 &
