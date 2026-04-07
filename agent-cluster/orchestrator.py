@@ -779,8 +779,19 @@ class Orchestrator:
         code_files = coding_result.get('code_files', [])
         has_backend = any(f.get('language') == 'python' for f in code_files)
         has_frontend = any(f.get('language') in ['javascript', 'typescript'] for f in code_files)
-        repo_dir = self.github.repo_dir if self.github else Path('/tmp/agent-output')
+        
+        # 🆕 修复：使用正确的项目目录
+        if self.github and self.github.repo_dir:
+            repo_dir = self.github.repo_dir
+        else:
+            # 使用当前工作目录作为 repo_dir
+            repo_dir = Path(__file__).parent.parent
         repo_dir.mkdir(parents=True, exist_ok=True)
+        
+        print(f"   📂 测试目录：{repo_dir}")
+        print(f"   📝 代码文件：{len(code_files)} 个")
+        print(f"   🐍 后端代码：{has_backend}")
+        print(f"   📱 前端代码：{has_frontend}")
         test_results = {'backend': None, 'frontend': None, 'coverage': 0, 'total_tests': 0, 'passed_tests': 0, 'failed_tests': 0, 'bugs': []}
         for i in range(max_retries):
             print(f"\n🧪 运行测试 (尝试 {i+1}/{max_retries})...")
