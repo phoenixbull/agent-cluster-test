@@ -51,3 +51,5 @@ memory/settings.json
 GITHUB_CONFIGURED.md
 *.backup
 memory/settings.json
+memory/
+cluster_config_v2.json
