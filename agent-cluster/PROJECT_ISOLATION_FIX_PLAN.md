@@ -230,30 +230,49 @@ def _collect_code_files(self, session_id: str, output_dir: Path, execution_resul
 
 ---
 
-### 第三阶段：修复 Agent 消息传递（⏳ 待执行）
+### 第三阶段：Agent bootstrap 诊断（✅ 已完成 - 2026-04-07 19:32）
 
-**建议方案**:
+**诊断过程**:
 
-1. **测试直接调用 openclaw CLI** (15 分钟)
-   ```bash
-   openclaw agent --agent codex --message "测试任务"
-   ```
+| 步骤 | 操作 | 结果 |
+|------|------|------|
+| 1 | 测试 openclaw CLI | ✅ CLI 正常 (v2026.4.1) |
+| 2 | 测试 agent 命令 | ✅ Gateway 响应正常 |
+| 3 | 完成 IDENTITY.md | ✅ 已配置 |
+| 4 | 完成 USER.md | ✅ 已配置 |
+| 5 | 删除 BOOTSTRAP.md | ✅ 已删除 |
+| 6 | 清理 sessions.json | ✅ 已备份并清理 |
+| 7 | 测试 Agent 调用 | ⚠️ 能识别用户，但仍在 bootstrap 循环 |
 
-2. **检查 agent_executor 调用方式** (20 分钟)
-   - 验证 `spawn_agent` 的参数传递
-   - 或尝试使用 `sessions_spawn` 直接调用
+**诊断结果**:
 
-3. **清理 Gateway 缓存** (5 分钟)
-   ```bash
-   systemctl --user restart openclaw-gateway
-   ```
+| 检查项 | 状态 | 说明 |
+|--------|------|------|
+| openclaw CLI | ✅ 正常 | 版本 2026.4.1 |
+| Gateway 进程 | ✅ 正常 | PID 609337 |
+| Gateway 端口 | ✅ 正常 | 14065 |
+| RPC probe | ✅ 正常 | ok |
+| Agent 消息识别 | ✅ 正常 | 能识别用户"老五" |
+| bootstrap 配置 | ✅ 完成 | IDENTITY.md + USER.md |
+| **任务执行** | ❌ **失败** | **Agent 进入 bootstrap 循环** |
 
-4. **配置 GitHub user/repo** (5 分钟)
-   ```bash
-   # 更新 cluster_config_v2.json
-   # user: phoenixbull
-   # repo: agent-cluster-test
-   ```
+**根因分析**:
+
+Agent 的 system prompt 包含 bootstrap 检查逻辑：
+1. 检查 BOOTSTRAP.md 是否存在
+2. 检查 IDENTITY.md/USER.md 是否填写
+3. 检查会话历史是否有上下文
+4. **如果都没有，持续询问用户任务**
+
+即使删除了 BOOTSTRAP.md，Agent 仍会检查会话历史，发现没有上下文后继续询问。
+
+**解决方案**:
+
+| 方案 | 优先级 | 说明 |
+|------|--------|------|
+| **修改 agent_executor 使用 sessions_spawn** | 🔴 高 | 绕过 bootstrap，直接调用 API |
+| 配置已完成 bootstrap 状态 | 🟡 中 | 修改 Agent 配置或系统 prompt |
+| 使用明确的任务上下文 | 🟡 中 | 在会话中提供明确任务描述 |
 
 ---
 
