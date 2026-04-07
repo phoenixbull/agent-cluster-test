@@ -6,6 +6,86 @@
 
 ---
 
+## 🔧 AI 产品开发智能体 - 项目隔离修复 (2026-04-07)
+
+### 问题根因
+
+**现象**: 代码没有保存到 ProjectRouter 隔离的项目目录
+
+**原因**:
+1. `cluster_config_v2.json` 中 `github.user` 和 `github.repo` 为空
+2. `self.github.repo_dir` = `/home/admin/.openclaw/workspace/` (无效目录)
+3. `output_dir` 回退逻辑没有使用 ProjectRouter 的工作区
+4. OpenClaw Agent 返回历史会话记录中的文件路径
+
+---
+
+### 已修复
+
+| 修复项 | 文件 | 说明 | 状态 |
+|--------|------|------|------|
+| **output_dir 逻辑** | `orchestrator.py:730-755` | 增强优先级：GitHub repo_dir > ProjectRouter workspace > 临时目录 | ✅ 完成 |
+| **日志输出** | `orchestrator.py` | 添加 output_dir 选择日志 | ✅ 完成 |
+| **目录创建** | `orchestrator.py` | 确保 output_dir 自动创建 | ✅ 完成 |
+| **飞书通知** | `notifier_sender.py` | 新建飞书通知模块 | ✅ 完成 |
+| **飞书配置** | `cluster_config_v2.json` | 配置飞书用户 ID | ✅ 完成 |
+
+---
+
+### 测试验证
+
+```bash
+# 测试命令
+python3 orchestrator.py "[电商] 添加购物车功能"
+
+# 验证结果
+✅ 项目识别：电商项目 (匹配 2 个关键词)
+✅ 工作区设置：/home/admin/.openclaw/workspace/ecommerce-platform
+✅ 代码保存：238 个文件保存到项目目录
+✅ 目录结构：backend/, frontend/, config/, docs/
+```
+
+---
+
+### 待修复问题
+
+| 问题 | 优先级 | 建议方案 |
+|------|--------|---------|
+| **OpenClaw Agent 返回历史会话** | 🔴 高 | 清理旧会话或确保生成新代码 |
+| **测试未实际运行** | 🟡 中 | 检查 pytest 执行逻辑 |
+| **Review 跳过** | 🟡 中 | 检查 code_files 列表传递 |
+| **GitHub 配置为空** | 🟢 低 | 配置 user/repo 或使用 ProjectRouter |
+
+---
+
+### 下一步计划
+
+1. **清理旧会话记录** - `/home/admin/.openclaw/agents/codex/sessions/`
+2. **配置 GitHub user/repo** - `cluster_config_v2.json`
+3. **验证 Agent 生成新代码** - 重新测试电商项目
+4. **修复测试执行** - 确保 pytest 实际运行
+
+---
+
+### Git 提交
+
+```
+commit ea495f8
+feat: 修复 output_dir 逻辑，支持项目隔离
+
+- 修改 orchestrator.py:730-755
+- 增强 output_dir 优先级逻辑
+- 添加日志输出便于调试
+- 确保输出目录自动创建
+
+测试验证:
+- 项目识别：电商项目 (关键词匹配)
+- 工作区设置：/home/admin/.openclaw/workspace/ecommerce-platform
+- 代码保存：238 个文件保存到正确的项目隔离目录
+```
+
+---
+
 ## 📋 全局工作规则
 
 **✅ 进度更新规则**: 所有项目每次任务完成后，必须更新进度到记忆文件 (`MEMORY.md` 或 `memory/YYYY-MM-DD.md`)，确保工作连续性和可追溯性。此规则对所有项目通用。
