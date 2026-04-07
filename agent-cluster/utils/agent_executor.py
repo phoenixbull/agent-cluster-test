@@ -216,14 +216,93 @@ class AgentTaskExecutor:
     
     def _extract_code_from_result(self, api_result: Dict, execution_status: Dict) -> Dict:
         """
-        从 API 结果中提取代码
+        从 Agent 会话记录中提取生成的代码文件
         
-        TODO: 根据实际 API 返回格式解析
-        当前为占位实现
+        通过分析 OpenClaw Agent 的会话记录 (.jsonl 文件) 提取 write 工具调用生成的文件
         """
-        # 占位实现：返回空结果，由后续模拟执行补充
+        import json
+        from pathlib import Path
+        
+        collected_files = []
+        
+        # 1. 从 Agent 会话目录查找**最近创建的**会话记录文件
+        # 注意：OpenClaw 的 Agent 会话保存在 ~/.openclaw/agents/ 而不是 workspace/agents/
+        session_file = None
+        latest_mtime = 0
+        
+        # 尝试两个可能的路径
+        possible_agents_dirs = [
+            self.agents_dir,  # workspace/agents (旧路径)
+            Path.home() / ".openclaw" / "agents",  # ~/.openclaw/agents (新路径)
+        ]
+        
+        for agents_base_dir in possible_agents_dirs:
+            if not agents_base_dir.exists():
+                continue
+                
+            for agent_dir in agents_base_dir.iterdir():
+                if agent_dir.is_dir():
+                    sessions_dir = agent_dir / "sessions"
+                    if sessions_dir.exists():
+                        # 查找最近修改的 jsonl 文件
+                        for f in sessions_dir.glob("*.jsonl"):
+                            mtime = f.stat().st_mtime
+                            if mtime > latest_mtime:
+                                latest_mtime = mtime
+                                session_file = f
+        
+        if not session_file:
+            print(f"   ⚠️ 未找到会话记录文件")
+            return {
+                "files": [],
+                "source": "real_agent",
+                "session_key": api_result.get('session_key', ''),
+                "messages": api_result.get('messages', [])
+            }
+        
+        print(f"   📂 解析最近会话记录：{session_file}")
+        
+        # 2. 解析会话记录，提取 write 工具调用
+        try:
+            with open(session_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    try:
+                        message = json.loads(line)
+                        
+                        # 查找 toolResult 类型的消息 (write 工具调用结果)
+                        if message.get('type') == 'message':
+                            msg_content = message.get('message', {})
+                            if msg_content.get('role') == 'toolResult':
+                                tool_name = msg_content.get('toolName', '')
+                                if tool_name == 'write':
+                                    # 提取文件写入信息
+                                    content_list = msg_content.get('content', [])
+                                    for content_item in content_list:
+                                        if content_item.get('type') == 'text':
+                                            text = content_item.get('text', '')
+                                            # 解析 "Successfully wrote X bytes to /path/to/file"
+                                            import re
+                                            match = re.search(r'Successfully wrote \d+ bytes to (.+)', text)
+                                            if match:
+                                                file_path = match.group(1)
+                                                # 只收集工作区内的文件
+                                                if 'agent-cluster' in file_path or 'workspace' in file_path:
+                                                    collected_files.append({
+                                                        "path": file_path,
+                                                        "source": "agent_session"
+                                                    })
+                                                    print(f"      📝 发现文件：{file_path}")
+                    except json.JSONDecodeError:
+                        continue
+        except Exception as e:
+            print(f"   ⚠️ 解析会话记录失败：{e}")
+        
+        # 3. 如果没有找到文件，返回空结果
+        if not collected_files:
+            print(f"   ⚠️ 会话记录中未找到生成的文件")
+        
         return {
-            "files": [],
+            "files": collected_files,
             "source": "real_agent",
             "session_key": api_result.get('session_key', ''),
             "messages": api_result.get('messages', [])
@@ -509,48 +588,97 @@ class AgentTaskExecutor:
         collected = []
         files = execution_result.get("files", [])
         
+        # 处理从 Agent 会话记录中提取的文件路径
         for file_info in files:
-            filename = file_info["filename"]
-            content = file_info["content"]
-            language = file_info.get("language", "text")
+            source_path = file_info.get("path", "")
             
-            # 创建子目录 (按语言) - P1 扩展支持 Native 移动端
-            subdir_map = {
-                # 现有 Web/后端 (保持不变)
-                "python": "backend",
-                "javascript": "frontend",
-                "css": "frontend",
-                "html": "frontend",
-                "typescript": "frontend",
-                # P1 新增：Native 移动端
-                "swift": "ios",
-                "kotlin": "android",
-                "dart": "flutter",
-                "xml": "android",
-                "storyboard": "ios",
-                "xib": "ios",
-                "yaml": "config",
-                "json": "config"
-            }
-            subdir = subdir_map.get(language, "other")
+            # 如果是从会话记录提取的文件路径
+            if source_path and Path(source_path).exists():
+                try:
+                    # 读取文件内容
+                    with open(source_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    
+                    # 确定目标目录
+                    source = Path(source_path)
+                    filename = source.name
+                    suffix = source.suffix.lower()
+                    
+                    subdir_map = {
+                        '.py': 'backend',
+                        '.js': 'frontend',
+                        '.ts': 'frontend',
+                        '.tsx': 'frontend',
+                        '.jsx': 'frontend',
+                        '.css': 'frontend',
+                        '.html': 'frontend',
+                        '.json': 'config',
+                        '.yaml': 'config',
+                        '.yml': 'config',
+                        '.md': 'docs',
+                        '.txt': 'docs',
+                    }
+                    subdir = subdir_map.get(suffix, 'other')
+                    
+                    target_dir = output_dir / subdir
+                    target_dir.mkdir(parents=True, exist_ok=True)
+                    
+                    # 保存文件到工作流目录
+                    target_path = target_dir / filename
+                    with open(target_path, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                    
+                    collected.append({
+                        "filename": filename,
+                        "path": str(target_path),
+                        "language": suffix[1:] if suffix else 'text',
+                        "size": len(content),
+                        "subdir": subdir,
+                        "source": source_path
+                    })
+                    
+                    print(f"      📝 复制：{subdir}/{filename} ({len(content)} 字节)")
+                    
+                except Exception as e:
+                    print(f"      ⚠️ 复制文件失败 {source_path}: {e}")
             
-            target_dir = output_dir / subdir
-            target_dir.mkdir(parents=True, exist_ok=True)
-            
-            # 保存文件
-            file_path = target_dir / filename
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(content)
-            
-            collected.append({
-                "filename": filename,
-                "path": str(file_path),
-                "language": language,
-                "size": len(content),
-                "subdir": subdir
-            })
-            
-            print(f"      📝 保存：{subdir}/{filename} ({len(content)} 字节)")
+            # 处理直接包含内容的文件 (原有逻辑)
+            elif "filename" in file_info and "content" in file_info:
+                filename = file_info["filename"]
+                content = file_info["content"]
+                language = file_info.get("language", "text")
+                
+                subdir_map = {
+                    "python": "backend",
+                    "javascript": "frontend",
+                    "css": "frontend",
+                    "html": "frontend",
+                    "typescript": "frontend",
+                    "swift": "ios",
+                    "kotlin": "android",
+                    "dart": "flutter",
+                    "xml": "android",
+                    "yaml": "config",
+                    "json": "config"
+                }
+                subdir = subdir_map.get(language, "other")
+                
+                target_dir = output_dir / subdir
+                target_dir.mkdir(parents=True, exist_ok=True)
+                
+                file_path = target_dir / filename
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                
+                collected.append({
+                    "filename": filename,
+                    "path": str(file_path),
+                    "language": language,
+                    "size": len(content),
+                    "subdir": subdir
+                })
+                
+                print(f"      📝 保存：{subdir}/{filename} ({len(content)} 字节)")
         
         return collected
     

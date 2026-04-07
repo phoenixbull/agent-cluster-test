@@ -15,8 +15,9 @@ from typing import Dict, List, Optional, Any
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent))
 
-from notifiers.dingtalk import ClusterNotifier, get_notifier
+# from notifiers.dingtalk import ClusterNotifier, get_notifier  # 已禁用
 from utils.openclaw_api import OpenClawAPI
+from notifier_sender import send_notification  # 飞书通知
 from utils.github_helper import GitHubAPI, create_github_client
 from utils.agent_executor import AgentTaskExecutor
 from utils.project_router import ProjectRouter
@@ -220,14 +221,14 @@ class Orchestrator:
             print(f"⚠️ GitHub 初始化失败：{e}")
             return None
     
-    def _init_notifier(self) -> Optional[ClusterNotifier]:
-        """初始化通知器（企业应用模式）"""
+    def _init_notifier(self):
+        """初始化通知器（飞书）"""
         notifications = self.config.get("notifications", {})
-        dingtalk = notifications.get("dingtalk", {})
+        feishu = notifications.get("feishu", {})
         
-        if dingtalk.get("enabled"):
-            # 使用企业应用模式，支持阶段通知
-            return get_notifier(dingtalk)
+        if feishu.get("enabled") and feishu.get("user_id"):
+            print(f"✅ 飞书通知已启用")
+            return {"feishu_user_id": feishu.get("user_id")}
         return None
     
     def receive_requirement(self, requirement: str, source: str = "manual") -> str:
@@ -319,9 +320,15 @@ class Orchestrator:
 
 ⏱️ **预计完成时间**: 60-90 分钟
 
-完成后会收到钉钉通知。
+完成后会收到飞书通知。
 """
-        self.notifier.dingtalk.send_markdown(title, text, at_all=False)
+        # 使用飞书通知
+        send_notification(
+            channels=["feishu"],
+            user_ids={"feishu": self.notifier["feishu_user_id"]},
+            title=title,
+            content=text
+        )
     
     def execute_workflow(self, workflow_id: str, requirement: str):
         """执行完整工作流 (同步版本)"""
@@ -725,11 +732,25 @@ class Orchestrator:
             
             print(f"   💻 触发 {agent_id} Agent...")
             
+            # 🆕 确定输出目录（优先级：GitHub repo_dir > ProjectRouter workspace > 临时目录）
+            if self.github and self.github.repo_dir.name and self.github.repo_dir.name != "workspace":
+                output_dir = self.github.repo_dir
+                print(f"   📂 使用 GitHub 仓库目录：{output_dir}")
+            elif hasattr(self.executor, 'workspace') and self.executor.workspace:
+                output_dir = self.executor.workspace
+                print(f"   📂 使用 ProjectRouter 工作区：{output_dir}")
+            else:
+                output_dir = Path("/tmp/agent-output")
+                print(f"   📂 使用临时目录：{output_dir}")
+            
+            # 确保输出目录存在
+            output_dir.mkdir(parents=True, exist_ok=True)
+            
             # 使用 Agent 执行器生成真实代码
             result = self.executor.execute_task(
                 agent_id=agent_id,
                 task=prompt,
-                output_dir=self.github.repo_dir if self.github else Path("/tmp/agent-output"),
+                output_dir=output_dir,
                 timeout_seconds=3600
             )
             
@@ -1093,7 +1114,7 @@ npm start
         avg_coverage = coverage_sum / coverage_count if coverage_count > 0 else 0
         status = "passed" if failed_tests == 0 else "failed"
         report = {"workflow_id": "unknown", "timestamp": datetime.now().isoformat(), "status": status, "summary": {"total_tests": total_tests, "passed_tests": passed_tests, "failed_tests": failed_tests, "coverage": round(avg_coverage, 2)}, "bugs": bugs}
-        report_dir = Path(__file__).parent / "memory" / "metrics"
+        report_dir = Path("/home/admin/.openclaw/workspace/agent-cluster") / "memory" / "metrics"
         report_dir.mkdir(parents=True, exist_ok=True)
         report_file = report_dir / f"test_report_{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
         with open(report_file, 'w', encoding='utf-8') as f: json.dump(report, f, indent=2, ensure_ascii=False)

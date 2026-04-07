@@ -231,7 +231,7 @@ class SettingsManager:
             result = subprocess.run(
                 ["gh", "api", "user", "--hostname", "github.com"],
                 env={"GH_TOKEN": token},
-                capture_output=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True,
                 timeout=10
             )

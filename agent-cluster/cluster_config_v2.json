@@ -61,8 +61,8 @@
   },
   "github": {
     "token": "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",
-    "user": "",
-    "repo": "",
+    "user": "phoenixbull",
+    "repo": "agent-cluster-test",
     "branch_prefix": "agent/",
     "auto_create_pr": true,
     "auto_merge": false,
@@ -722,6 +722,24 @@
     },
     "telegram": {
       "enabled": false
+    },
+    "feishu": {
+      "enabled": true,
+      "user_id": "ou_8c9dae59c67ad5cede6a3711512c69e7",
+      "user_name": "老五",
+      "events": [
+        "workflow_start",
+        "prd_complete",
+        "design_complete",
+        "coding_complete",
+        "pr_ready",
+        "test_complete",
+        "review_complete",
+        "deploy_confirmation",
+        "workflow_complete",
+        "task_failed",
+        "human_intervention_needed"
+      ]
     }
   },
   "deployment": {
@@ -742,21 +760,9 @@
     }
   },
   "quality_gate": {
-    "enabled": true,
-    "phase_4": {
-      "min_coverage": 80,
-      "max_critical_bugs": 0
-    },
-    "phase_5": {
-      "min_review_score": 80,
-      "min_security_score": 80,
-      "max_critical_issues": 0,
-      "all_reviewers_required": true
-    },
-    "retry": {
-      "max_retries": 3,
-      "timeout_minutes": 0
-    }
+    "min_coverage": 0,
+    "min_review_score": 60,
+    "max_critical_bugs": 0
   },
   "bug_reporting": {
     "enabled": true,

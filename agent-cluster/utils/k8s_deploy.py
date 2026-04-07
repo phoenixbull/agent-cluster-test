@@ -28,7 +28,7 @@ class K8sDeployExecutor:
         try:
             result = subprocess.run(
                 ['kubectl', 'version', '--client'],
-                capture_output=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True,
                 timeout=10
             )
@@ -37,7 +37,7 @@ class K8sDeployExecutor:
                 # 检查集群连接
                 result = subprocess.run(
                     ['kubectl', 'cluster-info'],
-                    capture_output=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     text=True,
                     timeout=10
                 )
@@ -89,7 +89,7 @@ class K8sDeployExecutor:
             # 应用配置
             result = subprocess.run(
                 ['kubectl', 'apply', '-f', str(config_file), '-n', self.k8s_namespace],
-                capture_output=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True,
                 timeout=60
             )
@@ -99,7 +99,7 @@ class K8sDeployExecutor:
                 wait_result = subprocess.run(
                     ['kubectl', 'rollout', 'status', f'deployment/{deployment_name}', 
                      '-n', self.k8s_namespace, '--timeout=300s'],
-                    capture_output=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     text=True,
                     timeout=300
                 )
@@ -256,7 +256,7 @@ class K8sDeployExecutor:
             result = subprocess.run(
                 ['kubectl', 'rollout', 'undo', f'deployment/{deployment_name}', 
                  '-n', self.k8s_namespace],
-                capture_output=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True,
                 timeout=60
             )
@@ -280,7 +280,7 @@ class K8sDeployExecutor:
             result = subprocess.run(
                 ['kubectl', 'get', 'deployment', deployment_name, 
                  '-n', self.k8s_namespace, '-o', 'json'],
-                capture_output=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True,
                 timeout=30
             )
@@ -294,7 +294,7 @@ class K8sDeployExecutor:
             pods_result = subprocess.run(
                 ['kubectl', 'get', 'pods', '-n', self.k8s_namespace,
                  '-l', f'app={deployment_name.split("-")[0]}', '-o', 'json'],
-                capture_output=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True,
                 timeout=30
             )

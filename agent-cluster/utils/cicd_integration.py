@@ -637,8 +637,9 @@ if __name__ == "__main__":
         try:
             result = subprocess.run(
                 ["git", "rev-parse", "HEAD"],
-                capture_output=True,
-                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
                 cwd=str(self.workspace)
             )
             return result.stdout.strip()

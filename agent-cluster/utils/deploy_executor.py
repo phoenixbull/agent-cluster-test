@@ -47,7 +47,7 @@ class DeployExecutor:
         try:
             subprocess.run(
                 ['docker', 'network', 'create', self.docker_network],
-                capture_output=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 timeout=10
             )
         except Exception:
@@ -58,7 +58,7 @@ class DeployExecutor:
         try:
             result = subprocess.run(
                 ['docker', 'version'],
-                capture_output=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True,
                 timeout=10
             )
@@ -175,7 +175,7 @@ class DeployExecutor:
             # 构建镜像
             result = subprocess.run(
                 ['docker', 'build', '-t', image_name, '-f', str(dockerfile), str(deploy_dir)],
-                capture_output=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True,
                 timeout=300
             )
@@ -194,7 +194,7 @@ class DeployExecutor:
         """启动 Docker 容器"""
         try:
             # 停止并删除旧容器
-            subprocess.run(['docker', 'rm', '-f', container_name], capture_output=True, timeout=10)
+            subprocess.run(['docker', 'rm', '-f', container_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
             
             # 确定端口
             port = 8080 if environment == 'production' else 8081
@@ -207,7 +207,7 @@ class DeployExecutor:
                  '-p', f'{port}:80',
                  '--restart', 'unless-stopped',
                  image_name],
-                capture_output=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True,
                 timeout=30
             )
@@ -228,7 +228,7 @@ class DeployExecutor:
             try:
                 result = subprocess.run(
                     ['docker', 'inspect', '--format', '{{.State.Health.Status}}', container_name],
-                    capture_output=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     text=True,
                     timeout=5
                 )
@@ -286,7 +286,7 @@ CMD ["nginx", "-g", "daemon off;"]
             container_name = deploy_config['docker']['container_name']
             
             # 停止容器
-            subprocess.run(['docker', 'stop', container_name], capture_output=True, timeout=30)
+            subprocess.run(['docker', 'stop', container_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
             
             # 更新状态
             deploy_config['status'] = DeployStatus.CANCELLED.value
@@ -372,7 +372,7 @@ CMD ["nginx", "-g", "daemon off;"]
             try:
                 result = subprocess.run(
                     ['docker', 'inspect', container_name],
-                    capture_output=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     text=True,
                     timeout=5
                 )
