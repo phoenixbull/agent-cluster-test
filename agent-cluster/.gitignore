@@ -39,3 +39,15 @@ cluster_config*.json
 memory/settings.json
 GITHUB_CONFIGURED.md
 .env
+
+# 本地敏感配置
+cluster_config_v2.json.local
+*.backup
+GITHUB_CONFIGURED.md
+memory/settings.json
+.env
+
+# 敏感文件
+GITHUB_CONFIGURED.md
+*.backup
+memory/settings.json
