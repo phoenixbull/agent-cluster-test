@@ -1,0 +1,769 @@
+{
+  "cluster": {
+    "name": "openclaw-codex-cluster",
+    "version": "2.3.0",
+    "release_date": "2026-03-22",
+    "codename": "Python3.6 兼容修复版",
+    "mode": "orchestrator",
+    "max_parallel_agents": 3,
+    "timeout_seconds": 300,
+    "memory_optimization": {
+      "shared_node_modules": "~/.openclaw/shared/node_modules",
+      "cleanup_interval_hours": 24,
+      "task_retention_days": 7
+    },
+    "features": {
+      "smart_retry": true,
+      "metrics_monitoring": true,
+      "dashboard": true,
+      "failure_classification": true,
+      "agent_switching": true,
+      "task_decomposition": true,
+      "multimodal": {
+        "enabled": true,
+        "screenshot": true,
+        "visual_regression": true,
+        "figma_to_code": true,
+        "speech_to_task": false,
+        "task_to_speech": true,
+        "pr_gif": true,
+        "pr_video": false,
+        "design_tokens": true,
+        "lottie_animation": true
+      }
+    }
+  },
+  "orchestrator": {
+    "id": "zoe",
+    "name": "Zoe 编排者",
+    "workspace": "~/.openclaw/workspace/zoe",
+    "model": {
+      "provider": "alibaba-cloud",
+      "model": "qwen-max",
+      "temperature": 0.7,
+      "max_tokens": 4096
+    },
+    "role": "orchestrator",
+    "skills": [
+      "task_decomposition",
+      "agent_selection",
+      "prompt_engineering",
+      "failure_analysis",
+      "context_management"
+    ],
+    "mcp_servers": [
+      "obsidian",
+      "memory",
+      "database",
+      "dingtalk"
+    ],
+    "enabled": true
+  },
+  "github": {
+    "token": "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",
+    "user": "",
+    "repo": "",
+    "branch_prefix": "agent/",
+    "auto_create_pr": true,
+    "auto_merge": false,
+    "require_ci": true
+  },
+  "agents": [
+    {
+      "id": "product-manager",
+      "name": "产品经理",
+      "workspace": "~/.openclaw/workspace/agents/product-manager",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen-max",
+        "temperature": 0.7,
+        "max_tokens": 8192
+      },
+      "role": "requirement_analyst",
+      "skills": [
+        "requirement_gathering",
+        "user_story_writing",
+        "acceptance_criteria",
+        "market_research",
+        "competitive_analysis"
+      ],
+      "mcp_servers": [
+        "memory",
+        "search"
+      ],
+      "enabled": true,
+      "task_types": [
+        "requirement_analysis",
+        "prd_writing",
+        "user_research"
+      ],
+      "weight": 1.0,
+      "phase": "1_requirement"
+    },
+    {
+      "id": "tech-lead",
+      "name": "技术负责人",
+      "workspace": "~/.openclaw/workspace/agents/tech-lead",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen-max",
+        "temperature": 0.5,
+        "max_tokens": 8192
+      },
+      "role": "system_architect",
+      "skills": [
+        "system_design",
+        "api_design",
+        "database_design",
+        "tech_stack_selection",
+        "code_review"
+      ],
+      "mcp_servers": [
+        "filesystem",
+        "github",
+        "database"
+      ],
+      "enabled": true,
+      "task_types": [
+        "architecture_design",
+        "tech_review",
+        "api_design"
+      ],
+      "weight": 1.0,
+      "phase": "2_design"
+    },
+    {
+      "id": "codex",
+      "name": "Codex 后端专家",
+      "workspace": "~/.openclaw/workspace/agents/codex",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen-coder-plus",
+        "temperature": 0.3,
+        "max_tokens": 8192
+      },
+      "role": "backend_specialist",
+      "skills": [
+        "backend_logic",
+        "bug_fixing",
+        "refactoring",
+        "cross_file_reasoning",
+        "api_design"
+      ],
+      "mcp_servers": [
+        "filesystem",
+        "github",
+        "database"
+      ],
+      "enabled": true,
+      "task_types": [
+        "backend_logic",
+        "bug_fix",
+        "refactoring",
+        "api_design",
+        "database"
+      ],
+      "weight": 0.9,
+      "phase": "3_development"
+    },
+    {
+      "id": "claude-code",
+      "name": "Claude Code 前端专家",
+      "workspace": "~/.openclaw/workspace/agents/claude-code",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "kimi-k2.5",
+        "temperature": 0.5,
+        "max_tokens": 4096
+      },
+      "role": "frontend_specialist",
+      "skills": [
+        "frontend_development",
+        "git_operations",
+        "component_development",
+        "rapid_iteration"
+      ],
+      "mcp_servers": [
+        "filesystem",
+        "github"
+      ],
+      "enabled": true,
+      "task_types": [
+        "frontend",
+        "ui_component",
+        "git_operation",
+        "quick_fix"
+      ],
+      "weight": 0.7,
+      "phase": "3_development"
+    },
+    {
+      "id": "designer",
+      "name": "设计专家",
+      "workspace": "~/.openclaw/workspace/agents/designer",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen-vl-plus",
+        "temperature": 0.6,
+        "max_tokens": 4096
+      },
+      "role": "design_specialist",
+      "skills": [
+        "ui_design",
+        "wireframe",
+        "prototype",
+        "design_system",
+        "visual_system",
+        "html_css",
+        "design_spec"
+      ],
+      "mcp_servers": [
+        "figma",
+        "excalidraw",
+        "filesystem"
+      ],
+      "enabled": true,
+      "task_types": [
+        "ui_design",
+        "visual",
+        "html_css",
+        "design_spec",
+        "mockup",
+        "prototype"
+      ],
+      "weight": 0.6,
+      "phase": "2_design",
+      "v2_merged": true,
+      "v1_compatible": true
+    },
+    {
+      "id": "tester",
+      "name": "测试工程师",
+      "workspace": "~/.openclaw/workspace/agents/tester",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen-coder-plus",
+        "temperature": 0.3,
+        "max_tokens": 8192
+      },
+      "role": "qa_engineer",
+      "skills": [
+        "unit_test",
+        "integration_test",
+        "e2e_test",
+        "bug_report",
+        "test_automation"
+      ],
+      "mcp_servers": [
+        "filesystem",
+        "github"
+      ],
+      "enabled": true,
+      "task_types": [
+        "testing",
+        "qa",
+        "bug_tracking"
+      ],
+      "weight": 0.8,
+      "phase": "4_testing"
+    },
+    {
+      "id": "mobile-tester",
+      "name": "移动测试专家",
+      "workspace": "~/.openclaw/workspace/agents/mobile-tester",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen-coder-plus",
+        "temperature": 0.3,
+        "max_tokens": 8192
+      },
+      "role": "mobile_qa_specialist",
+      "skills": [
+        "xctest",
+        "espresso",
+        "detox",
+        "flutter_test",
+        "appium",
+        "screenshot_test",
+        "performance_test"
+      ],
+      "mcp_servers": [
+        "filesystem",
+        "github",
+        "xcode",
+        "gradle"
+      ],
+      "enabled": true,
+      "task_types": [
+        "mobile_testing",
+        "ios_test",
+        "android_test",
+        "screenshot_test",
+        "performance_test"
+      ],
+      "weight": 0.9,
+      "phase": "4_testing",
+      "platforms": {
+        "ios": {
+          "frameworks": [
+            "XCTest",
+            "XCUITest",
+            "Quick",
+            "Nimble",
+            "iOSSnapshotTestCase"
+          ],
+          "tools": [
+            "Instruments",
+            "simctl"
+          ]
+        },
+        "android": {
+          "frameworks": [
+            "JUnit",
+            "Espresso",
+            "UI Automator",
+            "Paparazzi"
+          ],
+          "tools": [
+            "Android Profiler",
+            "adb"
+          ]
+        },
+        "cross_platform": {
+          "frameworks": [
+            "Detox",
+            "Appium",
+            "Maestro",
+            "Flutter Integration Test"
+          ],
+          "tools": [
+            "Firebase Test Lab",
+            "BrowserStack"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mobile-ios",
+      "name": "iOS 专家",
+      "workspace": "~/.openclaw/workspace/agents/mobile-ios",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen-coder-plus",
+        "temperature": 0.3,
+        "max_tokens": 8192
+      },
+      "role": "ios_specialist",
+      "skills": [
+        "swift",
+        "swiftui",
+        "uikit",
+        "xcode",
+        "app_store",
+        "ios_architecture",
+        "coredata",
+        "push_notification"
+      ],
+      "mcp_servers": [
+        "filesystem",
+        "github",
+        "xcode"
+      ],
+      "enabled": true,
+      "task_types": [
+        "ios_app",
+        "swiftui",
+        "uikit",
+        "app_store_deploy"
+      ],
+      "weight": 0.9,
+      "phase": "3_development",
+      "platform": {
+        "name": "iOS",
+        "min_version": "15.0",
+        "devices": [
+          "iPhone",
+          "iPad"
+        ],
+        "ide": "Xcode 15+",
+        "language": "Swift 5.9+",
+        "ui_framework": "SwiftUI",
+        "publish": "App Store"
+      }
+    },
+    {
+      "id": "mobile-android",
+      "name": "Android 专家",
+      "workspace": "~/.openclaw/workspace/agents/mobile-android",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen-coder-plus",
+        "temperature": 0.3,
+        "max_tokens": 8192
+      },
+      "role": "android_specialist",
+      "skills": [
+        "kotlin",
+        "jetpack_compose",
+        "android_xml",
+        "gradle",
+        "google_play",
+        "android_architecture",
+        "room",
+        "push_notification"
+      ],
+      "mcp_servers": [
+        "filesystem",
+        "github",
+        "gradle"
+      ],
+      "enabled": true,
+      "task_types": [
+        "android_app",
+        "jetpack_compose",
+        "android_xml",
+        "play_store_deploy"
+      ],
+      "weight": 0.9,
+      "phase": "3_development",
+      "platform": {
+        "name": "Android",
+        "min_version": "8.0",
+        "api_level": 26,
+        "devices": [
+          "Phone",
+          "Tablet",
+          "Foldable"
+        ],
+        "ide": "Android Studio Hedgehog+",
+        "language": "Kotlin",
+        "ui_framework": "Jetpack Compose",
+        "publish": "Google Play"
+      }
+    },
+    {
+      "id": "mobile-react-native",
+      "name": "React Native 专家",
+      "workspace": "~/.openclaw/workspace/agents/mobile-react-native",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen-coder-plus",
+        "temperature": 0.3,
+        "max_tokens": 8192
+      },
+      "role": "cross_platform_specialist",
+      "skills": [
+        "typescript",
+        "react_native",
+        "expo",
+        "react_navigation",
+        "reanimated",
+        "redux",
+        "app_store",
+        "google_play"
+      ],
+      "mcp_servers": [
+        "filesystem",
+        "github",
+        "metro"
+      ],
+      "enabled": true,
+      "task_types": [
+        "cross_platform_app",
+        "react_native",
+        "expo",
+        "mobile_web"
+      ],
+      "weight": 0.95,
+      "phase": "3_development",
+      "platform": {
+        "name": "Cross-Platform (React Native)",
+        "min_version": "iOS 13.0+, Android 6.0+",
+        "devices": [
+          "iPhone",
+          "iPad",
+          "Android Phone",
+          "Android Tablet"
+        ],
+        "ide": "VS Code, Expo Go",
+        "language": "TypeScript 5+",
+        "ui_framework": "React Native Components",
+        "publish": "App Store + Google Play",
+        "features": {
+          "hot_reload": true,
+          "expo_support": true,
+          "native_modules": true,
+          "web_support": true
+        }
+      }
+    },
+    {
+      "id": "mobile-flutter",
+      "name": "Flutter 专家",
+      "workspace": "~/.openclaw/workspace/agents/mobile-flutter",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen-coder-plus",
+        "temperature": 0.3,
+        "max_tokens": 8192
+      },
+      "role": "cross_platform_specialist",
+      "skills": [
+        "dart",
+        "flutter",
+        "provider",
+        "riverpod",
+        "bloc",
+        "go_router",
+        "hive",
+        "platform_channel"
+      ],
+      "mcp_servers": [
+        "filesystem",
+        "github",
+        "flutter"
+      ],
+      "enabled": true,
+      "task_types": [
+        "cross_platform_app",
+        "flutter",
+        "mobile_web",
+        "desktop_app"
+      ],
+      "weight": 0.95,
+      "phase": "3_development",
+      "platform": {
+        "name": "Cross-Platform (Flutter)",
+        "min_version": "iOS 12.0+, Android 5.0+",
+        "devices": [
+          "iPhone",
+          "iPad",
+          "Android Phone",
+          "Android Tablet",
+          "Web",
+          "Desktop"
+        ],
+        "ide": "Android Studio, VS Code",
+        "language": "Dart 3.0+",
+        "ui_framework": "Material 3 + Cupertino",
+        "publish": "App Store + Google Play + Web",
+        "features": {
+          "hot_reload": true,
+          "six_platforms": true,
+          "self_rendering": true,
+          "native_performance": true
+        }
+      }
+    }
+  ],
+  "reviewers": [
+    {
+      "id": "codex-reviewer",
+      "name": "Codex 审查者",
+      "model": "glm-4.7",
+      "focus": "边界情况、逻辑错误、竞态条件",
+      "weight": "high",
+      "required": true
+    },
+    {
+      "id": "gemini-reviewer",
+      "name": "Gemini 审查者",
+      "model": "qwen-plus",
+      "focus": "安全问题、扩展性、代码质量",
+      "weight": "medium",
+      "required": true
+    },
+    {
+      "id": "claude-reviewer",
+      "name": "Claude 审查者",
+      "model": "MiniMax-M2.5",
+      "focus": "基础检查（仅 critical 问题）",
+      "weight": "low",
+      "required": false
+    }
+  ],
+  "protocols": {
+    "mcp": {
+      "enabled": true,
+      "servers": [
+        "obsidian",
+        "memory",
+        "filesystem",
+        "github",
+        "database",
+        "dingtalk",
+        "figma",
+        "excalidraw",
+        "xcode",
+        "gradle",
+        "metro",
+        "flutter"
+      ],
+      "timeout_seconds": 30
+    },
+    "a2a": {
+      "enabled": true,
+      "port": 5000,
+      "timeout_seconds": 60
+    },
+    "anp": {
+      "enabled": false,
+      "discovery_interval_seconds": 30
+    }
+  },
+  "workflows": {
+    "ralph_loop": {
+      "enabled": true,
+      "max_retries": 3,
+      "learning_enabled": true,
+      "memory_path": "~/.openclaw/workspace/zoe/memory"
+    },
+    "monitoring": {
+      "enabled": true,
+      "interval_minutes": 10,
+      "check_items": [
+        "tmux_session",
+        "pr_status",
+        "ci_status",
+        "review_status"
+      ]
+    },
+    "ci_cd": {
+      "enabled": true,
+      "github_repo": "phoenixbull/agent-cluster-test",
+      "required_checks": [
+        "lint",
+        "typecheck",
+        "tests",
+        "e2e"
+      ],
+      "review_requirements": {
+        "codex_reviewer_approved": true,
+        "gemini_reviewer_approved": true,
+        "screenshots_for_ui_changes": true
+      }
+    }
+  },
+  "tools": {
+    "builtin": [
+      "search",
+      "calculator",
+      "memory",
+      "diagram",
+      "dingtalk"
+    ],
+    "mcp": [
+      "obsidian",
+      "memory",
+      "filesystem",
+      "github",
+      "database",
+      "dingtalk",
+      "figma",
+      "excalidraw"
+    ]
+  },
+  "notifications": {
+    "dingtalk": {
+      "enabled": true,
+      "mode": "enterprise_app",
+      "clientId": "dingi8bd93ixhrm34vbd",
+      "clientSecret": "PlyR_LbuiaIPVqocSlqj0x313N8p6PbKTGP4OP80K_Vx5PgDxMHK7IFApfy_-jfR",
+      "corpId": "ding4ec28b66e08c978fee0f45d8e4f7c288",
+      "agentId": "4286960567",
+      "robotCode": "dingi8bd93ixhrm34vbd",
+      "admin_user_ids": [
+        "356820521035955"
+      ],
+      "agent_task_notifications": {
+        "enabled": true,
+        "notify_on_assign": true,
+        "notify_on_complete": true,
+        "include_task_details": true,
+        "include_time_estimate": true
+      },
+      "events": [
+        "agent_task_assigned",
+        "agent_task_complete",
+        "phase1_prd_complete",
+        "phase2_design_review",
+        "phase3_code_commit",
+        "phase4_critical_bug",
+        "phase4_test_coverage",
+        "phase5_review_passed",
+        "phase5_review_issues",
+        "phase_complete",
+        "pr_ready",
+        "deploy_confirmation",
+        "deploy_complete",
+        "deploy_cancelled",
+        "task_failed",
+        "human_intervention_needed"
+      ],
+      "at_all": {
+        "agent_task_assigned": false,
+        "agent_task_complete": false,
+        "phase1_prd_complete": false,
+        "phase2_design_review": false,
+        "phase3_code_commit": false,
+        "phase4_critical_bug": true,
+        "phase4_test_coverage": false,
+        "phase5_review_passed": false,
+        "phase5_review_issues": false,
+        "phase_complete": false,
+        "pr_ready": false,
+        "deploy_confirmation": true,
+        "deploy_complete": false,
+        "deploy_cancelled": false,
+        "task_failed": true,
+        "human_intervention_needed": true
+      },
+      "deploy_group_conversation_id": ""
+    },
+    "telegram": {
+      "enabled": false
+    }
+  },
+  "deployment": {
+    "require_confirmation": true,
+    "confirmation_timeout_minutes": 30,
+    "auto_cancel_on_timeout": true,
+    "notification_channel": "dingtalk",
+    "environments": {
+      "production": {
+        "require_approval": true,
+        "approvers": [
+          "all"
+        ]
+      },
+      "staging": {
+        "require_approval": false
+      }
+    }
+  },
+  "quality_gate": {
+    "enabled": true,
+    "phase_4": {
+      "min_coverage": 80,
+      "max_critical_bugs": 0
+    },
+    "phase_5": {
+      "min_review_score": 80,
+      "min_security_score": 80,
+      "max_critical_issues": 0,
+      "all_reviewers_required": true
+    },
+    "retry": {
+      "max_retries": 3,
+      "timeout_minutes": 0
+    }
+  },
+  "bug_reporting": {
+    "enabled": true,
+    "format": "standard",
+    "include_reproduction_steps": true,
+    "include_code_location": true,
+    "include_fix_suggestions": true,
+    "include_test_requirements": true
+  }
+}

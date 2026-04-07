@@ -1,0 +1,15 @@
+{
+  "name": "mcp-servers",
+  "version": "1.0.0",
+  "description": "Custom MCP Servers for Mobile Development",
+  "type": "module",
+  "scripts": {
+    "start:xcode": "node xcode/index.js",
+    "start:gradle": "node gradle/index.js",
+    "start:metro": "node metro/index.js",
+    "start:flutter": "node flutter/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1"
+  }
+}

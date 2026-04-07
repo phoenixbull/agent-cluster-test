@@ -1,0 +1,55 @@
+# 敏感信息
+*.pem
+*.key
+*.secret
+.env
+credentials.json
+
+# 日志文件
+logs/*.log
+*.log
+
+# 会话文件
+agents/*/sessions/*.json
+memory/sessions.json
+
+# 包含 Token 的文件
+memory/2026-03-05.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Node
+node_modules/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# Agent 目录 (OpenClaw 管理)
+agents/
+
+
+# 敏感配置
+cluster_config*.json
+!cluster_config.example.json
+memory/settings.json
+GITHUB_CONFIGURED.md
+.env
+
+# 本地敏感配置
+cluster_config_v2.json.local
+*.backup
+GITHUB_CONFIGURED.md
+memory/settings.json
+.env
+
+# 敏感文件
+GITHUB_CONFIGURED.md
+*.backup
+memory/settings.json
+memory/
+cluster_config_v2.json

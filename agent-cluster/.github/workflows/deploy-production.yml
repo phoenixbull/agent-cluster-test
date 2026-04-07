@@ -1,0 +1,77 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Wait for approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.TOKEN }}
+          approvers: admin
+          minimum-approvals: 1
+          issue-title: "Deploy ${{ github.sha }} to Production"
+          issue-body: "Please approve or reject this deployment to production."
+          exclude-workflow-initiator-as-approver: false
+      
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+      
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+      
+      - name: Pre-deployment backup
+        run: |
+          kubectl get deployment app -o yaml > backup-deployment.yaml
+          kubectl get configmap app-config -o yaml > backup-config.yaml
+      
+      - name: Deploy to Production
+        run: |
+          kubectl set image deployment/app app=${{ github.repository }}:${{ github.sha }}
+          kubectl rollout status deployment/app --timeout=300s
+      
+      - name: Health Check
+        run: |
+          for i in {1..60}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.example.com/health)
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Health check passed"
+              exit 0
+            fi
+            echo "Waiting for health check... ($i/60)"
+            sleep 10
+          done
+          echo "❌ Health check failed"
+          exit 1
+      
+      - name: Smoke Test
+        run: |
+          python smoke_test.py --endpoint https://api.example.com
+      
+      - name: Notify Deployment Result
+        if: always()
+        uses: zcong1993/actions-ding@master
+        with:
+          dingToken: ${{ secrets.DINGTALK_WEBHOOK }}
+          secret: ${{ secrets.DINGTALK_SECRET }}
+          body: |
+            {
+              "msgtype": "markdown",
+              "markdown": {
+                "title": "Production Deployment Result",
+                "text": "## Production Deployment Result\n\n**Status**: ${{ job.status }}\n**Commit**: ${{ github.sha }}\n**Environment**: Production\n**Time**: ${{ github.event.head_commit.timestamp }}"
+              }
+            }

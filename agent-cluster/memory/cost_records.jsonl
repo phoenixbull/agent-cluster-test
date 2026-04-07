@@ -1,0 +1,2 @@
+{"timestamp": "2026-03-06T09:50:30.042379", "model": "qwen-plus", "input_tokens": 1000, "output_tokens": 500, "cost": 0.01, "workflow_id": "wf-test-001"}
+{"timestamp": "2026-03-06T09:50:30.043234", "model": "qwen-coder-plus", "input_tokens": 2000, "output_tokens": 1000, "cost": 0.02, "workflow_id": "wf-test-001"}

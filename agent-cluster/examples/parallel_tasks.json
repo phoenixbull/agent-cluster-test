@@ -1,0 +1,14 @@
+[
+  {
+    "agent": "coder",
+    "task": "分析代码库结构，生成模块依赖图"
+  },
+  {
+    "agent": "writer",
+    "task": "根据代码分析结果撰写技术文档"
+  },
+  {
+    "agent": "researcher",
+    "task": "调研类似项目的最佳实践"
+  }
+]

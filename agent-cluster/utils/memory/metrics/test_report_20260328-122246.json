@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-03-28T12:22:46.450041",
+  "status": "passed",
+  "summary": {
+    "total_tests": 0,
+    "passed_tests": 0,
+    "failed_tests": 0,
+    "coverage": 0
+  },
+  "bugs": [
+    {
+      "id": "BUG-20260328-122246-BE",
+      "severity": "critical",
+      "module": "backend",
+      "title": "后端测试失败",
+      "description": "__init__() got an unexpected keyword argument 'capture_output'",
+      "reporter": "Tester"
+    },
+    {
+      "id": "BUG-20260328-122246-FE",
+      "severity": "critical",
+      "module": "frontend",
+      "title": "前端测试失败",
+      "description": "__init__() got an unexpected keyword argument 'capture_output'",
+      "reporter": "Tester"
+    }
+  ]
+}

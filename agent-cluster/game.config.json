@@ -1,0 +1,32 @@
+{
+  "name": "跳一跳小游戏",
+  "version": "1.0.0",
+  "description": "使用 LayaAir 3.3.8 (2D) 复刻微信小游戏跳一跳",
+  "engine": "LayaAir 3.3.8",
+  "type": "2d-game",
+  "platform": ["wechat-minigame", "web", "mobile-web"],
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "laya run",
+    "build": "laya build",
+    "wx": "laya build --platform wx"
+  },
+  "config": {
+    "width": 750,
+    "height": 1334,
+    "fps": 60,
+    "bgColor": "#87CEEB"
+  },
+  "author": "Agent Cluster V2.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phoenixbull/jump-jump-game"
+  },
+  "dependencies": {
+    "layaair": "3.3.8"
+  },
+  "devDependencies": {
+    "laya-cli": "latest"
+  }
+}

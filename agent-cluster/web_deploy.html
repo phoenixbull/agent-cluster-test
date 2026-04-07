@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>部署管理 - Agent Cluster</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f7fa; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 40px; }
+        .nav { display: flex; gap: 15px; margin-top: 15px; }
+        .nav a { color: rgba(255,255,255,0.9); text-decoration: none; padding: 8px 16px; border-radius: 6px; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
+        .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .card h2 { margin-bottom: 20px; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #555; font-weight: 500; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+        .btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; }
+        .btn:hover { transform: translateY(-2px); }
+        .status { padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+        .status.deployed { background: #d1fae5; color: #065f46; }
+        .status.deploying { background: #dbeafe; color: #1e40af; }
+        .status.failed { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 部署管理</h1>
+        <div class="nav">
+            <a href="/">📊 概览</a>
+            <a href="/workflows">📋 工作流</a>
+            <a href="/deploy">🚀 部署管理</a>
+            <a href="/settings">⚙️ 设置</a>
+        </div>
+    </div>
+    <div class="container">
+        <div class="card">
+            <h2>执行部署</h2>
+            <div class="form-group">
+                <label>工作流 ID</label>
+                <input type="text" id="workflowId" placeholder="wf-xxxxx">
+            </div>
+            <div class="form-group">
+                <label>项目</label>
+                <input type="text" id="project" placeholder="project-name">
+            </div>
+            <div class="form-group">
+                <label>代码路径</label>
+                <input type="text" id="codePath" placeholder="/path/to/code">
+            </div>
+            <button class="btn" onclick="deploy()">🚀 执行部署</button>
+        </div>
+        <div class="card">
+            <h2>部署状态</h2>
+            <div class="form-group">
+                <label>部署 ID</label>
+                <input type="text" id="deploymentId" placeholder="deployment_id">
+            </div>
+            <button class="btn" onclick="checkStatus()">🔍 检查状态</button>
+            <div id="statusResult" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+    <script>
+        async function deploy() {
+            const workflowId = document.getElementById('workflowId').value;
+            const project = document.getElementById('project').value;
+            const codePath = document.getElementById('codePath').value;
+            
+            try {
+                const response = await fetch('/api/deploy/execute', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({workflow_id: workflowId, project: project, code_path: codePath})
+                });
+                const result = await response.json();
+                alert(result.success ? '✅ 部署成功' : '❌ 部署失败：' + result.error);
+            } catch (e) {
+                alert('❌ 请求失败：' + e.message);
+            }
+        }
+        
+        async function checkStatus() {
+            const deploymentId = document.getElementById('deploymentId').value;
+            try {
+                const response = await fetch('/api/deploy/status', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({deployment_id: deploymentId})
+                });
+                const result = await response.json();
+                document.getElementById('statusResult').innerHTML = 
+                    '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+            } catch (e) {
+                alert('❌ 请求失败：' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>

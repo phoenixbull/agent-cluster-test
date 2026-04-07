@@ -1,0 +1,11 @@
+{
+  "owner": "kdegeek",
+  "slug": "agent-browser-0",
+  "displayName": "Agent Browser 0",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1771807515588,
+    "commit": "https://github.com/openclaw/skills/commit/2e72e139fb5b2fe8dec5b3a43ff2117c0e857645"
+  },
+  "history": []
+}

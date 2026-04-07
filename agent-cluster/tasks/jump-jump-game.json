@@ -1,0 +1,190 @@
+{
+  "project": {
+    "id": "jump-jump-game",
+    "name": "跳一跳小游戏",
+    "description": "使用 LayaAir 3.3.8 (2D) 复刻微信小游戏跳一跳",
+    "engine": "LayaAir 3.3.8",
+    "type": "2d-game",
+    "platform": ["wechat-minigame", "web", "mobile-web"]
+  },
+  "tasks": [
+    {
+      "id": "task-001",
+      "name": "项目初始化与架构设计",
+      "agent": "zoe",
+      "type": "planning",
+      "priority": "high",
+      "description": "创建项目结构、配置 LayaAir 环境、设计游戏架构",
+      "deliverables": [
+        "项目目录结构",
+        "LayaAir 配置文件",
+        "游戏架构图",
+        "技术选型文档"
+      ]
+    },
+    {
+      "id": "task-002",
+      "name": "游戏核心玩法实现",
+      "agent": "codex",
+      "type": "backend",
+      "priority": "high",
+      "description": "实现跳跃物理、碰撞检测、分数计算等核心逻辑",
+      "deliverables": [
+        "跳跃物理引擎",
+        "碰撞检测系统",
+        "分数计算逻辑",
+        "游戏状态管理"
+      ]
+    },
+    {
+      "id": "task-003",
+      "name": "角色与方块美术资源",
+      "agent": "designer",
+      "type": "design",
+      "priority": "high",
+      "description": "设计并生成游戏角色、方块、背景等 2D 美术资源",
+      "deliverables": [
+        "角色精灵图",
+        "方块精灵图（多种材质）",
+        "背景图",
+        "UI 元素"
+      ]
+    },
+    {
+      "id": "task-004",
+      "name": "游戏场景与渲染",
+      "agent": "claude-code",
+      "type": "frontend",
+      "priority": "high",
+      "description": "实现游戏场景、2D 渲染、动画效果",
+      "deliverables": [
+        "场景管理器",
+        "2D 渲染系统",
+        "角色动画",
+        "特效系统"
+      ]
+    },
+    {
+      "id": "task-005",
+      "name": "关卡系统设计",
+      "agent": "designer",
+      "type": "design",
+      "priority": "medium",
+      "description": "设计关卡难度曲线、方块布局模式",
+      "deliverables": [
+        "关卡配置表",
+        "难度曲线设计",
+        "方块布局模板",
+        "关卡生成算法"
+      ]
+    },
+    {
+      "id": "task-006",
+      "name": "关卡生成实现",
+      "agent": "codex",
+      "type": "backend",
+      "priority": "medium",
+      "description": "实现程序化关卡生成系统",
+      "deliverables": [
+        "关卡生成器",
+        "难度控制系统",
+        "存档系统",
+        "进度管理"
+      ]
+    },
+    {
+      "id": "task-007",
+      "name": "操作与输入处理",
+      "agent": "claude-code",
+      "type": "frontend",
+      "priority": "high",
+      "description": "实现触摸/鼠标操作、蓄力机制",
+      "deliverables": [
+        "触摸输入处理",
+        "蓄力指示器",
+        "操作反馈",
+        "适配移动端"
+      ]
+    },
+    {
+      "id": "task-008",
+      "name": "音效与音乐",
+      "agent": "designer",
+      "type": "design",
+      "priority": "medium",
+      "description": "设计并生成游戏音效、背景音乐",
+      "deliverables": [
+        "跳跃音效",
+        "落地音效",
+        "得分音效",
+        "背景音乐"
+      ]
+    },
+    {
+      "id": "task-009",
+      "name": "UI 界面实现",
+      "agent": "claude-code",
+      "type": "frontend",
+      "priority": "medium",
+      "description": "实现开始界面、游戏界面、结算界面",
+      "deliverables": [
+        "开始界面",
+        "游戏 HUD",
+        "结算界面",
+        "排行榜界面"
+      ]
+    },
+    {
+      "id": "task-010",
+      "name": "微信小游戏适配",
+      "agent": "codex",
+      "type": "backend",
+      "priority": "medium",
+      "description": "适配微信小游戏平台、接入微信 API",
+      "deliverables": [
+        "微信适配层",
+        "用户登录",
+        "好友排行榜",
+        "分享功能"
+      ]
+    },
+    {
+      "id": "task-011",
+      "name": "性能优化",
+      "agent": "codex",
+      "type": "backend",
+      "priority": "low",
+      "description": "性能分析、资源优化、加载优化",
+      "deliverables": [
+        "性能分析报告",
+        "资源压缩方案",
+        "加载优化",
+        "内存管理"
+      ]
+    },
+    {
+      "id": "task-012",
+      "name": "测试与发布",
+      "agent": "claude-code",
+      "type": "frontend",
+      "priority": "low",
+      "description": "功能测试、Bug 修复、打包发布",
+      "deliverables": [
+        "测试报告",
+        "Bug 修复清单",
+        "发布包",
+        "部署文档"
+      ]
+    }
+  ],
+  "workflow": {
+    "mode": "parallel",
+    "max_concurrent": 3,
+    "auto_review": true,
+    "notify_on_complete": true
+  },
+  "github": {
+    "repo": "phoenixbull/jump-jump-game",
+    "branch_prefix": "feature/"
+  }
+}

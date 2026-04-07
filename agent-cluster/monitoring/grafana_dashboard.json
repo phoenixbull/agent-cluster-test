@@ -1,0 +1,190 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Agent Cluster V2.7 监控",
+    "tags": ["agent-cluster"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "type": "stat",
+        "title": "服务状态",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "up{job=\"agent-cluster\"}",
+            "legendFormat": "状态",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"type": "value", "options": {"0": {"text": "宕机", "color": "red"}, "1": {"text": "运行中", "color": "green"}}}
+            ]
+          }
+        }
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "活跃工作流",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "targets": [
+          {
+            "expr": "workflow_status{status=\"running\"}",
+            "legendFormat": "运行中",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "今日完成",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "increase(workflow_status{status=\"completed\"}[24h])",
+            "legendFormat": "完成数",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "今日失败",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "targets": [
+          {
+            "expr": "increase(workflow_status{status=\"failed\"}[24h])",
+            "legendFormat": "失败数",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 5, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "type": "graph",
+        "title": "QPS (每秒请求数)",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[1m])",
+            "legendFormat": "{{method}} {{endpoint}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [{"label": "请求/秒", "min": 0}],
+        "xAxis": {"mode": "time"}
+      },
+      {
+        "id": 6,
+        "type": "graph",
+        "title": "响应时间 (P95/P99)",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P99",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [{"label": "秒", "min": 0}],
+        "xAxis": {"mode": "time"}
+      },
+      {
+        "id": 7,
+        "type": "graph",
+        "title": "内存使用",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes / 1024 / 1024",
+            "legendFormat": "内存 (MB)",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [{"label": "MB", "min": 0}],
+        "xAxis": {"mode": "time"}
+      },
+      {
+        "id": 8,
+        "type": "graph",
+        "title": "CPU 使用率",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "targets": [
+          {
+            "expr": "rate(process_cpu_seconds_total[1m]) * 100",
+            "legendFormat": "CPU %",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [{"label": "%", "min": 0, "max": 100}],
+        "xAxis": {"mode": "time"}
+      },
+      {
+        "id": 9,
+        "type": "graph",
+        "title": "工作流状态趋势",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 20},
+        "targets": [
+          {
+            "expr": "workflow_status{status=\"running\"}",
+            "legendFormat": "运行中",
+            "refId": "A"
+          },
+          {
+            "expr": "workflow_status{status=\"completed\"}",
+            "legendFormat": "已完成",
+            "refId": "B"
+          },
+          {
+            "expr": "workflow_status{status=\"failed\"}",
+            "legendFormat": "失败",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [{"label": "数量", "min": 0}],
+        "xAxis": {"mode": "time"}
+      },
+      {
+        "id": 10,
+        "type": "table",
+        "title": "最近部署",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28},
+        "targets": [
+          {
+            "expr": "deployment_status",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {"id": "organize", "options": {"renameByName": {"deployment_id": "部署 ID", "status": "状态", "environment": "环境"}}}
+        ]
+      }
+    ],
+    "refresh": "30s",
+    "time": {"from": "now-6h", "to": "now"},
+    "version": 1
+  }
+}

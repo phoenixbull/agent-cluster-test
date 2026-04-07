@@ -1,0 +1,51 @@
+{
+  "task_id": "v24-workflow-test-001",
+  "title": "用户反馈系统 - 完整工作流程测试",
+  "description": "为管理后台添加用户反馈功能，包括反馈提交、列表查看、状态管理",
+  "priority": "high",
+  "project": "agent-cluster",
+  
+  "requirements": {
+    "feature": "用户反馈系统",
+    "user_stories": [
+      "作为用户，我可以提交反馈（内容、联系方式、类型）",
+      "作为管理员，我可以查看反馈列表",
+      "作为管理员，我可以标记反馈状态（待处理/处理中/已完成）",
+      "作为管理员，我可以搜索和筛选反馈"
+    ],
+    "acceptance_criteria": [
+      "反馈提交表单包含：内容、联系方式、类型选择",
+      "反馈列表显示：ID、内容摘要、类型、状态、提交时间",
+      "支持按状态筛选（全部/待处理/处理中/已完成）",
+      "支持关键词搜索"
+    ]
+  },
+  
+  "technical_requirements": {
+    "backend": "Python HTTP Server (与现有 web_app_v2.py 一致)",
+    "database": "SQLite (复用 agent_cluster.db)",
+    "frontend": "HTML + CSS + 原生 JavaScript",
+    "api_design": "RESTful 风格"
+  },
+  
+  "workflow_config": {
+    "enable_all_phases": true,
+    "phases": [
+      "1_requirement",
+      "2_design", 
+      "3_development",
+      "4_testing",
+      "5_review",
+      "6_deploy"
+    ],
+    "auto_notify": true,
+    "require_pr": true
+  },
+  
+  "metadata": {
+    "created_at": "2026-03-20T16:40:00+08:00",
+    "created_by": "老五",
+    "purpose": "v2.4 完整工作流程验证",
+    "expected_duration_minutes": 60
+  }
+}

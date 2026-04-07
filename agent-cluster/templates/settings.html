@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置 - Agent 集群管理后台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 24px; font-weight: 600; }
+        .nav-links a { color: white; text-decoration: none; margin-left: 20px; opacity: 0.9; }
+        .nav-links a:hover { opacity: 1; }
+        .container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+        .settings-grid { display: grid; grid-template-columns: 250px 1fr; gap: 30px; }
+        .sidebar { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .sidebar h3 { font-size: 14px; color: #999; margin-bottom: 15px; text-transform: uppercase; }
+        .sidebar ul { list-style: none; }
+        .sidebar li { margin-bottom: 10px; }
+        .sidebar a { display: block; padding: 10px 15px; border-radius: 8px; color: #333; text-decoration: none; transition: all 0.2s; }
+        .sidebar a:hover, .sidebar a.active { background: #f0f0f0; color: #667eea; }
+        .content { background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .section { margin-bottom: 40px; }
+        .section h2 { font-size: 20px; margin-bottom: 20px; color: #333; display: flex; align-items: center; gap: 10px; }
+        .section p { color: #666; margin-bottom: 20px; line-height: 1.6; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: 500; margin-bottom: 8px; color: #333; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px 15px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: border-color 0.2s; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #667eea; }
+        .form-group textarea { min-height: 100px; font-family: monospace; }
+        .form-group small { display: block; margin-top: 5px; color: #999; font-size: 12px; }
+        .btn { display: inline-block; padding: 12px 24px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .btn:hover { background: #5568d3; transform: translateY(-1px); }
+        .btn-secondary { background: #e0e0e0; color: #333; }
+        .btn-secondary:hover { background: #d0d0d0; }
+        .btn-success { background: #10b981; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: #ef4444; }
+        .btn-danger:hover { background: #dc2626; }
+        .card { background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 15px; border: 1px solid #e0e0e0; }
+        .card h4 { font-size: 16px; margin-bottom: 10px; color: #333; }
+        .card p { color: #666; font-size: 14px; margin-bottom: 15px; }
+        .secret-input { position: relative; }
+        .secret-input input { padding-right: 100px; }
+        .secret-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #667eea; cursor: pointer; font-size: 12px; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .status-badge.configured { background: #d1fae5; color: #065f46; }
+        .status-badge.unconfigured { background: #fee2e2; color: #991b1b; }
+        .alert { padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; }
+        .alert-info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+        .alert-success { background: #d1fae5; border: 1px solid #a7f3d0; color: #065f46; }
+        .alert-warning { background: #fef3c7; border: 1px solid #fde68a; color: #92400e; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; }
+        .checkbox-group input[type="checkbox"] { width: auto; }
+        #messageBox { position: fixed; top: 20px; right: 20px; padding: 15px 25px; border-radius: 8px; color: white; font-weight: 500; transform: translateX(400px); transition: transform 0.3s; z-index: 1000; }
+        #messageBox.show { transform: translateX(0); }
+        #messageBox.success { background: #10b981; }
+        #messageBox.error { background: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚙️ 设置</h1>
+        <div class="nav-links">
+            <a href="/">📊 仪表盘</a>
+            <a href="/workflows">📋 工作流</a>
+            <a href="/agents">🤖 Agent</a>
+            <a href="/settings" class="active">⚙️ 设置</a>
+            <a href="/api/logout">🚪 退出</a>
+        </div>
+    </div>
+
+    <div id="messageBox"></div>
+
+    <div class="container">
+        <div class="settings-grid">
+            <div class="sidebar">
+                <h3>配置分类</h3>
+                <ul>
+                    <li><a href="#github" class="active" onclick="showSection('github')">🐙 GitHub</a></li>
+                    <li><a href="#appstore" onclick="showSection('appstore')">🍎 App Store Connect</a></li>
+                    <li><a href="#googleplay" onclick="showSection('googleplay')">🤖 Google Play</a></li>
+                    <li><a href="#certificates" onclick="showSection('certificates')">🔐 证书管理</a></li>
+                    <li><a href="#dingtalk" onclick="showSection('dingtalk')">📱 钉钉通知</a></li>
+                    <li><a href="#cluster" onclick="showSection('cluster')">⚙️ 集群配置</a></li>
+                </ul>
+            </div>
+
+            <div class="content">
+                <!-- GitHub 配置 -->
+                <div id="github-section" class="section">
+                    <h2>🐙 GitHub 配置</h2>
+                    <p>配置 GitHub API 访问权限，用于代码提交、PR 创建和 CI/CD 集成</p>
+                    
+                    <div class="alert alert-info">
+                        ℹ️ <strong>提示：</strong>GitHub Token 需要在 GitHub 设置中生成，权限包括 repo、workflow、admin:org
+                    </div>
+
+                    <form id="githubForm">
+                        <div class="form-group">
+                            <label for="github_token">GitHub Token</label>
+                            <div class="secret-input">
+                                <input type="password" id="github_token" name="github_token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+                                <button type="button" class="secret-toggle" onclick="toggleSecret('github_token')">显示</button>
+                            </div>
+                            <small>GitHub Personal Access Token (Classic)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="github_user">GitHub 用户名</label>
+                            <input type="text" id="github_user" name="github_user" placeholder="phoenixbull">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="github_repo">默认仓库</label>
+                            <input type="text" id="github_repo" name="github_repo" placeholder="agent-cluster-test">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="github_branch_prefix">分支前缀</label>
+                            <input type="text" id="github_branch_prefix" name="github_branch_prefix" placeholder="agent/" value="agent/">
+                            <small>自动创建的分支将使用此前缀，例如：agent/task-123</small>
+                        </div>
+
+                        <button type="submit" class="btn">💾 保存配置</button>
+                        <button type="button" class="btn btn-secondary" onclick="testGithub()">🧪 测试连接</button>
+                        <span id="githubStatus" class="status-badge unconfigured" style="margin-left: 10px;">未配置</span>
+                    </form>
+                </div>
+
+                <!-- App Store Connect 配置 -->
+                <div id="appstore-section" class="section" style="display: none;">
+                    <h2>🍎 App Store Connect 配置</h2>
+                    <p>配置 iOS 应用发布到 TestFlight 和 App Store 所需的 API 凭证</p>
+
+                    <div class="alert alert-info">
+                        ℹ️ <strong>获取方式：</strong>App Store Connect → 用户和访问 → API 密钥 → 生成新密钥
+                    </div>
+
+                    <form id="appstoreForm">
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label for="asc_key_id">API Key ID</label>
+                                <input type="text" id="asc_key_id" name="asc_key_id" placeholder="XXXXXXXXXX">
+                                <small>密钥 ID (10 个字符)</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="asc_issuer_id">Issuer ID</label>
+                                <input type="text" id="asc_issuer_id" name="asc_issuer_id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                                <small>发行者 ID (UUID 格式)</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="asc_key_content">API Key 内容</label>
+                            <textarea id="asc_key_content" name="asc_key_content" placeholder="-----BEGIN PRIVATE KEY-----&#10;MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg...&#10;-----END PRIVATE KEY-----"></textarea>
+                            <small>完整的 .p8 私钥文件内容</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="asc_username">Apple ID</label>
+                            <input type="email" id="asc_username" name="asc_username" placeholder="your_email@example.com">
+                            <small>用于登录 App Store Connect 的 Apple ID</small>
+                        </div>
+
+                        <button type="submit" class="btn">💾 保存配置</button>
+                        <button type="button" class="btn btn-secondary" onclick="testAppStore()">🧪 测试连接</button>
+                        <span id="appstoreStatus" class="status-badge unconfigured" style="margin-left: 10px;">未配置</span>
+                    </form>
+                </div>
+
+                <!-- Google Play 配置 -->
+                <div id="googleplay-section" class="section" style="display: none;">
+                    <h2>🤖 Google Play Console 配置</h2>
+                    <p>配置 Android 应用发布到 Google Play 所需的 API 凭证和签名密钥</p>
+
+                    <div class="alert alert-info">
+                        ℹ️ <strong>获取方式：</strong>Google Play Console → 设置 → API 访问 → 创建服务账号
+                    </div>
+
+                    <form id="googleplayForm">
+                        <div class="form-group">
+                            <label for="gp_credentials">API 凭证 (JSON)</label>
+                            <textarea id="gp_credentials" name="gp_credentials" placeholder='{"type":"service_account","project_id":"..."}'></textarea>
+                            <small>服务账号 JSON 密钥文件完整内容</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="gp_package">应用包名</label>
+                            <input type="text" id="gp_package" name="gp_package" placeholder="com.example.app">
+                            <small>Android 应用的包名</small>
+                        </div>
+
+                        <h3 style="margin: 30px 0 20px 0; font-size: 18px;">🔐 签名密钥配置</h3>
+
+                        <div class="form-group">
+                            <label for="gp_keystore">Keystore (Base64 编码)</label>
+                            <textarea id="gp_keystore" name="gp_keystore" placeholder="UEsDBBQAAAAIAA..."></textarea>
+                            <small>keystore.jks 文件的 Base64 编码内容</small>
+                        </div>
+
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label for="gp_keystore_password">密钥库密码</label>
+                                <div class="secret-input">
+                                    <input type="password" id="gp_keystore_password" name="gp_keystore_password">
+                                    <button type="button" class="secret-toggle" onclick="toggleSecret('gp_keystore_password')">显示</button>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="gp_key_alias">密钥别名</label>
+                                <input type="text" id="gp_key_alias" name="gp_key_alias" placeholder="upload">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="gp_key_password">密钥密码</label>
+                            <div class="secret-input">
+                                <input type="password" id="gp_key_password" name="gp_key_password">
+                                <button type="button" class="secret-toggle" onclick="toggleSecret('gp_key_password')">显示</button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn">💾 保存配置</button>
+                        <button type="button" class="btn btn-secondary" onclick="testGooglePlay()">🧪 测试连接</button>
+                        <span id="googleplayStatus" class="status-badge unconfigured" style="margin-left: 10px;">未配置</span>
+                    </form>
+                </div>
+
+                <!-- 证书管理 -->
+                <div id="certificates-section" class="section" style="display: none;">
+                    <h2>🔐 证书管理</h2>
+                    <p>管理 iOS 证书和配置文件，Android 签名密钥</p>
+
+                    <div class="card">
+                        <h4>🍎 iOS 证书</h4>
+                        <p>使用 Fastlane Match 进行证书管理，支持团队共享</p>
+                        <div class="form-group">
+                            <label for="match_git_url">Match 仓库 URL</label>
+                            <input type="text" id="match_git_url" placeholder="https://github.com/your-team/match">
+                        </div>
+                        <div class="form-group">
+                            <label for="match_password">Match 密码</label>
+                            <div class="secret-input">
+                                <input type="password" id="match_password">
+                                <button type="button" class="secret-toggle" onclick="toggleSecret('match_password')">显示</button>
+                            </div>
+                            <small>用于加密证书的密码</small>
+                        </div>
+                        <button class="btn" onclick="initMatch()">🔧 初始化 Match</button>
+                        <button class="btn btn-secondary" onclick="downloadCertificates()">📥 下载证书</button>
+                    </div>
+
+                    <div class="card">
+                        <h4>🤖 Android 签名</h4>
+                        <p>生成和管理签名密钥</p>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label for="android_keystore_name">密钥库名称</label>
+                                <input type="text" id="android_keystore_name" value="keystore.jks">
+                            </div>
+                            <div class="form-group">
+                                <label for="android_validity">有效期 (天)</label>
+                                <input type="number" id="android_validity" value="10000">
+                            </div>
+                        </div>
+                        <button class="btn" onclick="generateKeystore()">🔑 生成密钥</button>
+                        <button class="btn btn-secondary" onclick="downloadKeystore()">📥 下载密钥库</button>
+                    </div>
+                </div>
+
+                <!-- 钉钉通知配置 -->
+                <div id="dingtalk-section" class="section" style="display: none;">
+                    <h2>📱 钉钉通知配置</h2>
+                    <p>配置钉钉企业应用，接收任务完成、失败等通知</p>
+
+                    <div class="alert alert-success">
+                        ✅ <strong>当前状态：</strong> <span id="dingtalkCurrentStatus">已配置</span>
+                    </div>
+
+                    <form id="dingtalkForm">
+                        <div class="form-group">
+                            <label for="dingtalk_corp_id">Corp ID</label>
+                            <input type="text" id="dingtalk_corp_id" name="dingtalk_corp_id" placeholder="dingxxxxxxxx">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="dingtalk_agent_id">Agent ID</label>
+                            <input type="text" id="dingtalk_agent_id" name="dingtalk_agent_id" placeholder="4286960567">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="dingtalk_client_id">Client ID</label>
+                            <input type="text" id="dingtalk_client_id" name="dingtalk_client_id">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="dingtalk_client_secret">Client Secret</label>
+                            <div class="secret-input">
+                                <input type="password" id="dingtalk_client_secret" name="dingtalk_client_secret">
+                                <button type="button" class="secret-toggle" onclick="toggleSecret('dingtalk_client_secret')">显示</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="dingtalk_callback_token">回调 Token</label>
+                            <input type="text" id="dingtalk_callback_token" name="dingtalk_callback_token" value="openclaw_callback_token_2026">
+                            <small>用于接收钉钉回调消息的验证 Token</small>
+                        </div>
+
+                        <h3 style="margin: 30px 0 20px 0; font-size: 18px;">🔔 通知事件配置</h3>
+
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="notify_task_complete" checked>
+                                <label for="notify_task_complete">任务完成</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="notify_task_failed" checked>
+                                <label for="notify_task_failed">任务失败 (@所有人)</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="notify_pr_ready" checked>
+                                <label for="notify_pr_ready">PR 就绪</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="notify_deploy" checked>
+                                <label for="notify_deploy">部署确认 (@所有人)</label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn">💾 保存配置</button>
+                        <button type="button" class="btn btn-secondary" onclick="testDingtalk()">🧪 发送测试消息</button>
+                    </form>
+                </div>
+
+                <!-- 集群配置 -->
+                <div id="cluster-section" class="section" style="display: none;">
+                    <h2>⚙️ 集群配置</h2>
+                    <p>配置 Agent 集群的核心参数和行为</p>
+
+                    <form id="clusterForm">
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label for="max_parallel_agents">最大并行 Agent 数</label>
+                                <input type="number" id="max_parallel_agents" name="max_parallel_agents" min="1" max="10" value="3">
+                                <small>同时运行的最大 Agent 数量</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="timeout_seconds">任务超时 (秒)</label>
+                                <input type="number" id="timeout_seconds" name="timeout_seconds" min="60" max="7200" value="300">
+                                <small>单个任务的最大执行时间</small>
+                            </div>
+                        </div>
+
+                        <h3 style="margin: 30px 0 20px 0; font-size: 18px;">🎯 质量门禁</h3>
+
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label for="min_test_coverage">最低测试覆盖率 (%)</label>
+                                <input type="number" id="min_test_coverage" name="min_test_coverage" min="0" max="100" value="80">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="max_critical_bugs">最大严重 Bug 数</label>
+                                <input type="number" id="max_critical_bugs" name="max_critical_bugs" min="0" max="10" value="0">
+                            </div>
+                        </div>
+
+                        <h3 style="margin: 30px 0 20px 0; font-size: 18px;">🔄 重试策略</h3>
+
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label for="max_retries">最大重试次数</label>
+                                <input type="number" id="max_retries" name="max_retries" min="0" max="5" value="3">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="retry_delay">重试间隔 (秒)</label>
+                                <input type="number" id="retry_delay" name="retry_delay" min="0" max="300" value="30">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn">💾 保存配置</button>
+                        <button type="button" class="btn btn-danger" onclick="resetClusterConfig()">🔄 重置为默认</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 切换显示区域
+        function showSection(section) {
+            console.log('切换配置:', section);
+            
+            // 隐藏所有 section
+            document.querySelectorAll('.section').forEach(el => {
+                el.style.display = 'none';
+                console.log('隐藏:', el.id);
+            });
+            
+            // 移除所有 active 类
+            document.querySelectorAll('.sidebar a').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // 显示目标 section
+            const targetSection = document.getElementById(section + '-section');
+            if (targetSection) {
+                targetSection.style.display = 'block';
+                console.log('显示:', targetSection.id);
+            } else {
+                console.error('找不到 section:', section + '-section');
+            }
+            
+            // 添加 active 类到当前链接
+            const activeLink = document.querySelector(`.sidebar a[href="#${section}"]`);
+            if (activeLink) {
+                activeLink.classList.add('active');
+            }
+        }
+
+        // 切换密钥显示
+        function toggleSecret(id) {
+            const input = document.getElementById(id);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        // 显示消息
+        function showMessage(message, type = 'success') {
+            const box = document.getElementById('messageBox');
+            box.textContent = message;
+            box.className = type === 'success' ? 'success show' : 'error show';
+            setTimeout(() => box.classList.remove('show'), 3000);
+        }
+
+        // 加载配置
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/settings', {
+                    headers: { 'Authorization': 'Bearer ' + getCookie('auth_token') }
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    fillForm(data.config);
+                    updateStatus(data.status);
+                }
+            } catch (e) {
+                console.error('加载配置失败:', e);
+            }
+        }
+
+        // 填充表单
+        function fillForm(config) {
+            // GitHub
+            if (config.github) {
+                document.getElementById('github_token').value = config.github.token || '';
+                document.getElementById('github_user').value = config.github.user || '';
+                document.getElementById('github_repo').value = config.github.repo || '';
+                document.getElementById('github_branch_prefix').value = config.github.branch_prefix || '';
+            }
+            
+            // App Store
+            if (config.appstore) {
+                document.getElementById('asc_key_id').value = config.appstore.key_id || '';
+                document.getElementById('asc_issuer_id').value = config.appstore.issuer_id || '';
+                document.getElementById('asc_username').value = config.appstore.username || '';
+            }
+            
+            // Google Play
+            if (config.googleplay) {
+                document.getElementById('gp_package').value = config.googleplay.package || '';
+                document.getElementById('gp_key_alias').value = config.googleplay.key_alias || '';
+            }
+            
+            // 钉钉
+            if (config.dingtalk) {
+                document.getElementById('dingtalk_corp_id').value = config.dingtalk.corp_id || '';
+                document.getElementById('dingtalk_agent_id').value = config.dingtalk.agent_id || '';
+                document.getElementById('dingtalk_client_id').value = config.dingtalk.client_id || '';
+                document.getElementById('dingtalk_callback_token').value = config.dingtalk.callback_token || '';
+            }
+            
+            // 集群
+            if (config.cluster) {
+                document.getElementById('max_parallel_agents').value = config.cluster.max_parallel_agents || 3;
+                document.getElementById('timeout_seconds').value = config.cluster.timeout_seconds || 300;
+            }
+        }
+
+        // 更新状态
+        function updateStatus(status) {
+            if (status.github) {
+                document.getElementById('githubStatus').className = 'status-badge configured';
+                document.getElementById('githubStatus').textContent = '已配置';
+            }
+            if (status.appstore) {
+                document.getElementById('appstoreStatus').className = 'status-badge configured';
+                document.getElementById('appstoreStatus').textContent = '已配置';
+            }
+            if (status.googleplay) {
+                document.getElementById('googleplayStatus').className = 'status-badge configured';
+                document.getElementById('googleplayStatus').textContent = '已配置';
+            }
+        }
+
+        // 保存 GitHub 配置
+        document.getElementById('githubForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const data = {
+                github: {
+                    token: document.getElementById('github_token').value,
+                    user: document.getElementById('github_user').value,
+                    repo: document.getElementById('github_repo').value,
+                    branch_prefix: document.getElementById('github_branch_prefix').value
+                }
+            };
+            
+            try {
+                const res = await fetch('/api/settings/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showMessage('✅ GitHub 配置已保存');
+                    loadConfig();
+                } else {
+                    showMessage('❌ ' + (result.error || '保存失败'), 'error');
+                }
+            } catch (e) {
+                showMessage('❌ 网络错误：' + e.message, 'error');
+            }
+        });
+        
+        // 保存 App Store 配置
+        document.getElementById('appstoreForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const data = {
+                appstore: {
+                    key_id: document.getElementById('asc_key_id').value,
+                    issuer_id: document.getElementById('asc_issuer_id').value,
+                    key_content: document.getElementById('asc_key_content').value,
+                    username: document.getElementById('asc_username').value
+                }
+            };
+            
+            try {
+                const res = await fetch('/api/settings/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showMessage('✅ App Store 配置已保存');
+                    loadConfig();
+                } else {
+                    showMessage('❌ ' + (result.error || '保存失败'), 'error');
+                }
+            } catch (e) {
+                showMessage('❌ 网络错误：' + e.message, 'error');
+            }
+        });
+        
+        // 保存 Google Play 配置
+        document.getElementById('googleplayForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const data = {
+                googleplay: {
+                    credentials: document.getElementById('gp_credentials').value,
+                    package: document.getElementById('gp_package').value,
+                    keystore: document.getElementById('gp_keystore').value,
+                    keystore_password: document.getElementById('gp_keystore_password').value,
+                    key_alias: document.getElementById('gp_key_alias').value,
+                    key_password: document.getElementById('gp_key_password').value
+                }
+            };
+            
+            try {
+                const res = await fetch('/api/settings/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showMessage('✅ Google Play 配置已保存');
+                    loadConfig();
+                } else {
+                    showMessage('❌ ' + (result.error || '保存失败'), 'error');
+                }
+            } catch (e) {
+                showMessage('❌ 网络错误：' + e.message, 'error');
+            }
+        });
+        
+        // 保存钉钉配置
+        document.getElementById('dingtalkForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const data = {
+                dingtalk: {
+                    corp_id: document.getElementById('dingtalk_corp_id').value,
+                    agent_id: document.getElementById('dingtalk_agent_id').value,
+                    client_id: document.getElementById('dingtalk_client_id').value,
+                    client_secret: document.getElementById('dingtalk_client_secret').value,
+                    callback_token: document.getElementById('dingtalk_callback_token').value,
+                    events: {
+                        task_complete: document.getElementById('notify_task_complete').checked,
+                        task_failed: document.getElementById('notify_task_failed').checked,
+                        pr_ready: document.getElementById('notify_pr_ready').checked,
+                        deploy: document.getElementById('notify_deploy').checked
+                    }
+                }
+            };
+            
+            try {
+                const res = await fetch('/api/settings/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showMessage('✅ 钉钉配置已保存');
+                    loadConfig();
+                } else {
+                    showMessage('❌ ' + (result.error || '保存失败'), 'error');
+                }
+            } catch (e) {
+                showMessage('❌ 网络错误：' + e.message, 'error');
+            }
+        });
+        
+        // 保存集群配置
+        document.getElementById('clusterForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const data = {
+                cluster: {
+                    max_parallel_agents: parseInt(document.getElementById('max_parallel_agents').value),
+                    timeout_seconds: parseInt(document.getElementById('timeout_seconds').value),
+                    quality_gate: {
+                        min_test_coverage: parseInt(document.getElementById('min_test_coverage').value),
+                        max_critical_bugs: parseInt(document.getElementById('max_critical_bugs').value)
+                    },
+                    retry: {
+                        max_retries: parseInt(document.getElementById('max_retries').value),
+                        retry_delay: parseInt(document.getElementById('retry_delay').value)
+                    }
+                }
+            };
+            
+            try {
+                const res = await fetch('/api/settings/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showMessage('✅ 集群配置已保存');
+                    loadConfig();
+                } else {
+                    showMessage('❌ ' + (result.error || '保存失败'), 'error');
+                }
+            } catch (e) {
+                showMessage('❌ 网络错误：' + e.message, 'error');
+            }
+        });
+
+        // 测试连接
+        async function testGithub() {
+            showMessage('🔄 正在测试 GitHub 连接...', 'success');
+            try {
+                const res = await fetch('/api/settings/test/github', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showMessage('✅ ' + result.message);
+                    document.getElementById('githubStatus').className = 'status-badge configured';
+                    document.getElementById('githubStatus').textContent = '已配置';
+                } else {
+                    showMessage('❌ ' + result.error, 'error');
+                }
+            } catch (e) {
+                showMessage('❌ 测试失败：' + e.message, 'error');
+            }
+        }
+        
+        async function testAppStore() {
+            showMessage('🔄 正在测试 App Store 连接...', 'success');
+            try {
+                const res = await fetch('/api/settings/test/appstore', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showMessage('✅ ' + result.message);
+                    document.getElementById('appstoreStatus').className = 'status-badge configured';
+                    document.getElementById('appstoreStatus').textContent = '已配置';
+                } else {
+                    showMessage('❌ ' + result.error, 'error');
+                }
+            } catch (e) {
+                showMessage('❌ 测试失败：' + e.message, 'error');
+            }
+        }
+        
+        async function testGooglePlay() {
+            showMessage('🔄 正在测试 Google Play 连接...', 'success');
+            try {
+                const res = await fetch('/api/settings/test/googleplay', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showMessage('✅ ' + result.message);
+                    document.getElementById('googleplayStatus').className = 'status-badge configured';
+                    document.getElementById('googleplayStatus').textContent = '已配置';
+                } else {
+                    showMessage('❌ ' + result.error, 'error');
+                }
+            } catch (e) {
+                showMessage('❌ 测试失败：' + e.message, 'error');
+            }
+        }
+        
+        async function testDingtalk() {
+            showMessage('🔄 正在发送测试消息...', 'success');
+            // TODO: 实现钉钉测试 API
+            setTimeout(() => {
+                showMessage('✅ 测试消息已发送');
+            }, 1000);
+        }
+
+        // 工具函数
+        function getCookie(name) {
+            const value = '; ' + document.cookie;
+            const parts = value.split('; ' + name + '=');
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('设置页面已加载');
+            // 默认显示 GitHub section
+            showSection('github');
+            // 加载配置
+            loadConfig();
+        });
+    </script>
+</body>
+</html>

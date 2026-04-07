@@ -1,0 +1,61 @@
+{
+  "projects": {
+    "ecommerce": {
+      "name": "电商项目",
+      "keywords": ["电商", "购物车", "商品", "订单", "支付", "结算", "库存", "物流"],
+      "github": {
+        "user": "phoenixbull",
+        "repo": "ecommerce-platform",
+        "branch_prefix": "feature/"
+      },
+      "workspace": "~/.openclaw/workspace/ecommerce",
+      "agents": {
+        "backend": "codex",
+        "frontend": "claude-code",
+        "design": "designer"
+      }
+    },
+    "blog": {
+      "name": "博客系统",
+      "keywords": ["博客", "文章", "评论", "分类", "标签", "发布", "订阅"],
+      "github": {
+        "user": "phoenixbull",
+        "repo": "blog-system",
+        "branch_prefix": "feature/"
+      },
+      "workspace": "~/.openclaw/workspace/blog",
+      "agents": {
+        "backend": "codex",
+        "frontend": "claude-code"
+      }
+    },
+    "crm": {
+      "name": "CRM 系统",
+      "keywords": ["CRM", "客户", "销售", "线索", "商机", "联系人"],
+      "github": {
+        "user": "phoenixbull",
+        "repo": "crm-system",
+        "branch_prefix": "feature/"
+      },
+      "workspace": "~/.openclaw/workspace/crm",
+      "agents": {
+        "backend": "codex",
+        "frontend": "claude-code"
+      }
+    },
+    "default": {
+      "name": "默认项目",
+      "keywords": [],
+      "github": {
+        "user": "phoenixbull",
+        "repo": "agent-cluster-test",
+        "branch_prefix": "agent/"
+      },
+      "workspace": "~/.openclaw/workspace/agent-cluster-test",
+      "agents": {
+        "backend": "codex",
+        "frontend": "claude-code"
+      }
+    }
+  }
+}

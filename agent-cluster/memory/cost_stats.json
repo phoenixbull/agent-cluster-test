@@ -1,0 +1,50 @@
+{
+  "today": {
+    "total": 0.03,
+    "workflows": 2,
+    "date": "2026-03-06"
+  },
+  "week": {
+    "total": 0.03,
+    "workflows": 2
+  },
+  "month": {
+    "total": 0.03,
+    "workflows": 2
+  },
+  "by_model": {
+    "qwen-max": {
+      "calls": 0,
+      "tokens": 0,
+      "cost": 0.0
+    },
+    "qwen-plus": {
+      "calls": 1,
+      "tokens": 1500,
+      "cost": 0.01
+    },
+    "qwen-turbo": {
+      "calls": 0,
+      "tokens": 0,
+      "cost": 0.0
+    },
+    "qwen-coder-plus": {
+      "calls": 1,
+      "tokens": 3000,
+      "cost": 0.02
+    },
+    "qwen-vl-plus": {
+      "calls": 0,
+      "tokens": 0,
+      "cost": 0.0
+    }
+  },
+  "by_workflow": [
+    {
+      "workflow_id": "wf-test-001",
+      "cost": 0.03,
+      "calls": 2,
+      "timestamp": "2026-03-06T09:50:30.042096"
+    }
+  ]
+}

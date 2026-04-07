@@ -1,0 +1,9 @@
+{
+  "workflow_id": "wf-test",
+  "project": "demo",
+  "code_path": "/tmp/code",
+  "deployment_id": "demo_20260315_225814",
+  "deployed_at": "2026-03-15T22:58:14.638814",
+  "status": "failed",
+  "error": "__init__() got an unexpected keyword argument 'capture_output'"
+}

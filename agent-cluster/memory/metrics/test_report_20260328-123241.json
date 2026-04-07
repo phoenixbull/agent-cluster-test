@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-03-28T12:32:41.194138",
+  "status": "passed",
+  "summary": {
+    "total_tests": 6,
+    "passed_tests": 6,
+    "failed_tests": 0,
+    "coverage": 80.0
+  },
+  "bugs": [
+    {
+      "id": "BUG-20260328-123241-BE",
+      "severity": "critical",
+      "module": "backend",
+      "title": "后端测试失败",
+      "description": "",
+      "reporter": "Tester"
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "id": "arrow-turn-game-20260309",
+  "name": "微信小程序游戏复刻：箭头会拐弯",
+  "description": "复刻热门微信小程序游戏'箭头会拐弯'，包含完整游戏逻辑、关卡系统、动效和 UI 布局",
+  "type": "full_stack",
+  "priority": "high",
+  "created_at": "2026-03-09T10:49:00+08:00",
+  
+  "requirements": {
+    "game_logic": [
+      "箭头自动前进，点击屏幕使箭头 90 度转向（左/右）",
+      "碰撞检测：撞到边界或障碍物游戏结束",
+      "得分系统：每通过一个检查点 +1 分",
+      "连击系统：连续无碰撞转弯获得额外分数",
+      "游戏状态管理：开始、进行中、暂停、结束、重新开始"
+    ],
+    "level_design": [
+      "至少 20 个关卡，难度递增",
+      "关卡类型：直线、Z 字形、螺旋、迷宫、动态障碍",
+      "每关有 3 星评价系统（基于时间和连击）",
+      "关卡数据 JSON 配置，支持热加载",
+      "检查点系统：长关卡中间存档点"
+    ],
+    "animations": [
+      "箭头转弯平滑动画（90 度旋转）",
+      "碰撞爆炸粒子效果",
+      "得分飘字动画",
+      "关卡完成庆祝动画",
+      "按钮点击反馈动画",
+      "箭头拖尾效果"
+    ],
+    "ui_layout": [
+      "主菜单：开始游戏、关卡选择、设置、排行榜",
+      "游戏界面：当前分数、关卡进度、暂停按钮",
+      "结算界面：得分、星级评价、重玩/下一关",
+      "关卡选择网格（5x4 布局，锁定/解锁状态）",
+      "响应式设计，适配不同屏幕尺寸"
+    ],
+    "audio": [
+      "背景音乐（轻松欢快）",
+      "转弯音效",
+      "碰撞音效",
+      "得分音效",
+      "关卡完成音效"
+    ]
+  },
+  
+  "tech_stack": {
+    "frontend": "HTML5 Canvas + JavaScript (原生，无需框架)",
+    "styling": "CSS3 (动画和响应式)",
+    "audio": "Web Audio API / Howler.js",
+    "storage": "localStorage (保存进度和最高分)",
+    "build": "无需构建工具，纯静态文件"
+  },
+  
+  "deliverables": [
+    "index.html - 游戏主页面",
+    "game.js - 核心游戏逻辑",
+    "levels.js - 关卡配置数据",
+    "renderer.js - Canvas 渲染和动画",
+    "audio.js - 音效管理",
+    "ui.js - UI 交互和状态管理",
+    "styles.css - 样式和动画",
+    "assets/ - 图片和音频资源目录",
+    "README.md - 游戏说明和开发文档"
+  ],
+  
+  "acceptance_criteria": [
+    "游戏可流畅运行在主流浏览器（Chrome、Safari、微信内置浏览器）",
+    "移动端触摸操作和桌面端鼠标点击均支持",
+    "60 FPS 流畅度，无明显卡顿",
+    "20 个关卡全部可通关",
+    "游戏进度本地保存，刷新不丢失",
+    "代码结构清晰，有注释"
+  ],
+  
+  "agent_assignments": {
+    "orchestrator": "zoe",
+    "backend": "codex",
+    "frontend": "claude-code",
+    "design": "designer",
+    "reviewers": ["codex-reviewer", "gemini-reviewer"]
+  },
+  
+  "github": {
+    "repo": "phoenixbull/agent-cluster-test",
+    "branch": "agent/arrow-turn-game",
+    "pr_title": "feat: 微信小程序游戏复刻 - 箭头会拐弯",
+    "pr_description": "完整复刻'箭头会拐弯'游戏，包含 20 个关卡、完整 UI 和动效"
+  },
+  
+  "notifications": {
+    "dingtalk": true,
+    "events": ["task_complete", "task_failed", "pr_ready", "human_intervention_needed"]
+  },
+  
+  "estimated_duration_minutes": 45,
+  "timeout_minutes": 90
+}

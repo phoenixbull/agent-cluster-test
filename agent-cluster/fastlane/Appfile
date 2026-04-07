@@ -1,0 +1,10 @@
+# Fastlane Appfile - 通用配置
+
+# iOS 配置
+ios_app_identifier("com.example.app") # Bundle ID
+apple_id("your_email@example.com")   # Apple ID
+itc_team_id("YOUR_ITC_TEAM_ID")      # App Store Connect Team ID
+team_id("YOUR_TEAM_ID")              # Apple Developer Team ID
+
+# Android配置 (在 android/Fastfile 中覆盖)
+# android_package_name("com.example.app")

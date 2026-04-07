@@ -1,0 +1,153 @@
+{
+  "cluster": {
+    "name": "my-agent-cluster",
+    "mode": "supervisor",
+    "max_parallel_agents": 6,
+    "timeout_seconds": 300
+  },
+  "agents": [
+    {
+      "id": "main",
+      "name": "主代理",
+      "workspace": "/home/admin/.openclaw/workspace",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen3.5-plus",
+        "temperature": 0.7
+      },
+      "role": "supervisor",
+      "skills": [
+        "task_delegation",
+        "result_summary",
+        "coordination"
+      ],
+      "mcp_servers": [
+        "filesystem"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "coder",
+      "name": "代码专家",
+      "workspace": "/home/admin/.openclaw/workspace/agents/coder",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen3.5-plus",
+        "temperature": 0.3
+      },
+      "role": "specialist",
+      "skills": [
+        "code_review",
+        "debugging",
+        "refactoring",
+        "testing"
+      ],
+      "mcp_servers": [
+        "filesystem",
+        "github"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "writer",
+      "name": "写作专家",
+      "workspace": "/home/admin/.openclaw/workspace/agents/writer",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen3.5-plus",
+        "temperature": 0.8
+      },
+      "role": "specialist",
+      "skills": [
+        "technical_writing",
+        "documentation",
+        "editing"
+      ],
+      "mcp_servers": [
+        "filesystem"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "researcher",
+      "name": "研究专家",
+      "workspace": "/home/admin/.openclaw/workspace/agents/researcher",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen3.5-plus",
+        "temperature": 0.5
+      },
+      "role": "specialist",
+      "skills": [
+        "web_search",
+        "information_synthesis",
+        "analysis"
+      ],
+      "mcp_servers": [
+        "search",
+        "browser"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "designer",
+      "name": "设计专家",
+      "workspace": "/home/admin/.openclaw/workspace/agents/designer",
+      "model": {
+        "provider": "alibaba-cloud",
+        "model": "qwen3.5-plus",
+        "temperature": 0.6
+      },
+      "role": "specialist",
+      "skills": [
+        "ui_design",
+        "wireframe",
+        "prototype",
+        "design_system"
+      ],
+      "mcp_servers": [
+        "figma",
+        "excalidraw",
+        "filesystem"
+      ],
+      "enabled": true
+    }
+  ],
+  "protocols": {
+    "mcp": {
+      "enabled": true,
+      "servers": [
+        "filesystem",
+        "search",
+        "figma",
+        "excalidraw",
+        "github"
+      ],
+      "timeout_seconds": 30
+    },
+    "a2a": {
+      "enabled": true,
+      "port": 5000,
+      "timeout_seconds": 60
+    },
+    "anp": {
+      "enabled": false,
+      "discovery_interval_seconds": 30
+    }
+  },
+  "tools": {
+    "builtin": [
+      "search",
+      "calculator",
+      "memory",
+      "diagram"
+    ],
+    "mcp": [
+      "filesystem",
+      "github",
+      "search",
+      "figma",
+      "excalidraw"
+    ]
+  }
+}
