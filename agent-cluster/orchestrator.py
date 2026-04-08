@@ -23,6 +23,7 @@ from utils.agent_executor import AgentTaskExecutor
 from utils.project_router import ProjectRouter
 from utils.phase5_reviewer import Phase5Reviewer
 from utils.cicd_integration import CICDIntegration
+from metrics_collector import MVPMetricsCollector  # 📊 MVP 数据收集
 import json
 
 
@@ -826,6 +827,33 @@ class Orchestrator:
         
         coding_result['review_status'] = review_result.get('status', 'pending')
         coding_result['incremental_attempts'] = incremental_attempts
+        
+        # 📊 MVP 数据收集：记录工作流指标
+        try:
+            metrics_data = {
+                'workflow_id': coding_result.get('workflow_id', 'unknown'),
+                'total_files': len(coding_result.get('code_files', [])),
+                'large_files_count': sum(1 for f in coding_result.get('code_files', []) if len(f.get('content', '')) > 8000),
+                'incremental_attempts': incremental_attempts,
+                'files_modified': len(coding_result.get('incremental_changes', [])),
+                'fallback_to_todo': any(
+                    'TODO' in str(change.get('new_content', ''))
+                    for change in coding_result.get('incremental_changes', [])
+                ),
+                'review_passed': review_result.get('status') == 'approved',
+                'review_status': review_result.get('status', 'unknown'),
+                'rollback_performed': coding_result.get('rollback_performed', False),
+                'feedback_quality_usable': True,  # 如果不可用会提前返回
+                'dependency_issues': 0,  # 待实现：检测依赖问题
+                'critical_issues_count': len(review_result.get('issues', [])),
+                'total_time_seconds': 0,  # 待实现：记录总耗时
+                'incremental_time_seconds': 0  # 待实现：记录增量修改耗时
+            }
+            
+            collector = MVPMetricsCollector(str(self.workspace))
+            collector.collect_workflow_metrics(metrics_data)
+        except Exception as e:
+            print(f"⚠️ 数据收集失败：{e}")
         
         return coding_result
     
