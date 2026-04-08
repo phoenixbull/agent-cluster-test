@@ -751,11 +751,12 @@ class Orchestrator:
             output_dir.mkdir(parents=True, exist_ok=True)
             
             # 使用 Agent 执行器生成真实代码
+            # 🔧 短期修复：超时从 3600 秒增加到 7200 秒 (2 小时)，支持大代码量任务
             result = self.executor.execute_task(
                 agent_id=agent_id,
                 task=prompt,
                 output_dir=output_dir,
-                timeout_seconds=3600
+                timeout_seconds=7200  # 2 小时，支持大型任务
             )
             
             results.append({

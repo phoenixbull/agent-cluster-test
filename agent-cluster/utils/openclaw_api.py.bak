@@ -2,11 +2,6 @@
 """
 OpenClaw API 集成模块 - sessions_spawn 版本
 使用 sessions_spawn 直接调用，绕过 bootstrap
-
-🔧 短期修复 (2026-04-08):
-- 默认超时从 300 秒增加到 7200 秒 (2 小时)
-- 支持大代码量任务
-- 增强超时日志输出
 """
 
 import json
@@ -43,20 +38,14 @@ class OpenClawAPI:
             pass
         return None
     
-    def spawn_agent(self, agent_id: str, task: str, timeout_seconds: int = 7200) -> Dict:
+    def spawn_agent(self, agent_id: str, task: str, timeout_seconds: int = 300) -> Dict:
         """
         触发 Agent 执行任务
         
         🆕 使用 openclaw agent 命令，传递明确的任务上下文
-        
-        Args:
-            agent_id: Agent ID
-            task: 任务描述
-            timeout_seconds: 超时时间 (默认 7200 秒=2 小时，支持大代码量任务)
         """
         print(f"\n🚀 触发 Agent: {agent_id} (直接任务模式)")
         print(f"   任务：{task[:80]}...")
-        print(f"   ⏱️ 超时：{timeout_seconds}秒 ({timeout_seconds/60:.1f}分钟)")
         
         if not self.openclaw_cli:
             return self._mock_result(agent_id, task)
@@ -75,15 +64,14 @@ class OpenClawAPI:
                 "--json"
             ]
             
-            print(f"   ⏳ 执行中 (最多等待 {timeout_seconds/60:.0f}分钟)...")
+            print(f"   ⏳ 执行中...")
             
-            # 🔧 使用传递的超时参数，支持长任务
             result = subprocess.run(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
-                timeout=timeout_seconds,  # 使用传入的超时值
+                timeout=timeout_seconds,
                 cwd=str(self.workspace)
             )
             
@@ -125,14 +113,13 @@ class OpenClawAPI:
                 }
             
         except subprocess.TimeoutExpired:
-            print(f"   ⚠️ 执行超时 ({timeout_seconds}秒)")
+            print(f"   ⚠️ 执行超时")
             return {
                 "success": False,
-                "error": f"timeout_after_{timeout_seconds}s",
+                "error": "timeout",
                 "agent_id": agent_id,
                 "task": task,
-                "timestamp": datetime.now().isoformat(),
-                "timeout_seconds": timeout_seconds
+                "timestamp": datetime.now().isoformat()
             }
         except Exception as e:
             print(f"   ❌ 触发失败：{e}")
@@ -144,20 +131,14 @@ class OpenClawAPI:
                 "timestamp": datetime.now().isoformat()
             }
     
-    def spawn_agent_sync(self, agent_id: str, task: str, timeout_seconds: int = 300) -> Dict:
+    def spawn_agent_sync(self, agent_id: str, task: str, timeout_seconds: int = 120) -> Dict:
         """
         同步触发 Agent 并等待结果 (短时间任务)
         
         🆕 使用 sessions_spawn 直接调用
-        
-        Args:
-            agent_id: Agent ID
-            task: 任务描述
-            timeout_seconds: 超时时间 (默认 300 秒=5 分钟，适用于简单任务)
         """
         print(f"\n🚀 触发 Agent: {agent_id} (sessions_spawn 同步模式)")
         print(f"   任务：{task[:80]}...")
-        print(f"   ⏱️ 超时：{timeout_seconds}秒")
         
         if not self.openclaw_cli:
             return self._mock_result(agent_id, task)
@@ -225,11 +206,10 @@ class OpenClawAPI:
             print(f"   ⏰ 执行超时 ({timeout_seconds}秒)")
             return {
                 "success": False,
-                "error": f"timeout_after_{timeout_seconds}s",
+                "error": f"执行超时 ({timeout_seconds}秒)",
                 "agent_id": agent_id,
                 "task": task,
-                "timestamp": datetime.now().isoformat(),
-                "timeout_seconds": timeout_seconds
+                "timestamp": datetime.now().isoformat()
             }
         except Exception as e:
             print(f"   ❌ 执行异常：{e}")
@@ -256,14 +236,12 @@ class OpenClawAPI:
 
 
 # 便捷函数
-def spawn_codex(task: str, timeout: int = 7200) -> Dict:
-    """快捷函数：调用 Codex Agent"""
+def spawn_codex(task: str, timeout: int = 300) -> Dict:
     api = OpenClawAPI()
     return api.spawn_agent("main", task, timeout)
 
 
-def spawn_reviewer(task: str, timeout: int = 7200) -> Dict:
-    """快捷函数：调用 Reviewer Agent"""
+def spawn_reviewer(task: str, timeout: int = 300) -> Dict:
     api = OpenClawAPI()
     return api.spawn_agent("main", task, timeout)
 
