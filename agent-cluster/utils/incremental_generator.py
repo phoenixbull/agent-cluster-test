@@ -133,6 +133,17 @@ class IncrementalCodeGenerator:
         """
         changes = []
         
+        # 🔒 强烈建议：验证反馈质量
+        print(f"\n📋 验证审查反馈质量...")
+        quality = self.validate_feedback_quality(feedback)
+        print(f"   关键问题数：{quality['critical_issues_count']}")
+        print(f"   可操作数：{quality['actionable_count']}")
+        print(f"   质量评估：{quality['recommendation']}")
+        
+        if not quality['usable']:
+            print(f"   ⚠️ 反馈质量不足，跳过增量修改")
+            return []
+        
         # 1. 分析审查反馈，确定需要修改的文件
         files_to_modify = set()
         critical_issues = feedback.get('critical_issues', [])
@@ -151,9 +162,9 @@ class IncrementalCodeGenerator:
             needs_modification = any(file_name in f or file_path in f for f in files_to_modify)
             
             if needs_modification:
-                # 生成修改后的代码 (占位实现)
+                # 生成修改后的代码
                 old_content = file_info.get('content', '')
-                new_content = self._apply_feedback_to_code(old_content, feedback)
+                new_content = self._apply_feedback_to_code(old_content, feedback, file_path)
                 
                 # 分析差异
                 diff_result = self.analyze_code_diff(old_content, new_content, file_path)
@@ -178,16 +189,287 @@ class IncrementalCodeGenerator:
         
         return changes
     
-    def _apply_feedback_to_code(self, code: str, feedback: Dict) -> str:
+    def _apply_feedback_to_code(self, code: str, feedback: Dict, file_path: str = "") -> str:
         """
-        应用审查反馈到代码
+        应用审查反馈到代码 (MVP 实现)
         
-        TODO: 实现真实的代码修改逻辑
-        当前为占位实现
+        实现方案:
+        1. 检查代码大小，处理 Token 限制
+        2. 构建增量修改 prompt
+        3. 调用 OpenClaw Agent
+        4. 解析返回的修改后代码
+        
+        Args:
+            code: 原始代码
+            feedback: 审查反馈
+            file_path: 文件路径 (可选)
+        
+        Returns:
+            修改后的代码
         """
-        # 占位实现：返回原代码
-        # 真实实现应该调用 LLM 根据反馈修改代码
+        # 🔒 必须实现 #1: Token 限制处理
+        if len(code) > 8000:  # 大约 30KB，接近 token 限制
+            print(f"   ⚠️ 文件较大 ({len(code)} 字符)，使用简化策略")
+            # 大文件：只应用关键修改，不保证完整
+            return self._apply_minimal_changes(code, feedback)
+        
+        # 1. 分析代码风格
+        style_analyzer = CodeStyleAnalyzer()
+        style = style_analyzer.analyze_style(code)
+        
+        # 2. 构建增量修改 prompt
+        prompt = self._create_incremental_modification_prompt(
+            code=code,
+            feedback=feedback,
+            style=style,
+            file_path=file_path
+        )
+        
+        # 3. 调用 Agent (使用短超时)
+        try:
+            from .openclaw_api import OpenClawAPI
+            api = OpenClawAPI(str(self.workspace))
+            
+            print(f"   🤖 调用 Agent 进行增量修改...")
+            result = api.spawn_agent(
+                agent_id="codex",  # 使用 codex 进行代码修改
+                task=prompt,
+                timeout_seconds=1800  # 30 分钟
+            )
+            
+            if result.get('success'):
+                # 4. 解析返回的代码
+                modified_code = self._extract_code_from_result(result)
+                
+                if modified_code:
+                    print(f"   ✅ Agent 修改成功")
+                    # 5. 确保风格一致 (简化实现)
+                    return modified_code
+                else:
+                    print(f"   ⚠️ 未能解析返回的代码，保持原样")
+            else:
+                print(f"   ⚠️ Agent 调用失败：{result.get('error', 'unknown')}")
+        
+        except Exception as e:
+            print(f"   ⚠️ 增量修改异常：{e}，保持原代码")
+        
+        # 失败时返回原代码
         return code
+    
+    def _apply_minimal_changes(self, code: str, feedback: Dict) -> str:
+        """
+        应用最小化变更 (针对大文件)
+        
+        策略:
+        1. 只修改审查反馈中明确指出的问题
+        2. 不保证代码风格完全一致
+        3. 快速返回结果
+        
+        Args:
+            code: 原始代码
+            feedback: 审查反馈
+        
+        Returns:
+            修改后的代码 (可能不完整)
+        """
+        # 简化实现：在代码中添加修复注释，提示人工修改
+        fix_comments = "\n# 🔧 TODO: 需要修复以下问题:\n"
+        
+        for issue in feedback.get('critical_issues', []):
+            fix_comments += f"# - {issue.get('description', '未描述')}\n"
+        
+        return code + fix_comments
+    
+    def _create_incremental_modification_prompt(
+        self, code: str, feedback: Dict, style: Dict, file_path: str = ""
+    ) -> str:
+        """
+        创建增量修改 prompt
+        
+        关键要素:
+        1. 原始代码 (上下文)
+        2. 审查反馈 (问题列表)
+        3. 修改要求 (最小化变更)
+        4. 风格约束 (保持一致)
+        
+        Args:
+            code: 原始代码
+            feedback: 审查反馈
+            style: 代码风格
+            file_path: 文件路径
+        
+        Returns:
+            Prompt 文本
+        """
+        # 检测语言
+        language = style.get('language', 'python')
+        if file_path:
+            ext_map = {
+                '.py': 'python',
+                '.js': 'javascript',
+                '.ts': 'typescript',
+                '.tsx': 'typescript',
+                '.jsx': 'javascript',
+                '.java': 'java',
+                '.go': 'go',
+            }
+            ext = Path(file_path).suffix.lower()
+            language = ext_map.get(ext, 'text')
+        
+        prompt = f"""【增量代码修改任务】
+
+你是一个专业的代码审查修复助手。请根据审查反馈修改以下代码。
+
+## 原始代码
+
+```{language}
+{code}
+```
+
+## 审查反馈
+
+### 必须修复的问题 (Critical)
+"""
+        
+        critical_issues = feedback.get('critical_issues', [])
+        if critical_issues:
+            for i, issue in enumerate(critical_issues, 1):
+                prompt += f"{i}. {issue.get('description', '未描述')}\n"
+                if 'file' in issue and issue['file']:
+                    prompt += f"   文件：{issue['file']}\n"
+        else:
+            prompt += "(无)\n"
+        
+        prompt += "\n### 建议修复的问题 (Warning)\n"
+        suggestions = feedback.get('suggestions', [])
+        if suggestions:
+            for i, issue in enumerate(suggestions, 1):
+                prompt += f"{i}. {issue.get('description', '未描述')}\n"
+        else:
+            prompt += "(无)\n"
+        
+        prompt += f"""
+
+## 修改要求
+
+1. **最小化变更原则**: 只修改必要的代码，保持其他部分不变
+2. **代码风格一致**: 
+   - 命名风格：{style.get('naming_convention', 'snake_case')}
+   - 缩进：{style.get('indentation', {}).get('type', 'spaces')} ({style.get('indentation', {}).get('size', 4)})
+   - 引号：{style.get('quote_style', 'double')}
+3. **向后兼容**: 避免破坏性修改
+4. **保留注释**: 保持现有注释和文档
+5. **完整输出**: 返回修改后的完整代码，不要省略任何部分
+
+## 输出格式
+
+直接返回修改后的完整代码，包含在代码块中，不要解释。例如:
+
+```{language}
+[修改后的完整代码]
+```
+"""
+        
+        return prompt
+    
+    def _extract_code_from_result(self, result: Dict) -> Optional[str]:
+        """
+        从 Agent 返回结果中提取代码
+        
+        Args:
+            result: Agent 返回结果
+        
+        Returns:
+            提取的代码，如果提取失败返回 None
+        """
+        import re
+        
+        # 尝试从多个来源提取
+        output = result.get('output', '')
+        
+        if not output:
+            return None
+        
+        # 尝试提取代码块 (支持多种格式)
+        patterns = [
+            r'```[\w]*\n(.*?)```',  # ```python\n...\n```
+            r'```\n(.*?)```',        # ```\n...\n```
+        ]
+        
+        for pattern in patterns:
+            code_blocks = re.findall(pattern, output, re.DOTALL)
+            if code_blocks:
+                return code_blocks[0].strip()
+        
+        # 如果没有代码块，检查是否是纯代码
+        if output.strip() and not output.strip().startswith('{'):
+            return output.strip()
+        
+        return None
+    
+    def validate_feedback_quality(self, feedback: Dict) -> Dict:
+        """
+        🔒 强烈建议：验证审查反馈质量
+        
+        检查反馈是否具体、可操作
+        
+        Args:
+            feedback: 审查反馈
+        
+        Returns:
+            {
+                "usable": bool,
+                "issues": [...],
+                "recommendation": str
+            }
+        """
+        usable = True
+        quality_issues = []
+        
+        # 检查关键问题是否具体
+        critical_issues = feedback.get('critical_issues', [])
+        for issue in critical_issues:
+            desc = issue.get('description', '')
+            
+            # 问题描述太短
+            if len(desc) < 10:
+                quality_issues.append(f"问题描述过于简单：{desc}")
+                usable = False
+            
+            # 缺少文件信息
+            if 'file' not in issue or not issue['file']:
+                quality_issues.append(f"问题未指定文件：{desc}")
+                # 不标记为不可用，但记录
+            
+            # 检查是否有可操作性
+            actionable_keywords = ['添加', '修改', '删除', '修复', '使用', '替换', '移除', '实现']
+            has_action = any(kw in desc.lower() for kw in actionable_keywords)
+            if not has_action:
+                quality_issues.append(f"问题缺乏可操作性：{desc}")
+        
+        # 检查是否有可操作的建议
+        actionable_count = sum(
+            1 for i in critical_issues
+            if any(kw in i.get('description', '').lower() for kw in actionable_keywords)
+        )
+        
+        if actionable_count == 0 and critical_issues:
+            quality_issues.append("审查反馈缺乏可操作性")
+            usable = False
+        
+        # 生成建议
+        if usable:
+            recommendation = f"反馈质量合格，可执行增量修改 ({len(critical_issues)} 个关键问题)"
+        else:
+            recommendation = "需要人工审查反馈质量"
+        
+        return {
+            "usable": usable,
+            "issues": quality_issues,
+            "recommendation": recommendation,
+            "critical_issues_count": len(critical_issues),
+            "actionable_count": actionable_count
+        }
     
     def save_code_history(self, workflow_id: str, file_path: str, 
                          old_content: str, new_content: str, changes: Dict):
