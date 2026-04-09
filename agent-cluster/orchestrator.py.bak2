@@ -23,7 +23,6 @@ from utils.agent_executor import AgentTaskExecutor
 from utils.project_router import ProjectRouter
 from utils.phase5_reviewer import Phase5Reviewer
 from utils.cicd_integration import CICDIntegration
-from metrics_collector import MVPMetricsCollector  # 📊 MVP 数据收集
 import json
 
 
@@ -77,35 +76,16 @@ class WorkflowState:
         self.state_file = self.memory_path / "workflow_state.json"
     
     def load(self) -> Dict:
-        """加载状态（带文件锁保护和错误恢复）"""
-        import fcntl
+        """加载状态"""
         if self.state_file.exists():
-            try:
-                with open(self.state_file, "r", encoding="utf-8") as f:
-                    fcntl.flock(f.fileno(), fcntl.LOCK_SH)  # 获取共享锁
-                    content = f.read()
-                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # 释放锁
-                    if content.strip():
-                        return json.loads(content)
-            except (json.JSONDecodeError, IOError) as e:
-                print(f"⚠️ 状态文件损坏: {e}，使用备份或空状态")
-                # 尝试使用备份文件
-                backup_file = self.state_file.with_suffix('.json.bak')
-                if backup_file.exists():
-                    try:
-                        with open(backup_file, "r", encoding="utf-8") as f:
-                            return json.load(f)
-                    except:
-                        pass
+            with open(self.state_file, "r", encoding="utf-8") as f:
+                return json.load(f)
         return {"workflows": {}}
     
     def save(self, state: Dict):
-        """保存状态（带文件锁保护）"""
-        import fcntl
+        """保存状态"""
         with open(self.state_file, "w", encoding="utf-8") as f:
-            fcntl.flock(f.fileno(), fcntl.LOCK_EX)  # 获取独占锁
             json.dump(state, f, indent=2, ensure_ascii=False)
-            fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # 释放锁
     
     def create_workflow(self, requirement: str) -> str:
         """创建新工作流"""
@@ -246,10 +226,9 @@ class Orchestrator:
         notifications = self.config.get("notifications", {})
         feishu = notifications.get("feishu", {})
         
-        # 🆕 修复：暂时禁用通知功能，避免类型不匹配错误
-        # 原代码返回字典，但调用方期望对象具有 notify_* 方法
         if feishu.get("enabled") and feishu.get("user_id"):
-            print(f"⚠️ 飞书通知已配置但未实现，通知功能已禁用")
+            print(f"✅ 飞书通知已启用")
+            return {"feishu_user_id": feishu.get("user_id")}
         return None
     
     def receive_requirement(self, requirement: str, source: str = "manual") -> str:
@@ -739,9 +718,7 @@ class Orchestrator:
     
     def _coding_phase(self, tasks: List[Dict], design_result: Dict) -> Dict:
         """
-        编码阶段 - 真实生成代码 (支持增量修改)
-        
-        🔒 MVP: 审查不通过时自动触发增量修改 (最多 2 次)
+        编码阶段 - 真实生成代码
         """
         coding_tasks = [t for t in tasks if t.get('type') in ['backend', 'frontend']]
         
@@ -751,7 +728,6 @@ class Orchestrator:
         
         results = []
         all_code_files = []
-        workflow_id = f"wf-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         
         # 并行执行 (实际应该使用 asyncio)
         for task in coding_tasks:
@@ -793,89 +769,11 @@ class Orchestrator:
         
         print(f"\n   ✅ 生成 {len(all_code_files)} 个代码文件")
         
-        coding_result = {
+        return {
             "status": "completed",
             "results": results,
-            "code_files": all_code_files,
-            "workflow_id": workflow_id
+            "code_files": all_code_files
         }
-        
-        # 🔒 MVP: 审查不通过时自动触发增量修改 (最多 2 次)
-        print(f"\n🔍 执行代码审查...")
-        review_result = self._review_phase(coding_result)
-        
-        # 🔒 无限循环防护：最多 2 次增量修改
-        max_incremental_attempts = 2
-        incremental_attempts = 0
-        previous_feedback_hash = None
-        
-        while review_result.get('status') == 'rejected' and incremental_attempts < max_incremental_attempts:
-            incremental_attempts += 1
-            print(f"\n🔄 第 {incremental_attempts}/{max_incremental_attempts} 次增量修改...")
-            
-            # 获取审查反馈
-            workflow_id = coding_result.get('workflow_id', 'unknown')
-            feedback = self.reviewer.collector.get_code_feedback(workflow_id)
-            
-            # 🔒 检测相同问题 (避免重复修改)
-            current_feedback_hash = hash(str(sorted([i.get('description', '') for i in feedback.get('critical_issues', [])])))
-            if previous_feedback_hash and current_feedback_hash == previous_feedback_hash:
-                print(f"⚠️ 检测到相同问题，停止自动修改，需要人工介入")
-                break
-            previous_feedback_hash = current_feedback_hash
-            
-            # 执行增量修改
-            coding_result = self._execute_incremental_fix(coding_result, review_result)
-            
-            # 检查是否有实际修改
-            if not coding_result.get('incremental_changes'):
-                print(f"⚠️ 无实际修改，停止增量循环")
-                break
-            
-            # 快速复审
-            print(f"\n⚡ 执行快速复审...")
-            review_result = self._quick_review_phase(coding_result)
-        
-        # 最终状态检查
-        if review_result.get('status') == 'rejected':
-            if incremental_attempts >= max_incremental_attempts:
-                print(f"\n⚠️ {max_incremental_attempts} 次增量修改后仍未通过，需要人工介入")
-                coding_result['status'] = 'needs_human_intervention'
-            else:
-                print(f"\n⚠️ 增量修改中止，需要人工介入")
-                coding_result['status'] = 'needs_human_intervention'
-        
-        coding_result['review_status'] = review_result.get('status', 'pending')
-        coding_result['incremental_attempts'] = incremental_attempts
-        
-        # 📊 MVP 数据收集：记录工作流指标
-        try:
-            metrics_data = {
-                'workflow_id': coding_result.get('workflow_id', 'unknown'),
-                'total_files': len(coding_result.get('code_files', [])),
-                'large_files_count': sum(1 for f in coding_result.get('code_files', []) if len(f.get('content', '')) > 8000),
-                'incremental_attempts': incremental_attempts,
-                'files_modified': len(coding_result.get('incremental_changes', [])),
-                'fallback_to_todo': any(
-                    'TODO' in str(change.get('new_content', ''))
-                    for change in coding_result.get('incremental_changes', [])
-                ),
-                'review_passed': review_result.get('status') == 'approved',
-                'review_status': review_result.get('status', 'unknown'),
-                'rollback_performed': coding_result.get('rollback_performed', False),
-                'feedback_quality_usable': True,  # 如果不可用会提前返回
-                'dependency_issues': 0,  # 待实现：检测依赖问题
-                'critical_issues_count': len(review_result.get('issues', [])),
-                'total_time_seconds': 0,  # 待实现：记录总耗时
-                'incremental_time_seconds': 0  # 待实现：记录增量修改耗时
-            }
-            
-            collector = MVPMetricsCollector(str(self.workspace))
-            collector.collect_workflow_metrics(metrics_data)
-        except Exception as e:
-            print(f"⚠️ 数据收集失败：{e}")
-        
-        return coding_result
     
     def _testing_loop(self, coding_result: Dict, max_retries: int = 3) -> Dict:
         """测试循环 - P4 真实运行测试"""
@@ -921,19 +819,10 @@ class Orchestrator:
                 else:
                     print(f"   ✅ 前端测试通过：{frontend_result.get('tests_passed', 0)}/{frontend_result.get('tests_run', 0)}")
             print("\n📊 汇总测试结果...")
-            # 🆕 修复：确保返回结果包含 code_files，供后续阶段使用
-            result = self._aggregate_test_results(test_results)
-            result['code_files'] = code_files  # 关键修复：传递代码文件
-            return result
+            return self._aggregate_test_results(test_results)
+        return {'status': 'failed', 'error': '测试未通过，已达到最大重试次数', 'test_results': test_results}
         
-        # 所有重试都失败，返回失败结果（也包含 code_files）
-        failed_result = {
-            'status': 'failed', 
-            'error': '测试未通过，已达到最大重试次数', 
-            'test_results': test_results,
-            'code_files': code_files  # 关键修复：即使失败也传递代码文件
-        }
-        return failed_result
+        return {"status": "failed", "error": "测试未通过"}
     
     def _review_phase(self, test_result: Dict) -> Dict:
         """
@@ -1014,198 +903,6 @@ class Orchestrator:
                 issue['reviewer'] = review.get('reviewer_id', 'unknown')
                 issues.append(issue)
         return issues
-    
-    def _execute_incremental_fix(self, coding_result: Dict, review_result: Dict) -> Dict:
-        """
-        🔒 MVP: 执行增量修复 (带备份和回滚)
-        
-        审查不通过时，自动触发增量修改 (最多 2 次)
-        
-        Args:
-            coding_result: 编码结果
-            review_result: 审查结果
-        
-        Returns:
-            修改后的编码结果
-        """
-        import shutil
-        from utils.incremental_generator import IncrementalCodeGenerator
-        
-        workflow_id = coding_result.get('workflow_id', 'unknown')
-        code_files = coding_result.get('code_files', [])
-        
-        # 🔒 回滚机制：备份目录
-        backup_dir = self.workspace / "incremental_backup" / workflow_id
-        backup_dir.mkdir(parents=True, exist_ok=True)
-        
-        # 获取审查反馈
-        feedback = self.reviewer.collector.get_code_feedback(workflow_id)
-        
-        print(f"   📋 审查反馈:")
-        print(f"      关键问题：{len(feedback.get('critical_issues', []))}")
-        print(f"      建议：{len(feedback.get('suggestions', []))}")
-        
-        # 🔒 验证反馈质量
-        generator = IncrementalCodeGenerator(str(self.workspace))
-        quality = generator.validate_feedback_quality(feedback)
-        
-        if not quality['usable']:
-            print(f"   ⚠️ 反馈质量不足，跳过增量修改")
-            return coding_result
-        
-        # 执行增量修改
-        print(f"\n   🔧 执行增量修改...")
-        try:
-            changes = generator.generate_incremental_changes(
-                workflow_id=workflow_id,
-                original_task="根据审查反馈修复代码",
-                existing_files=code_files,
-                feedback=feedback
-            )
-            
-            if changes:
-                print(f"   ✅ 修改 {len(changes)} 个文件")
-                
-                # 🔒 回滚机制：备份并应用修改
-                modified_files = []
-                for change in changes:
-                    for file_info in code_files:
-                        if file_info['path'] == change['file_path']:
-                            # 备份原始内容
-                            backup_file = backup_dir / Path(change['file_path']).name
-                            with open(backup_file, 'w', encoding='utf-8') as f:
-                                f.write(file_info['content'])
-                            
-                            # 应用修改
-                            file_info['content'] = change['new_content']
-                            file_info['modified'] = True
-                            file_info['backup_path'] = str(backup_file)
-                            modified_files.append(file_info)
-                            break
-                
-                coding_result['code_files'] = code_files
-                coding_result['incremental_changes'] = changes
-                coding_result['backup_dir'] = str(backup_dir)
-                coding_result['modified_files'] = modified_files
-                
-                print(f"   💾 已备份到：{backup_dir}")
-            else:
-                print(f"   ⚠️ 无文件需要修改")
-        
-        except Exception as e:
-            print(f"   ❌ 增量修改失败：{e}")
-            print(f"   🔄 执行回滚...")
-            
-            # 🔒 回滚机制：恢复备份
-            try:
-                for file_info in code_files:
-                    backup_path = file_info.get('backup_path')
-                    if backup_path and Path(backup_path).exists():
-                        with open(backup_path, 'r', encoding='utf-8') as f:
-                            file_info['content'] = f.read()
-                
-                print(f"   ✅ 回滚完成")
-                coding_result['rollback_performed'] = True
-            except Exception as rollback_error:
-                print(f"   ❌ 回滚失败：{rollback_error}")
-                coding_result['status'] = 'failed'
-                coding_result['error'] = f"增量修改失败且回滚失败：{e}"
-            
-            coding_result['incremental_error'] = str(e)
-        
-        return coding_result
-    
-    def _quick_review_phase(self, coding_result: Dict) -> Dict:
-        """
-        🔒 MVP: 快速复审 (真实调用 Reviewer)
-        
-        只审查变更文件，使用 2 个 Reviewer
-        
-        Args:
-            coding_result: 编码结果 (包含增量修改)
-        
-        Returns:
-            审查结果
-        """
-        changes = coding_result.get('incremental_changes', [])
-        
-        if not changes:
-            print(f"   ⚠️ 无变更，跳过复审")
-            return {"status": "approved"}
-        
-        print(f"   📝 复审 {len(changes)} 个变更文件")
-        
-        # 构建复审 Prompt (只包含变更)
-        review_prompt = f"""【快速复审 - 只审查变更】
-
-请审查以下代码变更，重点关注:
-1. 变更是否正确解决了审查反馈中的问题
-2. 变更是否引入了新问题
-3. 变更是否保持了代码风格一致
-
-## 变更列表
-
-"""
-        
-        for i, change in enumerate(changes, 1):
-            review_prompt += f"\n### 变更 {i}: {change['file_path']}\n"
-            review_prompt += f"\n**修改原因**: {change.get('reason', '审查反馈修复')}\n"
-            review_prompt += f"\n**变更内容**:\n```diff\n"
-            review_prompt += f"- {change['old_content'][:500]}\n"  # 限制长度
-            review_prompt += f"+ {change['new_content'][:500]}\n"
-            review_prompt += f"```\n"
-        
-        # 调用 2 个 Reviewer (快速模式)
-        print(f"   🔍 调用 Reviewer (codex-reviewer, gemini-reviewer)...")
-        
-        reviewers = ["codex-reviewer", "gemini-reviewer"]
-        review_results = []
-        
-        for reviewer_id in reviewers:
-            try:
-                result = self.openclaw.spawn_agent(
-                    agent_id=reviewer_id,
-                    task=review_prompt,
-                    timeout_seconds=300  # 5 分钟
-                )
-                
-                if result.get('success'):
-                    # 简单判断：如果没有返回错误，假设通过
-                    # TODO: 解析实际审查结果
-                    review_results.append({
-                        "reviewer": reviewer_id,
-                        "status": "approved",
-                        "timeout_used": 300
-                    })
-                    print(f"   ✅ {reviewer_id}: 通过")
-                else:
-                    review_results.append({
-                        "reviewer": reviewer_id,
-                        "status": "rejected",
-                        "error": result.get('error', 'unknown')
-                    })
-                    print(f"   ❌ {reviewer_id}: 拒绝")
-            
-            except Exception as e:
-                review_results.append({
-                    "reviewer": reviewer_id,
-                    "status": "error",
-                    "error": str(e)
-                })
-                print(f"   ❌ {reviewer_id}: 异常 - {e}")
-        
-        # 判断是否通过 (至少 1 个通过即可)
-        approved_count = sum(1 for r in review_results if r['status'] == 'approved')
-        passed = approved_count >= 1
-        
-        print(f"\n   📊 复审结果：{approved_count}/{len(reviewers)} 通过")
-        
-        return {
-            "status": "approved" if passed else "rejected",
-            "reviewers": review_results,
-            "changed_files": len(changes),
-            "approved_count": approved_count
-        }
     
     def _create_pr(self, workflow_id: str, requirement: str, review_result: Dict) -> Dict:
         """

@@ -1,0 +1,50 @@
+{
+  "workflow_id": "wf-20260409-150610-2876",
+  "reviewer_id": "codex-reviewer",
+  "timestamp": "2026-04-09T15:20:00+08:00",
+  "status": "rejected",
+  "score": 45,
+  "issues": [
+    {
+      "severity": "critical",
+      "file": "backend/api.py",
+      "line": null,
+      "description": "Race condition: Global mutable state (generator, matcher) shared across concurrent requests",
+      "fix": "Use context managers or dependency injection to create per-request instances"
+    },
+    {
+      "severity": "critical", 
+      "file": "backend/workflow_id_match.py",
+      "line": null,
+      "description": "Memory leak: WorkflowIDGenerator.generated_ids list grows unbounded",
+      "fix": "Use WeakSet or don't track generated IDs, or implement TTL/cleanup"
+    },
+    {
+      "severity": "high",
+      "file": "backend/workflow_id_match.py", 
+      "line": null,
+      "description": "Security: MD5 used for hashing (cryptographically broken)",
+      "fix": "Use SHA-256 instead of MD5"
+    },
+    {
+      "severity": "critical",
+      "file": "index.html",
+      "line": null,
+      "description": "Wrong project: Generated game (跳一跳) instead of Todo Web app",
+      "fix": "Regenerate with correct requirements - Flask backend + HTML/JS frontend for Todo app"
+    }
+  ],
+  "comments": [
+    "Code review completed by codex-reviewer (Rex)",
+    "Found 4 critical issues: race conditions, memory leak, security vulnerability, wrong project",
+    "Cannot approve - generated code does not match requirements (Todo app)",
+    "Recommend restarting workflow with clearer requirements"
+  ],
+  "approved_files": [],
+  "rejected_files": [
+    "backend/api.py",
+    "backend/workflow_id_match.py",
+    "index.html"
+  ],
+  "recommendation": "reject"
+}
