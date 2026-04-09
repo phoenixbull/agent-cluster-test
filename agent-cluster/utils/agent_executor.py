@@ -184,8 +184,8 @@ class AgentTaskExecutor:
             
             if execution_status.get('status') == 'completed':
                 print(f"   ✅ Agent 执行完成")
-                # 从结果中提取代码文件
-                return self._extract_code_from_result(result, execution_status)
+                # 从结果中提取代码文件 (传入 agent_id 确保只查找当前 Agent 的会话)
+                return self._extract_code_from_result(result, execution_status, agent_id)
             else:
                 print(f"   ⚠️ Agent 执行超时或失败，回退到模拟执行")
                 return self._simulate_agent_execution(agent_id, task, session_id)
@@ -215,7 +215,7 @@ class AgentTaskExecutor:
             "elapsed_time": time.time() - start_time
         }
     
-    def _extract_code_from_result(self, api_result: Dict, execution_status: Dict) -> Dict:
+    def _extract_code_from_result(self, api_result: Dict, execution_status: Dict, agent_id: str = None) -> Dict:
         """
         从 Agent 会话记录中提取生成的代码文件
         
@@ -226,7 +226,7 @@ class AgentTaskExecutor:
         
         collected_files = []
         
-        # 1. 从 Agent 会话目录查找**最近创建的**会话记录文件
+        # 1. 从指定 Agent 的会话目录查找**最近创建的**会话记录文件
         # 注意：OpenClaw 的 Agent 会话保存在 ~/.openclaw/agents/ 而不是 workspace/agents/
         session_file = None
         latest_mtime = 0
@@ -240,8 +240,10 @@ class AgentTaskExecutor:
         for agents_base_dir in possible_agents_dirs:
             if not agents_base_dir.exists():
                 continue
-                
-            for agent_dir in agents_base_dir.iterdir():
+            
+            # 🔧 修复：如果指定了 agent_id，只查找该 Agent 的会话
+            if agent_id:
+                agent_dir = agents_base_dir / agent_id
                 if agent_dir.is_dir():
                     sessions_dir = agent_dir / "sessions"
                     if sessions_dir.exists():
@@ -251,6 +253,18 @@ class AgentTaskExecutor:
                             if mtime > latest_mtime:
                                 latest_mtime = mtime
                                 session_file = f
+            else:
+                # 兼容旧逻辑：遍历所有 Agent 目录（不推荐）
+                for agent_dir in agents_base_dir.iterdir():
+                    if agent_dir.is_dir():
+                        sessions_dir = agent_dir / "sessions"
+                        if sessions_dir.exists():
+                            # 查找最近修改的 jsonl 文件
+                            for f in sessions_dir.glob("*.jsonl"):
+                                mtime = f.stat().st_mtime
+                                if mtime > latest_mtime:
+                                    latest_mtime = mtime
+                                    session_file = f
         
         if not session_file:
             print(f"   ⚠️ 未找到会话记录文件")

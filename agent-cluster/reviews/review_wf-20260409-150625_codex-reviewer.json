@@ -1,7 +1,7 @@
 {
   "workflow_id": "wf-20260409-150610-2876",
   "reviewer_id": "codex-reviewer",
-  "timestamp": "2026-04-09T15:20:00+08:00",
+  "timestamp": "2026-04-09T15:20:00.000000",
   "status": "rejected",
   "score": 45,
   "issues": [
