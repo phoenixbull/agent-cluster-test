@@ -1,0 +1,515 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.4.1",
+    "lastTouchedAt": "2026-04-07T07:16:15.848Z"
+  },
+  "env": {
+    "TAVILY_API_KEY": "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"
+  },
+  "wizard": {
+    "lastRunAt": "2026-04-02T06:45:01.027Z",
+    "lastRunVersion": "2026.4.1",
+    "lastRunCommand": "onboard",
+    "lastRunMode": "local"
+  },
+  "auth": {
+    "profiles": {
+      "alibaba-cloud:default": {
+        "provider": "alibaba-cloud",
+        "mode": "api_key"
+      }
+    }
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "alibaba-cloud": {
+        "baseUrl": "https://coding.dashscope.aliyuncs.com/v1",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "qwen3.5-plus",
+            "name": "qwen3.5-plus",
+            "reasoning": false,
+            "input": [
+              "text",
+              "image"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 1000000,
+            "maxTokens": 65536
+          },
+          {
+            "id": "qwen3-max-2026-01-23",
+            "name": "qwen3-max-2026-01-23",
+            "reasoning": false,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 262144,
+            "maxTokens": 65536
+          },
+          {
+            "id": "qwen3-coder-next",
+            "name": "qwen3-coder-next",
+            "reasoning": false,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 262144,
+            "maxTokens": 65536
+          },
+          {
+            "id": "qwen3-coder-plus",
+            "name": "qwen3-coder-plus",
+            "reasoning": false,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 1000000,
+            "maxTokens": 65536
+          },
+          {
+            "id": "MiniMax-M2.5",
+            "name": "MiniMax-M2.5",
+            "reasoning": false,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 204800,
+            "maxTokens": 131072
+          },
+          {
+            "id": "glm-5",
+            "name": "glm-5",
+            "reasoning": false,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 202752,
+            "maxTokens": 16384
+          },
+          {
+            "id": "glm-4.7",
+            "name": "glm-4.7",
+            "reasoning": false,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 202752,
+            "maxTokens": 16384
+          },
+          {
+            "id": "kimi-k2.5",
+            "name": "kimi-k2.5",
+            "reasoning": false,
+            "input": [
+              "text",
+              "image"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 262144,
+            "maxTokens": 32768
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "alibaba-cloud/kimi-k2.5"
+      },
+      "imageModel": {
+        "primary": "alibaba-cloud/qwen3-vl-plus"
+      },
+      "models": {
+        "bailian/qwen3.5-plus": {},
+        "bailian/qwen3-max-2026-01-23": {},
+        "bailian/qwen3-coder-next": {},
+        "bailian/qwen3-coder-plus": {},
+        "bailian/MiniMax-M2.5": {},
+        "bailian/glm-5": {},
+        "bailian/glm-4.7": {},
+        "bailian/kimi-k2.5": {}
+      },
+      "workspace": "/home/admin/.openclaw/workspace",
+      "compaction": {
+        "mode": "safeguard",
+        "reserveTokens": 16000,
+        "keepRecentTokens": 20000,
+        "maxHistoryShare": 0.6,
+        "memoryFlush": {
+          "enabled": true,
+          "softThresholdTokens": 40000,
+          "prompt": "Session nearing compaction. Write any lasting notes to memory/YYYY-MM-DD.md. Focus: decisions, state changes, lessons, blockers. Reply with NO_REPLY if nothing to store.",
+          "systemPrompt": "You MUST persist important context before it gets compressed. Write to memory files now."
+        }
+      },
+      "contextPruning": {
+        "mode": "cache-ttl",
+        "ttl": "6h",
+        "keepLastAssistants": 3
+      },
+      "maxConcurrent": 4,
+      "subagents": {
+        "maxConcurrent": 8
+      }
+    },
+    "list": [
+      {
+        "id": "main",
+        "model": "alibaba-cloud/kimi-k2.5"
+      },
+      {
+        "id": "codex",
+        "name": "codex",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex",
+        "agentDir": "/home/admin/.openclaw/agents/codex",
+        "model": "bailian/kimi-k2.5"
+      },
+      {
+        "id": "codex-reviewer",
+        "name": "codex-reviewer",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/codex-reviewer",
+        "agentDir": "/home/admin/.openclaw/agents/codex-reviewer",
+        "model": "bailian/qwen3-coder-next"
+      },
+      {
+        "id": "gemini-reviewer",
+        "name": "gemini-reviewer",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/gemini-reviewer",
+        "agentDir": "/home/admin/.openclaw/agents/gemini-reviewer",
+        "model": "alibaba-cloud/qwen3.5-plus"
+      },
+      {
+        "id": "claude-reviewer",
+        "name": "claude-reviewer",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/claude-reviewer",
+        "agentDir": "/home/admin/.openclaw/agents/claude-reviewer",
+        "model": "alibaba-cloud/qwen3.5-plus"
+      },
+      {
+        "id": "mobile-tester",
+        "name": "mobile-tester",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/mobile-tester",
+        "agentDir": "/home/admin/.openclaw/agents/mobile-tester",
+        "model": "alibaba-cloud/qwen3.5-plus"
+      },
+      {
+        "id": "mobile-ios",
+        "name": "mobile-ios",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/mobile-ios",
+        "agentDir": "/home/admin/.openclaw/agents/mobile-ios",
+        "model": "bailian/kimi-k2.5"
+      },
+      {
+        "id": "mobile-flutter",
+        "name": "mobile-flutter",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/mobile-flutter",
+        "agentDir": "/home/admin/.openclaw/agents/mobile-flutter",
+        "model": "alibaba-cloud/qwen3.5-plus"
+      },
+      {
+        "id": "tester",
+        "name": "tester",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/tester",
+        "agentDir": "/home/admin/.openclaw/agents/tester",
+        "model": "alibaba-cloud/qwen-coder-plus"
+      },
+      {
+        "id": "tech-lead",
+        "name": "tech-lead",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/tech-lead",
+        "agentDir": "/home/admin/.openclaw/agents/tech-lead",
+        "model": "bailian/MiniMax-M2.5"
+      },
+      {
+        "id": "mobile-android",
+        "name": "mobile-android",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/mobile-android",
+        "agentDir": "/home/admin/.openclaw/agents/mobile-android",
+        "model": "bailian/kimi-k2.5"
+      },
+      {
+        "id": "claude-code",
+        "name": "claude-code",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/claude-code",
+        "agentDir": "/home/admin/.openclaw/agents/claude-code",
+        "model": "alibaba-cloud/kimi-k2.5"
+      },
+      {
+        "id": "product-manager",
+        "name": "product-manager",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/product-manager",
+        "agentDir": "/home/admin/.openclaw/agents/product-manager",
+        "model": "alibaba-cloud/qwen-plus"
+      },
+      {
+        "id": "mobile-react-native",
+        "name": "mobile-react-native",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/mobile-react-native",
+        "agentDir": "/home/admin/.openclaw/agents/mobile-react-native",
+        "model": "bailian/MiniMax-M2.5"
+      },
+      {
+        "id": "designer",
+        "name": "designer",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/designer",
+        "agentDir": "/home/admin/.openclaw/agents/designer",
+        "model": "alibaba-cloud/qwen-vl-plus"
+      },
+      {
+        "id": "coder",
+        "name": "coder",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/coder",
+        "agentDir": "/home/admin/.openclaw/agents/coder",
+        "model": "bailian/MiniMax-M2.5"
+      },
+      {
+        "id": "researcher",
+        "name": "researcher",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/researcher",
+        "agentDir": "/home/admin/.openclaw/agents/researcher",
+        "model": "alibaba-cloud/qwen3.5-plus"
+      },
+      {
+        "id": "writer",
+        "name": "writer",
+        "workspace": "/home/admin/.openclaw/workspace/agent-cluster/agents/writer",
+        "agentDir": "/home/admin/.openclaw/agents/writer",
+        "model": "alibaba-cloud/qwen-plus"
+      }
+    ]
+  },
+  "messages": {
+    "ackReactionScope": "group-mentions"
+  },
+  "commands": {
+    "native": true,
+    "nativeSkills": true,
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "cron": {
+    "enabled": true
+  },
+  "hooks": {
+    "internal": {
+      "enabled": true,
+      "entries": {
+        "boot-md": {
+          "enabled": true
+        },
+        "command-logger": {
+          "enabled": true
+        },
+        "session-memory": {
+          "enabled": true
+        },
+        "bootstrap-extra-files": {
+          "enabled": true
+        }
+      }
+    }
+  },
+  "channels": {
+    "feishu": {
+      "accounts": {
+        "feishubot": {
+          "appId": "cli_a90da8f4d9389bcb",
+          "appSecret": "wKB2k6sEQe7EhpWgn35vPbIXnwhp53uA",
+          "domain": "feishu",
+          "enabled": true
+        }
+      },
+      "enabled": true,
+      "appId": "cli_a90da8f4d9389bcb",
+      "appSecret": "wKB2k6sEQe7EhpWgn35vPbIXnwhp53uA",
+      "connectionMode": "websocket",
+      "domain": "feishu",
+      "groupPolicy": "open"
+    }
+  },
+  "approvals": {
+    "exec": {
+      "enabled": false
+    }
+  },
+  "tools": {
+    "profile": "full",
+    "web": {
+      "search": {
+        "provider": "tavily",
+        "enabled": true
+      }
+    }
+  },
+  "gateway": {
+    "port": 14065,
+    "mode": "local",
+    "bind": "lan",
+    "controlUi": {
+      "basePath": "61d171a",
+      "allowedOrigins": [
+        "*"
+      ],
+      "allowInsecureAuth": true,
+      "dangerouslyDisableDeviceAuth": true
+    },
+    "auth": {
+      "mode": "token",
+      "token": "686803b591e9863514199d651a7893c4"
+    },
+    "tailscale": {
+      "mode": "off",
+      "resetOnExit": false
+    },
+    "remote": {
+      "token": "686803b591e9863514199d651a7893c4"
+    },
+    "reload": {
+      "mode": "restart"
+    },
+    "http": {
+      "endpoints": {
+        "chatCompletions": {
+          "enabled": true
+        },
+        "responses": {
+          "enabled": true
+        }
+      }
+    },
+    "nodes": {
+      "denyCommands": [
+        "camera.snap",
+        "camera.clip",
+        "screen.record",
+        "calendar.add",
+        "contacts.add",
+        "reminders.add"
+      ]
+    }
+  },
+  "plugins": {
+    "entries": {
+      "qqbot": {
+        "enabled": false
+      },
+      "feishu": {
+        "enabled": true
+      },
+      "tavily": {
+        "enabled": true
+      },
+      "acpx": {
+        "enabled": true
+      }
+    },
+    "installs": {
+      "acpx": {
+        "source": "path",
+        "spec": "acpx",
+        "sourcePath": "/usr/lib/node_modules/openclaw/dist/extensions/acpx",
+        "installPath": "/usr/lib/node_modules/openclaw/dist/extensions/acpx",
+        "installedAt": "2026-04-02T07:25:40.721Z"
+      }
+    },
+    "load": {
+      "paths": [
+        "/usr/lib/node_modules/openclaw/dist/extensions/acpx"
+      ]
+    }
+  },
+  "acp": {
+    "allowedAgents": [
+      "codex",
+      "claude-code",
+      "mobile-ios",
+      "mobile-android",
+      "mobile-react-native",
+      "mobile-flutter",
+      "tester",
+      "mobile-tester",
+      "designer",
+      "tech-lead",
+      "product-manager",
+      "coder",
+      "researcher",
+      "writer",
+      "codex-reviewer",
+      "gemini-reviewer",
+      "claude-reviewer"
+    ],
+    "defaultAgent": "codex"
+  },
+  "session": {
+    "dmScope": "per-channel-peer",
+    "reset": {
+      "mode": "daily",
+      "atHour": 5,
+      "idleMinutes": 30
+    },
+    "maintenance": {
+      "mode": "enforce",
+      "pruneAfter": "7d",
+      "maxDiskBytes": "500mb"
+    }
+  },
+  "skills": {
+    "entries": {
+      "baidu-search": {
+        "env": {
+          "BAIDU_API_KEY": "bce-v3/ALTAK-PqJEkYvyppiahBviabt6u/3a742fbd3db493aacb3592bcb2ac28bdac287b39"
+        }
+      }
+    }
+  }
+}
