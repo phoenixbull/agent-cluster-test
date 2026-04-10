@@ -1,0 +1,13 @@
+{
+  "workflow_id": "wf-20260410-093434",
+  "reviewer_id": "gemini-reviewer",
+  "timestamp": "2026-04-10T09:37:31.329534",
+  "status": "approved",
+  "score": 85,
+  "issues": [],
+  "comments": [
+    "[模拟审查] gemini-reviewer 审查通过"
+  ],
+  "approved_files": [],
+  "rejected_files": []
+}

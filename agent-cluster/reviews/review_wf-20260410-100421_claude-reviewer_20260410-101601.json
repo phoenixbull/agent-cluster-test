@@ -1,0 +1,13 @@
+{
+  "workflow_id": "wf-20260410-100421",
+  "reviewer_id": "claude-reviewer",
+  "timestamp": "2026-04-10T10:16:01.239987",
+  "status": "approved",
+  "score": 85,
+  "issues": [],
+  "comments": [
+    "[模拟审查] claude-reviewer 审查通过"
+  ],
+  "approved_files": [],
+  "rejected_files": []
+}
