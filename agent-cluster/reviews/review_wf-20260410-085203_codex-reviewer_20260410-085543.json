@@ -1,0 +1,13 @@
+{
+  "workflow_id": "wf-20260410-085203",
+  "reviewer_id": "codex-reviewer",
+  "timestamp": "2026-04-10T08:55:43.615127",
+  "status": "approved",
+  "score": 85,
+  "issues": [],
+  "comments": [
+    "[模拟审查] codex-reviewer 审查通过"
+  ],
+  "approved_files": [],
+  "rejected_files": []
+}
