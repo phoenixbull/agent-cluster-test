@@ -415,6 +415,10 @@ class Orchestrator:
             self.state.update_phase(workflow_id, "coding", "completed", coding_result)
             print(f"   ✅ 编码完成")
             
+            # 🆕 P3.5: 代码审查和增量修改（从 _coding_phase 移出）
+            print("\n🔍 阶段 3.5: 代码审查和增量修改")
+            coding_result = self._review_and_incremental_fix(coding_result)
+            
             # 阶段 4: 测试循环
             print("\n🧪 阶段 4/6: 测试")
             self.state.update_phase(workflow_id, "testing", "in_progress")
@@ -753,15 +757,16 @@ class Orchestrator:
         all_code_files = []
         workflow_id = f"wf-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         
-        # 并行执行 (实际应该使用 asyncio)
-        for task in coding_tasks:
+        # 🆕 串行执行 (避免并发导致 OOM)
+        print(f"\n   📋 共 {len(coding_tasks)} 个编码任务，串行执行...")
+        for i, task in enumerate(coding_tasks, 1):
             agent_id = task.get('agent')
             prompt = task.get('prompt', task.get('description'))
             
-            print(f"   💻 触发 {agent_id} Agent...")
+            print(f"\n   💻 任务 {i}/{len(coding_tasks)}: 触发 {agent_id} Agent...")
             
             # 🆕 确定输出目录（优先级：GitHub repo_dir > ProjectRouter workspace > 临时目录）
-            if self.github and self.github.repo_dir.name and self.github.repo_dir.name != "workspace":
+            if self.github and self.github.repo_dir and self.github.repo_dir.name and self.github.repo_dir.name != "workspace":
                 output_dir = self.github.repo_dir
                 print(f"   📂 使用 GitHub 仓库目录：{output_dir}")
             elif hasattr(self.executor, 'workspace') and self.executor.workspace:
@@ -790,15 +795,41 @@ class Orchestrator:
             
             if result.get('code_files'):
                 all_code_files.extend(result['code_files'])
+            
+            # 🆕 串行执行：等待当前 Agent 完成后再执行下一个
+            print(f"   ✅ 任务 {i}/{len(coding_tasks)} 完成，生成 {len(result.get('code_files', []))} 个文件")
         
         print(f"\n   ✅ 生成 {len(all_code_files)} 个代码文件")
         
+        # 🆕 简化：只返回编码结果，审查逻辑移到 execute_workflow
         coding_result = {
             "status": "completed",
             "results": results,
             "code_files": all_code_files,
             "workflow_id": workflow_id
         }
+        
+        return coding_result
+    
+    def _review_and_incremental_fix(self, coding_result: Dict) -> Dict:
+        """
+        🆕 P3.5: 代码审查和增量修改
+        
+        从 _coding_phase 移出的审查逻辑，作为独立阶段执行
+        支持最多 2 次增量修改
+        
+        Args:
+            coding_result: 编码阶段结果
+        
+        Returns:
+            可能包含增量修改后的编码结果
+        """
+        code_files = coding_result.get('code_files', [])
+        workflow_id = coding_result.get('workflow_id', 'unknown')
+        
+        if not code_files:
+            print("   ⚠️ 没有代码文件，跳过审查")
+            return coding_result
         
         # 🔒 MVP: 审查不通过时自动触发增量修改 (最多 2 次)
         print(f"\n🔍 执行代码审查...")
@@ -814,7 +845,6 @@ class Orchestrator:
             print(f"\n🔄 第 {incremental_attempts}/{max_incremental_attempts} 次增量修改...")
             
             # 获取审查反馈
-            workflow_id = coding_result.get('workflow_id', 'unknown')
             feedback = self.reviewer.collector.get_code_feedback(workflow_id)
             
             # 🔒 检测相同问题 (避免重复修改)
@@ -851,7 +881,7 @@ class Orchestrator:
         # 📊 MVP 数据收集：记录工作流指标
         try:
             metrics_data = {
-                'workflow_id': coding_result.get('workflow_id', 'unknown'),
+                'workflow_id': workflow_id,
                 'total_files': len(coding_result.get('code_files', [])),
                 'large_files_count': sum(1 for f in coding_result.get('code_files', []) if len(f.get('content', '')) > 8000),
                 'incremental_attempts': incremental_attempts,
@@ -863,11 +893,11 @@ class Orchestrator:
                 'review_passed': review_result.get('status') == 'approved',
                 'review_status': review_result.get('status', 'unknown'),
                 'rollback_performed': coding_result.get('rollback_performed', False),
-                'feedback_quality_usable': True,  # 如果不可用会提前返回
-                'dependency_issues': 0,  # 待实现：检测依赖问题
+                'feedback_quality_usable': True,
+                'dependency_issues': 0,
                 'critical_issues_count': len(review_result.get('issues', [])),
-                'total_time_seconds': 0,  # 待实现：记录总耗时
-                'incremental_time_seconds': 0  # 待实现：记录增量修改耗时
+                'total_time_seconds': 0,
+                'incremental_time_seconds': 0
             }
             
             collector = MVPMetricsCollector(str(self.workspace))
