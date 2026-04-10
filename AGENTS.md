@@ -18,6 +18,11 @@ read memory/2026-04-09.md  # 今天发生了什么
 
 # 2. 如果是主会话（直接对话）
 read MEMORY.md        # 长期记忆
+
+# 3. 扫描短期记忆层
+read .learnings/ERRORS.md     # 待处理的错误
+read .learnings/LEARNINGS.md  # 经验教训
+read .learnings/FEATURES.md   # 功能需求
 ```
 
 ### 启动后自检
@@ -58,6 +63,49 @@ TOOLS.md                    # 工具速查
 1. **高** - 业务决策、技术选型、用户偏好
 2. **中** - 项目进度、问题解决方案
 3. **低** - 日常闲聊、临时信息
+
+---
+
+## 🧠 五层记忆体系
+
+```
+L1 身份层    → SOUL.md (人工确认)
+L2 长期记忆  → MEMORY.md (<3000 tokens)
+L3 中期记忆  → memory/YYYY-MM-DD.md (Harness 自动)
+L4 短期记忆  → .learnings/ (3 文件, Agent 即时记录)
+L5 持久化    → Skills + 知识库
+```
+
+### L4 短期记忆层 (.learnings/)
+
+**文件结构：**
+```
+.learnings/
+├── ERRORS.md      # 操作失败、工具报错
+├── LEARNINGS.md   # 用户纠正、最佳实践
+└── FEATURES.md    # 功能需求
+```
+
+**记录格式：**
+```
+[TYPE-YYYYMMDD-NNN] priority | status | 描述
+```
+
+- **TYPE**: ERR / LRN / FEAT
+- **priority**: high / medium / low
+- **status**: pending / resolved / promoted
+
+**Promote 规则：**
+- 同一问题出现 ≥3 次 → promote 到 MEMORY.md
+- <3 次保留 pending，继续观察
+- **SOUL.md 修改必须用户确认**
+
+**示例：**
+```
+[ERR-20260410-001] high | pending | 首尾帧过渡图片 URL 处理错误
+[LRN-20260410-001] high | pending | 用户纠正：不要猜测关键细节
+[FEAT-20260410-001] medium | pending | 知识库需要支持 RSS 自动抓取
+```
 
 ---
 
