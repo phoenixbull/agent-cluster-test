@@ -757,6 +757,17 @@ class Orchestrator:
         all_code_files = []
         workflow_id = f"wf-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         
+        # 🆕 工作流隔离目录：每个工作流创建独立目录
+        if self.github and self.github.repo_dir:
+            workflow_dir = self.github.repo_dir / "workflows" / workflow_id
+        elif hasattr(self.executor, 'workspace') and self.executor.workspace:
+            workflow_dir = self.executor.workspace / "workflows" / workflow_id
+        else:
+            workflow_dir = Path("/tmp/agent-output") / workflow_id
+        
+        workflow_dir.mkdir(parents=True, exist_ok=True)
+        print(f"\n   📁 工作流隔离目录：{workflow_dir}")
+        
         # 🆕 串行执行 (避免并发导致 OOM)
         print(f"\n   📋 共 {len(coding_tasks)} 个编码任务，串行执行...")
         for i, task in enumerate(coding_tasks, 1):
@@ -765,19 +776,9 @@ class Orchestrator:
             
             print(f"\n   💻 任务 {i}/{len(coding_tasks)}: 触发 {agent_id} Agent...")
             
-            # 🆕 确定输出目录（优先级：GitHub repo_dir > ProjectRouter workspace > 临时目录）
-            if self.github and self.github.repo_dir and self.github.repo_dir.name and self.github.repo_dir.name != "workspace":
-                output_dir = self.github.repo_dir
-                print(f"   📂 使用 GitHub 仓库目录：{output_dir}")
-            elif hasattr(self.executor, 'workspace') and self.executor.workspace:
-                output_dir = self.executor.workspace
-                print(f"   📂 使用 ProjectRouter 工作区：{output_dir}")
-            else:
-                output_dir = Path("/tmp/agent-output")
-                print(f"   📂 使用临时目录：{output_dir}")
-            
-            # 确保输出目录存在
-            output_dir.mkdir(parents=True, exist_ok=True)
+            # 🆕 使用工作流隔离目录
+            output_dir = workflow_dir
+            print(f"   📂 使用工作流目录：{output_dir}")
             
             # 使用 Agent 执行器生成真实代码
             # 🔧 短期修复：超时从 3600 秒增加到 7200 秒 (2 小时)，支持大代码量任务
@@ -910,18 +911,22 @@ class Orchestrator:
     def _testing_loop(self, coding_result: Dict, max_retries: int = 3) -> Dict:
         """测试循环 - P4 真实运行测试"""
         code_files = coding_result.get('code_files', [])
+        workflow_id = coding_result.get('workflow_id', 'unknown')
         has_backend = any(f.get('language') == 'python' for f in code_files)
-        has_frontend = any(f.get('language') in ['javascript', 'typescript'] for f in code_files)
+        has_frontend = any(f.get('language') in ['javascript', 'typescript', 'html'] for f in code_files)
         
-        # 🆕 修复：使用正确的项目目录
+        # 🆕 修复：使用工作流隔离目录
         if self.github and self.github.repo_dir:
-            repo_dir = self.github.repo_dir
+            workflow_dir = self.github.repo_dir / "workflows" / workflow_id
+        elif hasattr(self, 'workspace') and self.workspace:
+            workflow_dir = Path(self.workspace) / "workflows" / workflow_id
         else:
-            # 使用当前工作目录作为 repo_dir
-            repo_dir = Path(__file__).parent.parent
-        repo_dir.mkdir(parents=True, exist_ok=True)
+            workflow_dir = Path(__file__).parent.parent / "workflows" / workflow_id
         
-        print(f"   📂 测试目录：{repo_dir}")
+        workflow_dir.mkdir(parents=True, exist_ok=True)
+        
+        print(f"   📂 测试目录：{workflow_dir}")
+        print(f"   🔍 工作流 ID：{workflow_id}")
         print(f"   📝 代码文件：{len(code_files)} 个")
         print(f"   🐍 后端代码：{has_backend}")
         print(f"   📱 前端代码：{has_frontend}")
@@ -930,9 +935,9 @@ class Orchestrator:
             print(f"\n🧪 运行测试 (尝试 {i+1}/{max_retries})...")
             if has_backend:
                 print("\n📦 步骤 1: 安装后端依赖...")
-                self._install_python_deps(repo_dir)
+                self._install_python_deps(workflow_dir)
                 print("\n🐍 步骤 2: 运行 pytest 测试...")
-                backend_result = self._run_pytest_tests(repo_dir)
+                backend_result = self._run_pytest_tests(workflow_dir)
                 test_results['backend'] = backend_result
                 if backend_result.get('status') == 'failed':
                     print(f"   ❌ 后端测试失败：{backend_result.get('error', 'Unknown')}")
@@ -941,15 +946,27 @@ class Orchestrator:
                     print(f"   ✅ 后端测试通过：{backend_result.get('tests_passed', 0)}/{backend_result.get('tests_run', 0)}")
             if has_frontend:
                 print("\n📦 步骤 3: 安装前端依赖...")
-                self._install_node_deps(repo_dir)
+                self._install_node_deps(workflow_dir)
                 print("\n📱 步骤 4: 运行 jest 测试...")
-                frontend_result = self._run_jest_tests(repo_dir)
+                frontend_result = self._run_jest_tests(workflow_dir)
                 test_results['frontend'] = frontend_result
                 if frontend_result.get('status') == 'failed':
                     print(f"   ❌ 前端测试失败：{frontend_result.get('error', 'Unknown')}")
                     if i < max_retries - 1: continue
                 else:
                     print(f"   ✅ 前端测试通过：{frontend_result.get('tests_passed', 0)}/{frontend_result.get('tests_run', 0)}")
+            
+            # 🆕 步骤 5: HTML 文件测试
+            has_html = any(f.get('language') == 'html' for f in code_files)
+            if has_html:
+                print("\n🌐 步骤 5: 运行 HTML 测试...")
+                html_result = self._run_html_tests(workflow_dir, code_files)
+                test_results['html'] = html_result
+                if html_result.get('status') == 'failed':
+                    print(f"   ❌ HTML 测试失败")
+                else:
+                    print(f"   ✅ HTML 测试通过：{html_result.get('tests_passed', 0)}/{html_result.get('tests_run', 0)}")
+            
             print("\n📊 汇总测试结果...")
             # 🆕 修复：确保返回结果包含 code_files，供后续阶段使用
             result = self._aggregate_test_results(test_results)
@@ -1509,6 +1526,78 @@ npm start
         except subprocess.TimeoutExpired: return {"status": "failed", "error": "jest 超时", "tests_run": 0, "tests_passed": 0, "tests_failed": 0, "coverage": 0}
         except Exception as e: return {"status": "failed", "error": str(e), "tests_run": 0, "tests_passed": 0, "tests_failed": 0, "coverage": 0}
     
+    def _run_html_tests(self, repo_dir: Path, code_files: List[Dict]) -> Dict:
+        """
+        🆕 运行 HTML 文件测试
+        
+        测试 HTML 文件的有效性：
+        1. 文件存在性检查
+        2. HTML 语法基础检查
+        3. 关键标签检查
+        """
+        import re
+        from pathlib import Path
+        
+        html_files = [f for f in code_files if f.get('language') == 'html']
+        if not html_files:
+            return {"status": "skipped", "tests_run": 0, "tests_passed": 0, "tests_failed": 0, "coverage": 0}
+        
+        print(f"   🌐 测试 {len(html_files)} 个 HTML 文件...")
+        
+        tests_run = 0
+        tests_passed = 0
+        tests_failed = 0
+        errors = []
+        
+        for file_info in html_files:
+            file_path = Path(file_info.get('path', ''))
+            tests_run += 1
+            
+            # 测试 1: 文件存在
+            if not file_path.exists():
+                tests_failed += 1
+                errors.append(f"{file_info.get('filename')}: 文件不存在")
+                continue
+            
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # 测试 2: 基本 HTML 结构
+                content_upper = content.upper()
+                has_doctype = '<!DOCTYPE HTML>' in content_upper or '<!DOCTYPE HTML>' in content_upper
+                has_html = '<HTML' in content_upper
+                has_body = '<BODY' in content_upper
+                
+                if has_doctype and has_html and has_body:
+                    tests_passed += 1
+                    print(f"      ✅ {file_info.get('filename')}: HTML 结构有效")
+                else:
+                    tests_failed += 1
+                    errors.append(f"{file_info.get('filename')}: 缺少基本 HTML 结构")
+                    
+            except Exception as e:
+                tests_failed += 1
+                errors.append(f"{file_info.get('filename')}: 读取失败 - {e}")
+        
+        # 计算覆盖率（基于文件数量）
+        coverage = (tests_passed / tests_run * 100) if tests_run > 0 else 0
+        status = "passed" if tests_failed == 0 else "failed"
+        
+        print(f"   ✅ HTML 测试：{tests_passed}/{tests_run} 通过, 覆盖率: {coverage:.1f}%")
+        if errors:
+            for err in errors[:3]:
+                print(f"      ⚠️ {err}")
+        
+        return {
+            "status": status,
+            "tests_run": tests_run,
+            "tests_passed": tests_passed,
+            "tests_failed": tests_failed,
+            "coverage": coverage,
+            "errors": errors[:5]
+        }
+    
     def _aggregate_test_results(self, test_results: Dict) -> Dict:
         import json
         from datetime import datetime
@@ -1529,6 +1618,15 @@ npm start
             passed_tests += f.get("tests_passed", 0)
             failed_tests += f.get("tests_failed", 0)
             if f.get("coverage", 0) > 0: coverage_sum += f["coverage"]; coverage_count += 1
+            if f.get("status") == "failed":
+                bugs.append({"id": f"BUG-{datetime.now().strftime('%Y%m%d-%H%M%S')}-FE", "severity": "critical", "module": "frontend", "title": "前端测试失败", "description": f.get("error", ""), "reporter": "Tester"})
+        # 🆕 HTML 测试结果
+        if test_results.get("html"):
+            h = test_results["html"]
+            total_tests += h.get("tests_run", 0)
+            passed_tests += h.get("tests_passed", 0)
+            failed_tests += h.get("tests_failed", 0)
+            if h.get("coverage", 0) > 0: coverage_sum += h["coverage"]; coverage_count += 1
             if f.get("status") == "failed":
                 bugs.append({"id": f"BUG-{datetime.now().strftime('%Y%m%d-%H%M%S')}-FE", "severity": "critical", "module": "frontend", "title": "前端测试失败", "description": f.get("error", ""), "reporter": "Tester"})
         avg_coverage = coverage_sum / coverage_count if coverage_count > 0 else 0
